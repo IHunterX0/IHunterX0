@@ -53,7 +53,7 @@
     if (!p || p.s !== q.get('state')) { donus = Promise.reject(new Error('Giriş doğrulanamadı, tekrar dene.')); return; }
     donus = tokenIste({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: YONLENDIR, client_id: D.clientId, code_verifier: p.v })
       .then(function () { return api('/me'); })
-      .then(function (m) { D.ben = { id: m.id, ad: m.display_name || m.id }; D.premium = m.product === 'premium'; kaydet(); kutuphaneYukle(true).catch(function () {}); });
+      .then(function (m) { D.ben = { id: m.id, ad: m.display_name || m.id }; D.premium = m.product ? m.product === 'premium' : true; kaydet(); kutuphaneYukle(true).catch(function () {}); });
     donus.catch(function () {});
   })();
   function bagli() { return !!(D.clientId && D.yenile); }
@@ -244,13 +244,44 @@
   function hataMetni(e) { return cevir(e) + (e && e.durum ? ' [Spotify ' + e.durum + (e.neden ? ' · ' + e.neden : '') + ']' : ''); }
   function spotifydaAc(uri) { try { location.href = uri; } catch (e) {} }
   function oneDon() { try { if (K && K.oneGetir && K.onPlandaMi && !K.onPlandaMi()) K.oneGetir(); } catch (e) {} }
+  // Bu tableti Spotify cihaz listesinde tanı: WebView user-agent'ındaki model adı (ör. SM-X710) ya da kayıtlı kimlik
+  var MODEL = (/Android [^;]*; ([^;)]+?)(?: Build|\))/.exec(navigator.userAgent) || [])[1] || '';
+  function tabletMi(x) { if (!x) return false; if (D.cihaz && x.id === D.cihaz) return true; var n = String(x.name || '').toLowerCase(), m = MODEL.toLowerCase().trim(); return !!(m && m.length > 2 && (n.indexOf(m) >= 0 || m.indexOf(n) >= 0)); }
   function cihazBul() {
     return api('/me/player/devices').then(function (d) {
       var l = ((d && d.devices) || []).filter(function (x) { return !x.is_restricted; });
-      l.sort(function (a, b) { function p(x) { return x.is_active ? 0 : /tablet|smartphone/i.test(x.type) ? 1 : 2; } return p(a) - p(b); });
-      if (l[0] && /tablet|smartphone/i.test(l[0].type)) { D.cihaz = l[0].id; kaydet(); } // bu tabletin Spotify'ı
-      return l[0] || null;
+      // Bu cihazın türü: tablet WebView'ının user-agent'ında "Mobile" yoktur → telefon tipindeki cihazlar asla "bu cihaz" sayılmaz
+      var tur = /Mobile/.test(navigator.userAgent) ? /smartphone/i : /tablet/i;
+      function p(x) { return tabletMi(x) ? 0 : (x.is_active && tur.test(x.type)) ? 1 : tur.test(x.type) ? 2 : x.is_active ? 4 : 9; }
+      l.sort(function (a, b) { return p(a) - p(b); });
+      var c = l[0] && p(l[0]) < 9 ? l[0] : null;
+      if (YEREL && c && p(c) <= 2 && D.cihaz !== c.id) { D.cihaz = c.id; kaydet(); } // bu tabletin Spotify'ı
+      if (c) c._bu = p(c) <= 2;
+      return c;
     });
+  }
+  // Yerel modda: tabletteki Spotify duraklatılmışsa önce uyandır (Connect listesinden düşmüş olabilir), sonra tableti bul
+  var Adimlar = [];
+  function adim(t) { Adimlar.push(new Date().toLocaleTimeString('tr-TR') + ' ' + t); if (Adimlar.length > 30) Adimlar.shift(); }
+  function tabletBul() { return cihazBul().then(function (c) { return c && c._bu ? c : null; }); }
+  // Döner: tablet cihazı | null (yerel oturum yok → genel yol). Tabletin Spotify'ı açıkken asla başka cihaza çalmaz.
+  function tabletHazirla() {
+    var d = YEREL ? yDurum() : null;
+    if (!d || d.izin === false || !d.var) { adim('yerel oturum yok → genel yol'); return Promise.resolve(null); }
+    var uyandir = !d.calisiyor ? (adim('tablet duraklatılmış → oynat (uyandırma)'), K.spotifyKomut('oynat'), bekle(1500)) : Promise.resolve();
+    var n = 0;
+    function ara() {
+      return tabletBul().then(function (c) {
+        n++; adim('cihaz arama ' + n + ': ' + (c ? c.name + ' [' + c.type + (c.is_active ? ', aktif' : '') + ']' : 'tablet yok'));
+        if (c) return c;
+        if (n >= 4) return api('/me/player/devices').then(function (j) {
+          var l = ((j && j.devices) || []).map(function (x) { return x.name + ' [' + x.type + ']'; }).join(', ') || 'hiç cihaz yok';
+          throw Object.assign(new Error('Bu tablet Spotify\'ın cihaz listesinde görünmüyor (görünenler: ' + l + '). Spotify\'da bir şarkıyı birkaç saniye çalıp tekrar dene.'), { bilgi: true });
+        });
+        return bekle(2000).then(ara);
+      });
+    }
+    return uyandir.then(ara);
   }
   // Cihaz görünene kadar seyrek yokla (en çok 5 kez, 2 sn arayla); kota hatası gelirse hemen dur
   function cihazBekle(n) {
@@ -266,7 +297,7 @@
     return cihazBekle(6).then(function (c) { setTimeout(oneDon, 900); return c; });
   }
   function premiumTazele() {
-    return api('/me').then(function (m) { D.premium = m.product === 'premium'; if (!D.ben) D.ben = { id: m.id, ad: m.display_name || m.id }; kaydet(); return D.premium; }).catch(function () { return D.premium; });
+    return api('/me').then(function (m) { D.premium = m.product ? m.product === 'premium' : (D.premium !== false); if (!D.ben) D.ben = { id: m.id, ad: m.display_name || m.id }; kaydet(); return D.premium; }).catch(function () { return D.premium; });
   }
   // Premium olmadan: karışımı Spotify listesi olarak kaydet ve listeyi Spotify'da aç (tek şarkı değil, bütün karışım)
   function listeOlarakAc(k) {
@@ -282,7 +313,13 @@
       if (k) return listeOlarakAc(k).then(function () { throw Object.assign(new Error('Premium olmadığı için uygulama içinden başlatılamıyor; karışım Spotify\'a liste olarak kaydedildi ve açıldı (oradan ▶ ile baştan sona çalar).'), { bilgi: true }); });
       spotifydaAc(uriler[bas]); throw e;
     }
-    return oynat(null).catch(function (e) {
+    Adimlar = [];
+    return tabletHazirla().then(function (c) {
+      adim('çal → ' + (c ? 'tablete (device_id)' : 'aktif cihaza'));
+      if (!c) return oynat(null);
+      return oynat(c).catch(function (e2) { if (e2.durum !== 404) throw e2; adim('404 → 1,2 sn sonra tekrar'); return bekle(1200).then(function () { return oynat(c); }); });
+    }).then(function (r) { adim('çal: tamam'); return r; }, function (e) { adim('çal: ' + (e.bilgi ? e.message : hataMetni(e))); throw e; }).catch(function (e) {
+      if (e.bilgi) throw e;
       if (e.durum === 404 || e.neden === 'NO_ACTIVE_DEVICE') {
         var dene = function (c) { return oynat(c).catch(function (e2) { if (e2.durum === 404) return bekle(1200).then(function () { return oynat(c); }); throw e2; }); };
         return cihazBul().then(function (c) {
@@ -339,7 +376,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r15';
+  var SURUM = '2026.11.03-r16';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -609,9 +646,11 @@
     sat('Spotify hesabı (isteğe bağlı)', !D.clientId ? 'kurulmadı' : !bagli() ? 'Client ID var, bağlı değil' : 'bağlı (' + (D.ben ? D.ben.ad : '?') + ', ' + (D.premium === true ? 'Premium' : D.premium === false ? 'Premium DEĞİL' : 'Premium bilinmiyor') + ')');
     if (sogumaKaldi()) sat('Spotify API soğuma', Math.ceil(sogumaKaldi() / 1000) + ' sn');
     sat('Kütüphane önbelleği', Kutu ? Kutu.sarkilar.length + ' şarkı' : 'yok');
-    var api1 = bagli() && !sogumaKaldi() ? api('/me').then(function (m) { D.premium = m.product === 'premium'; kaydet(); sat('API /me', 'tamam · ürün: ' + m.product + (m.product !== 'premium' ? ' → Mart 2026 kuralı: geliştirici uygulaması için sahibin Premium olması gerekir' : '')); }, function (e) { sat('API /me', 'HATA ' + hataMetni(e)); }) : Promise.resolve();
+    var api1 = bagli() && !sogumaKaldi() ? api('/me').then(function (m) { if (m.product) { D.premium = m.product === 'premium'; kaydet(); } sat('API /me', 'tamam' + (m.product ? ' · ürün: ' + m.product : ' · (Spotify hesap türünü artık göstermiyor)')); }, function (e) { sat('API /me', 'HATA ' + hataMetni(e)); })
+      .then(function () { return api('/me/player/devices').then(function (j) { var l = (j && j.devices) || []; sat('Spotify\'ın gördüğü cihazlar', l.length ? l.map(function (x) { return x.name + ' [' + x.type + (x.is_active ? ', AKTİF' : '') + (x.is_restricted ? ', kısıtlı' : '') + (tabletMi(x) ? ', ← bu tablet' : '') + ']'; }).join('; ') : 'HİÇ YOK'); }, function (e) { sat('Cihaz listesi', 'HATA ' + hataMetni(e)); }); }) : Promise.resolve();
     var ai = (U.AI ? U.AI.hazir() : Promise.resolve(false)).then(function (ok) { sat('Yapay zekâ', ok ? 'hazır' : 'KAPALI (anahtar yok)'); }, function () { sat('Yapay zekâ', 'hata'); });
     return Promise.all([api1, ai]).then(function () {
+      if (Adimlar.length) { r.push('Son çalma denemesi:'); Adimlar.forEach(function (a) { r.push('  ' + a); }); }
       if (hataKaydi.length) { r.push('Son Spotify API hataları:'); hataKaydi.forEach(function (h) { r.push('  ' + h.t + ' ' + h.yol + ' → ' + h.durum + ' ' + h.neden + ' ' + h.m); }); }
       return r.join('\n');
     });
@@ -686,7 +725,14 @@
     var kopya = el('button', { class: 'dugme', type: 'button', hidden: true, onclick: function () { try { navigator.clipboard.writeText(rapor.textContent); U.toast('Kopyalandı — Claude\'a yapıştır'); } catch (e) {} } }, ['Kopyala']);
     sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'TANILAMA' }),
       el('p', { class: 'sp-durum', text: 'Bir şey çalışmazsa buna bas, çıkan raporu kopyalayıp gönder.' }),
-      el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { rapor.hidden = false; rapor.textContent = 'Kontrol ediliyor…'; tanila().then(function (t) { rapor.textContent = t; kopya.hidden = false; }); } }, ['🩺 Tanılama çalıştır']), kopya]), rapor]));
+      el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { rapor.hidden = false; rapor.textContent = 'Kontrol ediliyor…'; tanila().then(function (t) { rapor.textContent = t; kopya.hidden = false; }); } }, ['🩺 Tanılama çalıştır']),
+        bagli() ? el('button', { class: 'dugme', type: 'button', title: 'Kütüphanenden bir şarkıyı çalmayı dener, her adımı rapora yazar', onclick: function () {
+          rapor.hidden = false; rapor.textContent = 'Test çalma deneniyor…';
+          var x = (Kutu && Kutu.sarkilar[0]) || { u: 'spotify:track:4LRPiXqCikLlN15c3yImP7' };
+          cal([x.u], 0, null).then(function () { return 'TEST: çalma isteği başarılı (' + (x.a || 'As It Was') + ').'; }, function (e) { return 'TEST: başarısız — ' + hataMetni(e); })
+            .then(function (m) { return bekle(2500).then(function () { var d = yDurum(); return m + (d ? '\nTablette şu an: ' + (d.calisiyor ? 'ÇALIYOR ' : 'çalmıyor ') + (d.baslik || '') : ''); }); })
+            .then(function (m) { return tanila().then(function (t) { rapor.textContent = m + '\n\n' + t; kopya.hidden = false; }); });
+        } }, ['▶ Test çalma']) : el('span'), kopya]), rapor]));
   };
   function baglantiCiz(kap) {
     var hk = el('div');
