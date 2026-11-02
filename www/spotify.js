@@ -426,7 +426,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r20';
+  var SURUM = '2026.11.03-r21';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -727,6 +727,7 @@
     sat('Kayıtlı tablet cihazı', (D.cihaz ? 'var' : 'henüz yok') + ' · işe yarayan çalma yolu: ' + (D.calYolu != null ? D.calYolu + 1 : 'henüz yok'));
     sat('Liste çalma yolu', bagli() ? 'Spotify Web API (Premium)' : 'HESAP BAĞLI DEĞİL → liste çalınamaz, yalnız kontrol');
     sat('Yerel dinleme geçmişi', Dinlenen.length + ' şarkı');
+    var sesA = false; try { sesA = localStorage.getItem('hx_ses') === '1'; } catch (e) {} sat('Arayüz sesleri', sesA ? 'açık (müzik çalarken susar)' : 'kapalı');
     sat('Spotify hesabı (isteğe bağlı)', !D.clientId ? 'kurulmadı' : !bagli() ? 'Client ID var, bağlı değil' : 'bağlı (' + (D.ben ? D.ben.ad : '?') + ', ' + (D.premium === true ? 'Premium' : D.premium === false ? 'Premium DEĞİL' : 'Premium bilinmiyor') + ')');
     if (sogumaKaldi()) sat('Spotify API soğuma', Math.ceil(sogumaKaldi() / 1000) + ' sn');
     sat('Kütüphane önbelleği', Kutu ? Kutu.sarkilar.length + ' şarkı' : 'yok');

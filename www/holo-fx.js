@@ -73,12 +73,18 @@
   document.head.appendChild(css);
 
   /* ---------------- 7) arayüz sesleri ---------------- */
-  var sesAcik = true; try { sesAcik = localStorage.getItem('hx_ses') !== '0'; } catch (e) {}
-  var ac = null;
+  // Kullanıcı (r20): "şarkıya tıklayınca çıkan 'cık' sesi mi Spotify'ı durduruyor?" — Android'de uygulamanın çaldığı ses
+  // müzik uygulamalarının ses odağını alıp onları durdurabiliyor. Bu yüzden: varsayılan KAPALI, müzik çalarken hiç çalmaz,
+  // her sesten sonra ses motoru askıya alınır (odağı tutmaz).
+  var sesAcik = false; try { sesAcik = localStorage.getItem('hx_ses') === '1'; } catch (e) {}
+  var ac = null, askiya = null;
+  function muzikCaliyor() { try { var K = window.AndroidKopru; if (K && K.spotifyDurum) { var d = JSON.parse(K.spotifyDurum() || '{}'); if (d.calisiyor) return true; } var s = window.Spotify && window.Spotify.simdi && window.Spotify.simdi(); return !!(s && s.calisiyor); } catch (e) { return false; } }
   function bip(tur) {
-    if (!sesAcik || AZ) return;
+    if (!sesAcik || AZ || muzikCaliyor()) return;
     try {
       ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      clearTimeout(askiya); askiya = setTimeout(function () { try { ac.suspend(); } catch (e) {} }, 1200);
       var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
       var f = { ac: [880, 1320, .09], sec: [1320, 990, .06], acilis: [220, 880, .9], kapat: [990, 660, .07] }[tur] || [1000, 1000, .05];
       o.type = 'sine'; o.frequency.setValueAtTime(f[0], t); o.frequency.exponentialRampToValueAtTime(f[1], t + f[2]);

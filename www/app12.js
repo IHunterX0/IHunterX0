@@ -53,7 +53,8 @@
   function zil(kez) {
     try {
       var C = window.AudioContext || window.webkitAudioContext; if (!C) return;
-      var ac = zil.ac = zil.ac || new C(), t = ac.currentTime;
+      var ac = zil.ac = zil.ac || new C(); if (ac.state === 'suspended') ac.resume(); var t = ac.currentTime;
+      clearTimeout(zil.z); zil.z = setTimeout(function () { try { ac.suspend(); } catch (e) {} }, 2000); // ses odağını tutmasın (Spotify'ı durdurmasın)
       for (var i = 0; i < (kez || 2); i++) {
         var o = ac.createOscillator(), g = ac.createGain();
         o.type = 'sine'; o.frequency.value = i % 2 ? 660 : 880; o.connect(g); g.connect(ac.destination);
