@@ -34,13 +34,7 @@ public class CarvisServis extends android.app.Service implements org.vosk.androi
     }
 
     boolean dinlemeUygun() {
-        if (sessizMod()) {
-            return false;
-        }
-        if (((android.os.PowerManager) getSystemService("power")).isInteractive()) {
-            return true;
-        }
-        return ((android.os.BatteryManager) getSystemService("batterymanager")).isCharging();
+        return !sessizMod();
     }
 
     void durumDegisti() {
@@ -60,7 +54,7 @@ public class CarvisServis extends android.app.Service implements org.vosk.androi
     }
 
     java.lang.String uykuMetni() {
-        return sessizMod() ? "Rahatsız Etmeyin açık: Carvis dinlemiyor" : "Ekran kapalı: Carvis pil için dinlemiyor";
+        return "Rahatsız Etmeyin açık: Carvis dinlemiyor";
     }
 
     static void konusmaBasladi() {
@@ -135,10 +129,6 @@ public class CarvisServis extends android.app.Service implements org.vosk.androi
         }).start();
         android.content.IntentFilter intentFilter = new android.content.IntentFilter();
         intentFilter.addAction("android.app.action.INTERRUPTION_FILTER_CHANGED");
-        intentFilter.addAction("android.intent.action.SCREEN_ON");
-        intentFilter.addAction("android.intent.action.SCREEN_OFF");
-        intentFilter.addAction("android.intent.action.ACTION_POWER_CONNECTED");
-        intentFilter.addAction("android.intent.action.ACTION_POWER_DISCONNECTED");
         com.dogac.bin1.CarvisServis.Alici alici = new com.dogac.bin1.CarvisServis.Alici(this);
         this.alici = alici;
         registerReceiver(alici, intentFilter);

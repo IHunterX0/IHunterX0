@@ -4,7 +4,7 @@
   `CarvisServis.java` yamalı sürümdür.
 - `smali-yama/`: APK'ya uygulanan değişiklik (`CarvisServis.smali`, yeni `CarvisServis$Alici.smali`).
   - Rahatsız Etmeyin açıkken mikrofon tamamen kapanır, kapanınca geri açılır.
-  - Ekran kapalıyken ve şarjda değilken dinleme durur (pil).
+  - (Ekran kapalıyken de dinler; yalnız DND açıkken susar.)
 
 ## Yeniden derleme
     java -jar apktool.jar d -r orijinal.apk -o dec

@@ -2005,22 +2005,6 @@
 
     invoke-virtual {v2, v3}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
 
-    const-string v3, "android.intent.action.SCREEN_ON"
-
-    invoke-virtual {v2, v3}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
-
-    const-string v3, "android.intent.action.SCREEN_OFF"
-
-    invoke-virtual {v2, v3}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
-
-    const-string v3, "android.intent.action.ACTION_POWER_CONNECTED"
-
-    invoke-virtual {v2, v3}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
-
-    const-string v3, "android.intent.action.ACTION_POWER_DISCONNECTED"
-
-    invoke-virtual {v2, v3}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
-
     new-instance v3, Lcom/dogac/bin1/CarvisServis$Alici;
 
     invoke-direct {v3, p0}, Lcom/dogac/bin1/CarvisServis$Alici;-><init>(Lcom/dogac/bin1/CarvisServis;)V
@@ -2365,49 +2349,13 @@
 
 # --- eklendi: Rahatsız Etmeyin ve pil ---
 .method dinlemeUygun()Z
-    .locals 2
+    .locals 1
 
     invoke-virtual {p0}, Lcom/dogac/bin1/CarvisServis;->sessizMod()Z
 
     move-result v0
 
-    if-eqz v0, :dnd_kapali
-
-    const/4 v0, 0x0
-
-    return v0
-
-    :dnd_kapali
-    const-string v0, "power"
-
-    invoke-virtual {p0, v0}, Lcom/dogac/bin1/CarvisServis;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
-
-    move-result-object v0
-
-    check-cast v0, Landroid/os/PowerManager;
-
-    invoke-virtual {v0}, Landroid/os/PowerManager;->isInteractive()Z
-
-    move-result v0
-
-    if-nez v0, :evet
-
-    const-string v0, "batterymanager"
-
-    invoke-virtual {p0, v0}, Lcom/dogac/bin1/CarvisServis;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
-
-    move-result-object v0
-
-    check-cast v0, Landroid/os/BatteryManager;
-
-    invoke-virtual {v0}, Landroid/os/BatteryManager;->isCharging()Z
-
-    move-result v0
-
-    return v0
-
-    :evet
-    const/4 v0, 0x1
+    xor-int/lit8 v0, v0, 0x1
 
     return v0
 .end method
@@ -2415,18 +2363,7 @@
 .method uykuMetni()Ljava/lang/String;
     .locals 1
 
-    invoke-virtual {p0}, Lcom/dogac/bin1/CarvisServis;->sessizMod()Z
-
-    move-result v0
-
-    if-eqz v0, :ekran
-
     const-string v0, "Rahats\u0131z Etmeyin a\u00e7\u0131k: Carvis dinlemiyor"
-
-    return-object v0
-
-    :ekran
-    const-string v0, "Ekran kapal\u0131: Carvis pil i\u00e7in dinlemiyor"
 
     return-object v0
 .end method
