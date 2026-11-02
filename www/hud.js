@@ -54,6 +54,7 @@
     '.hud-pil{display:inline-flex;align-items:center;gap:4px}.hud-pil i{display:inline-block;width:20px;height:9px;border:1px solid currentColor;border-radius:2px;position:relative}',
     '.hud-pil i::after{content:"";position:absolute;left:1px;top:1px;bottom:1px;width:calc((100% - 2px) * var(--p,1));background:var(--holo);box-shadow:0 0 6px var(--holo)}',
     '.hud-nav{overflow:hidden}.hud-grup{flex-shrink:0}',
+    '@media (max-width:1440px){.hud-tel .uzun,.hud-tel .cv{display:none}.hud-grup .k{display:none}}',
     '@media (max-width:1100px){.hud-grup .k{display:none}.hud-tel .uzun{display:none}.logo small{display:none}}',
     '@media (max-width:900px){.hud-grup{padding:0 9px 0 7px;letter-spacing:.06em;gap:6px;font-size:12px}.hud-nav{gap:4px;margin-left:6px}.hud-tel{gap:8px}.hud-tel .cv,.hud-tel .hud-pil{display:none!important}.logo > span:last-child{display:none}}',
     '@media (max-width:640px){.hud-grup .ad{display:none}.hud-grup{padding:0 11px}.hud-tel{display:none}.logo > span:last-child{display:none}}',
