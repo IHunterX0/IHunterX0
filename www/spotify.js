@@ -182,8 +182,8 @@
       if (l.length < 3) throw new Error('öneri boş geldi');
       var k = { id: Date.now().toString(36), ruh: ruh, baslik: j.baslik || ruh, yorum: j.yorum || '', sarkilar: l, yeniAra: [], t: Date.now() };
       karisimSakla(k); return k;
-    }, function (e) {
-      if (kutu.sarkilar.length >= 5) return yerelKarisim(kutu, ruh, 'zaman aşımı/kota');
+    }).catch(function (e) { // ayrıştırma/boş cevap hataları da buraya düşer
+      if (kutu.sarkilar.length >= 5) return yerelKarisim(kutu, ruh, /boş/.test(String(e && e.message)) ? 'yetersiz cevap' : 'zaman aşımı/kota');
       var m = String(e && (e.code || e.message) || e);
       throw new Error(/rate|kota|429/i.test(m) ? 'Yapay zekâ kotası şu an dolu; biraz sonra tekrar dene.' : 'Yapay zekâ cevap vermedi: ' + (e && e.message || e));
     });
@@ -330,7 +330,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.02-r13';
+  var SURUM = '2026.11.02-r14';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -398,13 +398,42 @@
     }
     return kontrolApi(komut);
   }
-  function karisimCal(k, i) {
-    if (YEREL) return yerelBaslat(k, i);
-    var l = k.sarkilar.slice(i || 0).filter(function (x) { return x.u; }).map(function (x) { return x.u; });
-    if (!l.length) return Promise.reject(new Error('Bu karışım yalnız cihaz sürümünde çalınabilir.'));
-    return cal(l, 0, k).then(function () { return 'ok'; });
+  // Listeyi çalma: Spotify Web API (Premium). Medya oturumundan "ara ve çal" Spotify oturumunu kapattığı için
+  // (kullanıcı 2026-11-02: "şarkıya tıklayınca medya çalar bildirimi gidiyor, hiçbir şey çalmıyor") artık kullanılmıyor.
+  // Liste Spotify'ın kendi çalma sırasına verilir: ⏭ listedeki sonraki şarkıya geçer.
+  var Arama = oku('spotify_arama_v1', {}); // "şarkı sanatçı" → spotify:track:…
+  function uriBul(x) {
+    if (x.u) return Promise.resolve(x.u);
+    var q = (x.a + ' ' + String(x.s || '').split(',')[0]).trim(), kq = katla2(q);
+    if (Arama[kq]) { x.u = Arama[kq]; return Promise.resolve(x.u); }
+    return api('/search?type=track&limit=1&q=' + encodeURIComponent(q)).then(function (s) {
+      var t = s && s.tracks && s.tracks.items && s.tracks.items[0];
+      if (t) { x.u = t.uri; Arama[kq] = t.uri; var ks = Object.keys(Arama); if (ks.length > 600) delete Arama[ks[0]]; yaz('spotify_arama_v1', Arama); }
+      return x.u || null;
+    }, function (e) { if (e.durum === 429 || e.durum === 401 || e.durum === 403) throw e; return null; });
   }
-  function calMesaji(r) { return r === 'acildi' ? 'Spotify kapalıydı: bir kez açtım, birkaç saniyede buraya dönüyorum. Sonraki şarkılar kendiliğinden sıralanır.' : '▶ Çalıyor — Spotify arka planda, uygulamadan çıkmadın.'; }
+  function hesapGerekli() { var e = new Error('Listeyi Spotify\'da sırayla çalmak için Spotify hesabını bağlaman gerekiyor (Premium\'un var; "Spotify hesabı" bölümünden, tek seferlik).'); e.hesap = true; return e; }
+  function karisimCal(k, i) {
+    i = i || 0;
+    if (!bagli()) {
+      if (YEREL && K.muzik) { var x = k.sarkilar[i]; K.muzik((x.a + ' ' + String(x.s || '').split(',')[0]).trim(), 'spotify'); }
+      return Promise.reject(hesapGerekli());
+    }
+    var l = k.sarkilar.slice(i);
+    // İlk 6 şarkının adresini bul, hemen başlat; kalanları arkadan bulup Spotify sırasına ekle
+    var ilk = l.slice(0, 6), kalan = l.slice(6);
+    return ilk.reduce(function (z, x) { return z.then(function () { return uriBul(x); }); }, Promise.resolve()).then(function () {
+      var uriler = ilk.map(function (x) { return x.u; }).filter(Boolean);
+      if (!uriler.length) throw new Error('Bu şarkılar Spotify\'da bulunamadı.');
+      return cal(uriler, 0, k).then(function () {
+        karisimSakla(k); Kuyruk = null;
+        kalan.reduce(function (z, x) { return z.then(function () { return uriBul(x).then(function (u) { if (u) return api('/me/player/queue?uri=' + encodeURIComponent(u), { method: 'POST' }).catch(function () {}); }); }); }, Promise.resolve())
+          .then(function () { karisimSakla(k); }, function () {});
+        return 'ok';
+      });
+    });
+  }
+  function calMesaji(r) { return '▶ Çalıyor — liste Spotify\'ın sırasında, ⏭ listedeki sonraki şarkıya geçer. Uygulamadan çıkmadın.'; }
 
   var Simdi = null;
   var mini = el('div', { class: 'sp-mini', hidden: true, role: 'region', 'aria-label': 'Spotify' });
@@ -414,7 +443,7 @@
     var d = yDurum();
     if (d && d.var && d.baslik) {
       Simdi = { a: d.baslik, s: d.sanatci || '', kapak: d.kapak ? { url: d.kapak } : null, calisiyor: !!d.calisiyor, ilerleme: d.konum || 0, sure: d.sure || 1, alindi: Date.now() };
-      miniCiz(); simdiKartCiz(); return Promise.resolve();
+      miniCiz(); simdiKartCiz(); kuyrukCiz(); return Promise.resolve();
     }
     if (YEREL && d && d.izin !== false) { Simdi = null; miniCiz(); simdiKartCiz(); return Promise.resolve(); }
     if (!bagli()) return Promise.resolve();
@@ -509,7 +538,11 @@
           el('button', { class: 'dugme', type: 'button', onclick: function () { kontrol('sonraki'); } }, ['⏭'])])])]));
   }
   function izinDugmesi() { return el('button', { class: 'dugme ana', type: 'button', onclick: function () { try { K.bildirimIzniAc(); } catch (e) {} } }, ['🔓 Bildirim erişimini aç']); }
-  function hataYaz(yer, e) { yer.innerHTML = ''; yer.appendChild(el('span', { class: 'sp-hata', text: e && e.bilgi ? e.message : (e && e.izin ? e.message : hataMetni(e)) })); if (e && e.izin) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(izinDugmesi()); } }
+  function hataYaz(yer, e) {
+    yer.innerHTML = ''; yer.appendChild(el('span', { class: 'sp-hata', text: e && (e.bilgi || e.izin || e.hesap) ? e.message : hataMetni(e) }));
+    if (e && e.izin) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(izinDugmesi()); }
+    if (e && e.hesap) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(el('button', { class: 'dugme', type: 'button', onclick: function () { var h = $('#spHesap'); if (h) h.scrollIntoView({ behavior: 'smooth' }); } }, ['↓ Hesabı bağla'])); }
+  }
   function ruhKarisimCal(ruh, taze, kap) {
     return ruhHalindenOner(ruh, taze).then(function (k) {
       sonKarisim = k; if (kap) karisimCiz(kap, k);
@@ -523,7 +556,11 @@
         });
     }, function (e) { if (kap) hataGoster(kap, e); throw e; }).catch(function (e) { return { hata: e }; });
   }
-  function kuyrukCiz() { $$('.sp-sarki').forEach(function (b, i) { b.classList.toggle('simdi', !!(Kuyruk && Kuyruk.k === sonKarisim && Kuyruk.i === i)); }); }
+  function kuyrukCiz() {
+    var c = Simdi && sade(Simdi.a), idx = -1;
+    if (c && sonKarisim) sonKarisim.sarkilar.some(function (x, i) { var a = sade(x.a); if (a && (a === c || a.indexOf(c) === 0 || c.indexOf(a) === 0)) { idx = i; return true; } return false; });
+    $$('.sp-sarki').forEach(function (b, i) { b.classList.toggle('simdi', i === idx); });
+  }
   function karisimCiz(kap, k) {
     kap.innerHTML = '';
     if (!k) return;
@@ -557,7 +594,7 @@
         if (d.var) sat('Desteklenen', ['aramayla çal ' + ((d.eylemler & 2048) ? '✓' : '✗'), 'adresle çal ' + ((d.eylemler & 8192) ? '✓' : '✗'), 'sonraki ' + ((d.eylemler & 32) ? '✓' : '✗')].join(', '));
       }
     }
-    sat('Kuyruk', Kuyruk ? (Kuyruk.i + 1) + '/' + Kuyruk.k.sarkilar.length + ' · ' + (Kuyruk.bizim || 'başlıyor') : 'yok');
+    sat('Liste çalma yolu', bagli() ? 'Spotify Web API (Premium)' : 'HESAP BAĞLI DEĞİL → liste çalınamaz, yalnız kontrol');
     sat('Yerel dinleme geçmişi', Dinlenen.length + ' şarkı');
     sat('Spotify hesabı (isteğe bağlı)', !D.clientId ? 'kurulmadı' : !bagli() ? 'Client ID var, bağlı değil' : 'bağlı (' + (D.ben ? D.ben.ad : '?') + ', ' + (D.premium === true ? 'Premium' : D.premium === false ? 'Premium DEĞİL' : 'Premium bilinmiyor') + ')');
     if (sogumaKaldi()) sat('Spotify API soğuma', Math.ceil(sogumaKaldi() / 1000) + ' sn');
@@ -617,7 +654,7 @@
     sayfa.appendChild(karisimKap);
     if (sonKarisim) karisimCiz(karisimKap, sonKarisim);
     // Spotify hesabı (isteğe bağlı)
-    var hesap = el('div', { class: 'sp-kutu' }, [el('h2', { text: 'SPOTIFY HESABI · İSTEĞE BAĞLI' })]);
+    var hesap = el('div', { class: 'sp-kutu', id: 'spHesap' }, [el('h2', { text: bagli() ? 'SPOTIFY HESABI' : 'SPOTIFY HESABI · LİSTEYİ ÇALMAK İÇİN GEREKLİ' })]);
     if (bagli()) {
       var kb = el('span', { class: 'sp-durum' });
       var kbYaz = function () { kb.textContent = Kutu ? Kutu.sarkilar.length + ' şarkı · ' + Kutu.listeler.length + ' liste · ' + new Date(Kutu.t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' taraması' : 'Kütüphane henüz taranmadı.'; };
@@ -629,11 +666,11 @@
       hesap.appendChild(sayfaDurum);
       if (!Kutu) kutuphaneYukle(false).then(kbYaz, function (e) { kb.textContent = hataMetni(e); });
     } else {
-      hesap.appendChild(el('p', { text: 'Gerekli değil. Bağlarsan öneriler beğenilerinden ve listelerinden seçilir, karışımları Spotify\'a liste olarak kaydedebilirsin. Not: Spotify, Mart 2026\'dan beri bu bağlantı için hesabının Premium olmasını şart koşuyor.' }));
+      hesap.appendChild(el('p', { text: 'Önerilen listeyi Spotify\'da sırayla çalmak için gerekli (Premium hesaplarda; tek seferlik kurulum). Bağlayınca öneriler beğenilerinden ve listelerinden de seçilir, karışımları liste olarak kaydedebilirsin. Duraklat/ileri/geri ve "şu an çalan" bağlantısız da çalışır.' }));
       var ic = el('div'); hesap.appendChild(ic);
-      if (!D.clientId) ic.appendChild(el('button', { class: 'dugme', type: 'button', onclick: function () { ic.innerHTML = ''; kurulumCiz(ic); } }, ['Kurulumu göster'])); else baglantiCiz(ic);
+      if (!D.clientId) kurulumCiz(ic); else baglantiCiz(ic);
     }
-    sayfa.appendChild(hesap);
+    if (!bagli()) sayfa.insertBefore(hesap, ruhKutu); else sayfa.appendChild(hesap);
     // tanılama
     var rapor = el('pre', { class: 'sp-rapor', hidden: true });
     var kopya = el('button', { class: 'dugme', type: 'button', hidden: true, onclick: function () { try { navigator.clipboard.writeText(rapor.textContent); U.toast('Kopyalandı — Claude\'a yapıştır'); } catch (e) {} } }, ['Kopyala']);
@@ -648,6 +685,22 @@
       el('button', { class: 'dugme', type: 'button', onclick: function () { D.clientId = null; kaydet(); U.git('muzik'); } }, ['Client ID\'yi değiştir'])]));
     kap.appendChild(hk);
     if (donus) donus.then(function () { U.git('muzik'); }, function (e) { hk.innerHTML = ''; hk.appendChild(el('p', { class: 'sp-hata', text: hataMetni(e) })); });
+  }
+  function kurulumCiz(sayfa) {
+    var cid = el('input', { type: 'text', placeholder: 'Client ID (32 karakter)', 'aria-label': 'Spotify Client ID', autocomplete: 'off', spellcheck: 'false' });
+    var hk = el('div');
+    var kopyala = el('button', { class: 'dugme', type: 'button', onclick: function () { try { navigator.clipboard.writeText(YONLENDIR); U.toast('Kopyalandı'); } catch (e) {} } }, ['Kopyala']);
+    sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'KURULUM · TEK SEFERLİK' }),
+      el('p', { text: 'Spotify, kişisel uygulamaların kendi anahtarıyla bağlanmasını istiyor. 3 dakikalık iş:' }),
+      el('ol', { class: 'sp-adim' }, [
+        el('li', {}, ['developer.spotify.com/dashboard adresine Spotify hesabınla gir → ', el('b', { text: 'Create app' }), '.']),
+        el('li', {}, ['App name: ', el('b', { text: '1001 Carvis' }), ' · Description: istediğin bir şey · ', el('b', { text: 'Web API' }), ' kutusunu işaretle.']),
+        el('li', {}, ['Redirect URI olarak tam olarak şunu ekle:', el('div', { class: 'sp-kod' }, [el('code', { text: YONLENDIR }), kopyala])]),
+        el('li', {}, ['Kaydet; ', el('b', { text: 'Settings' }), ' sayfasındaki ', el('b', { text: 'Client ID' }), '\'yi aşağıya yapıştır.']),
+        el('li', {}, [el('b', { text: 'User Management' }), ' bölümüne kendi adını ve Spotify e-postanı ekle (eklemezsen her istek 403 verir). Spotify, uygulama sahibinin Premium olmasını şart koşuyor.'])]),
+      el('div', { class: 'sp-satir' }, [cid, el('button', { class: 'dugme ana', type: 'button', onclick: function () {
+        var v = cid.value.trim(); if (!/^[0-9a-f]{32}$/i.test(v)) { hataGoster(hk, new Error('Client ID 32 karakterlik bir kod olmalı.')); return; }
+        D.clientId = v; kaydet(); U.git('muzik'); } }, ['Kaydet'])]), hk]));
   }
   U.SEKMELER.push({ id: 'muzik', ad: 'Müzik', ikon: '♫' });
   if (U.sekmeleriCiz) U.sekmeleriCiz();
