@@ -533,8 +533,19 @@
     // OmniRoute (kullanıcı, 2026-11-03): kendi OpenAI uyumlu ağ geçidi; her ağdan erişim için https adres (Tailscale / Cloudflare Tunnel)
     var Om = window.yerelAyar && window.yerelAyar.omni;
     if (Om) {
-      govde.appendChild(el('h4', { text: '🔀 OmniRoute (isteğe bağlı yapay zekâ ağ geçidi)' }));
-      govde.appendChild(el('p', { class: 'var-etiket', text: 'Ayarlıysa Carvis önce OmniRoute\'u kullanır; ulaşılamazsa Gemini/Groq\'a döner. Her yerden çalışması için "https://" adres gerekir (ör. Tailscale: https://bilgisayar.xxx.ts.net, Cloudflare Tunnel: https://omni.alanin.com).' }));
+      // Kullanıcı (2026-11-03): "pc açılmıyor, deepseek falan niye kullanmıyoduk" → aynı OpenAI uyumlu ayar; hazır seçenekler
+      govde.appendChild(el('h4', { text: '🔀 Ek yapay zekâ sağlayıcısı (DeepSeek / OpenRouter / OmniRoute)' }));
+      govde.appendChild(el('p', { class: 'var-etiket', text: 'Ayarlıysa Carvis önce bunu kullanır; ulaşılamazsa Gemini/Groq\'a döner. Hazır seçeneklerden birine dokun, sonra anahtarını gir. Model adlarını sağlayıcının sitesinden kontrol et (zamanla değişebilir).' }));
+      var HAZIR = [
+        { ad: 'DeepSeek (ücretli, ucuz)', url: 'https://api.deepseek.com', model: 'deepseek-chat', not: 'Anahtar: platform.deepseek.com → API keys.' },
+        { ad: 'OpenRouter (ücretsiz modeller var)', url: 'https://openrouter.ai/api/v1', model: '', not: 'Anahtar: openrouter.ai → Keys. Model: openrouter.ai/models sayfasında "free" filtresiyle seç (ör. deepseek/… :free) ve tam adını yaz.' },
+        { ad: 'OmniRoute (kendi sunucun)', url: '', model: '', not: 'Adres "https://" olmalı (Tailscale / Cloudflare Tunnel).' }
+      ];
+      var hazirNot = el('p', { class: 'var-etiket' });
+      govde.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin:6px 0' }, HAZIR.map(function (h) {
+        return el('button', { class: 'dugme kucuk', type: 'button', text: h.ad, onclick: function () { oUrl.value = h.url; oModel.value = h.model; oKey.value = ''; hazirNot.textContent = h.not; oKaydet(); oKey.focus(); } });
+      })));
+      govde.appendChild(hazirNot);
       var oa = Om.oku();
       var oUrl = el('input', { type: 'url', value: oa.url || '', placeholder: 'https://…  (sonuna /v1 eklemene gerek yok)', style: stil, autocomplete: 'off' });
       var oKey = el('input', { type: 'password', value: oa.anahtar || '', placeholder: 'OmniRoute API anahtarı (varsa)', style: stil, autocomplete: 'off' });
@@ -544,7 +555,7 @@
       function oKaydet() { Om.yaz({ url: oUrl.value.trim(), anahtar: oKey.value.trim(), model: oModel.value.trim(), acik: oAcik.checked }); }
       [oUrl, oKey, oModel, oAcik].forEach(function (x) { x.addEventListener('change', oKaydet); });
       govde.appendChild(satir('Adres', oUrl)); govde.appendChild(satir('Anahtar', oKey)); govde.appendChild(satir('Model / combo', oModel));
-      govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [oAcik, 'OmniRoute\'u kullan']));
+      govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [oAcik, 'Ek sağlayıcıyı kullan']));
       govde.appendChild(el('button', { class: 'dugme kucuk', type: 'button', text: '🔌 Bağlantıyı test et', onclick: function () { oKaydet(); oSonuc.textContent = 'Deneniyor…'; Om.test().then(function (m) { oSonuc.textContent = m; }, function (e) { oSonuc.textContent = '✗ ' + e.message; }); } }));
       govde.appendChild(oSonuc);
     }

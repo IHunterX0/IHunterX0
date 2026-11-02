@@ -241,7 +241,7 @@
     return /\/v1$/.test(u) ? u + '/chat/completions' : u + '/v1/chat/completions';
   }
   var omniUyku = 0; // ulaşılamazsa 2 dk atla (PC kapalıyken her soruda zaman aşımı beklenmesin)
-  function omniVar() { var a = omniAyar(); return !!(a.url && a.acik !== false) && Date.now() > omniUyku; }
+  function omniVar() { var a = omniAyar(); return !!(a.url && a.acik !== false && (a.anahtar || !/deepseek\.com|openrouter\.ai/i.test(a.url))) && Date.now() > omniUyku; }
   var GROQ = { ad: 'Groq', api: function () { return GROQ_API; }, anahtar: groqAnahtar, dinlen: groqDinlen,
     zincir: function (o, govde) { var arama = govde.tools && govde.tools.some(function (t) { return t.type === 'browser_search'; }); return (o && o.hafif && !arama ? GROQ_ZINCIR : GROQ_ZINCIR.filter(function (m) { return !/-20b$/.test(m) && !(arama && !/gpt-oss/.test(m)); })).slice(); },
     ince: function (m, g) { if (/gpt-oss/.test(m)) g.reasoning_effort = 'low'; else if (/qwen/.test(m)) g.reasoning_effort = 'none'; } };
@@ -299,7 +299,7 @@
     var mesajlar = groqMesajlar(input), araclar = (o.tools || []).filter(function (t) { return !(o.groqAtla && o.groqAtla.test(t.name)); }), MAX_TUR = o.maxTur || 3, toplam = '';
     function kisa(sema) { var x = JSON.parse(JSON.stringify(sema || { type: 'object', properties: {} })); Object.keys(x.properties || {}).forEach(function (k) { var d = x.properties[k].description; if (d && d.length > 90) x.properties[k].description = d.slice(0, 90); }); return x; }
     var tanim = araclar.map(function (t) { var d = t.description || ''; return { type: 'function', function: { name: t.name, description: d.length > 260 ? d.slice(0, 257) + '…' : d, parameters: kisa(t.inputSchema) } }; });
-    if (window.Carvis && window.Carvis._durum) window.Carvis._durum(S === OMNI ? 'Düşünüyor… (OmniRoute)' : 'Düşünüyor… (yedek yapay zekâ)');
+    if (window.Carvis && window.Carvis._durum) window.Carvis._durum(S === OMNI ? 'Düşünüyor… (ek sağlayıcı)' : 'Düşünüyor… (yedek yapay zekâ)');
     function calis(n) {
       var g = { messages: mesajlar, max_tokens: 4096, temperature: 0.4 };
       if (tanim.length && n < MAX_TUR) { g.tools = tanim; g.tool_choice = 'auto'; }
