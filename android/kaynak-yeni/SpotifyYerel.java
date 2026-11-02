@@ -126,7 +126,16 @@ public final class SpotifyYerel {
         return "ok";
     }
 
-    public static String listeDurum() { return listeSon; }
+    static volatile String dokum = "";
+    public static String listeDurum() { return listeSon.equals("bulunamadi") && dokum.length() > 0 ? "bulunamadi | ekrandaki dokunulabilirler: " + dokum : listeSon; }
+
+    /** Etiket "Çal" düğmesine mi benziyor? (kullanıcı r23: birebir "çal/play" eşleşmesi Spotify tablette tutmadı) */
+    static boolean calEtiketi(String t) {
+        if (t == null || t.length() == 0 || t.length() > 80) return false;
+        if (t.matches(".*(duraklat|pause|ekle|add |sonraki|next|önceki|previous|indir|download|paylaş|share|karıştır|shuffle off|takip|follow|radyo|radio).*")) return false;
+        if (OYNAT_ETIKET.contains(t)) return true;
+        return t.matches("^(çal|play|oynat|dinle|başlat)( .*)?$") || t.matches("^.* (çal|oynat)$") || t.matches("^(çalma listesini|listeyi) (çal|oynat).*");
+    }
 
     static void dene(final int kalan, long gecikme) {
         CarvisErisim.ana.postDelayed(new Runnable() {
@@ -183,13 +192,28 @@ public final class SpotifyYerel {
             topla(kok, l, 0);
             for (AccessibilityNodeInfo n : l) {
                 String t = etiket(n);
-                if (t == null || !OYNAT_ETIKET.contains(t)) continue;
+                if (!calEtiketi(t)) continue;
                 n.getBoundsInScreen(r);
                 if (!n.isVisibleToUser() || r.isEmpty() || r.top > H * 0.72 || sagPanelde(n)) continue;
                 if (r.top < enUst) { en = n; enUst = r.top; neden = "etiket:" + t; }
             }
         }
-        if (en == null) { listeSon = "araniyor"; return null; }
+        if (en == null) {
+            listeSon = "araniyor";
+            // Tanılama: ekrandaki dokunulabilir öğeleri özetle (bulunamazsa rapora girer)
+            List<AccessibilityNodeInfo> l2 = new ArrayList<>(); topla(kok, l2, 0);
+            StringBuilder sb = new StringBuilder(); int say = 0;
+            for (AccessibilityNodeInfo n : l2) {
+                if (!(n.isClickable() || n.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK)) || !n.isVisibleToUser()) continue;
+                n.getBoundsInScreen(r);
+                String id = n.getViewIdResourceName(); String t = etiket(n);
+                if ((id == null || id.length() == 0) && t == null) continue;
+                sb.append("[").append(id == null ? "-" : id.substring(id.indexOf('/') + 1)).append(" '").append(t == null ? "" : t).append("' y=").append(r.top).append(sagPanelde(n) ? " panel" : "").append("] ");
+                if (++say >= 30) break;
+            }
+            dokum = sb.toString();
+            return null;
+        }
         return CarvisErisim.tiklaDugum(en) ? neden : null;
     }
 }
