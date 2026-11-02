@@ -231,30 +231,49 @@
   }
   function groqVar() { return groqAnahtar().length > 10; }
   window.yerelAyar.groqVar = groqVar;
+  /* ---------- OmniRoute (kullanıcı, 2026-11-03: "benim omniroute hesabım var, tek wifide değil her yerde çalışsın") ----------
+     OpenAI uyumlu ağ geçidi; Groq ile aynı istemci kullanılır. Ayar girilmişse önce OmniRoute, olmazsa Gemini/Groq. */
+  function omniAyar() { try { return JSON.parse(localStorage.getItem('omni_ayar') || '{}'); } catch (e) { return {}; } }
+  function omniAdres() {
+    var u = String(omniAyar().url || '').trim().replace(/\/+$/, '');
+    if (!u) return '';
+    if (/\/chat\/completions$/.test(u)) return u;
+    return /\/v1$/.test(u) ? u + '/chat/completions' : u + '/v1/chat/completions';
+  }
+  var omniUyku = 0; // ulaşılamazsa 2 dk atla (PC kapalıyken her soruda zaman aşımı beklenmesin)
+  function omniVar() { var a = omniAyar(); return !!(a.url && a.acik !== false) && Date.now() > omniUyku; }
+  var GROQ = { ad: 'Groq', api: function () { return GROQ_API; }, anahtar: groqAnahtar, dinlen: groqDinlen,
+    zincir: function (o, govde) { var arama = govde.tools && govde.tools.some(function (t) { return t.type === 'browser_search'; }); return (o && o.hafif && !arama ? GROQ_ZINCIR : GROQ_ZINCIR.filter(function (m) { return !/-20b$/.test(m) && !(arama && !/gpt-oss/.test(m)); })).slice(); },
+    ince: function (m, g) { if (/gpt-oss/.test(m)) g.reasoning_effort = 'low'; else if (/qwen/.test(m)) g.reasoning_effort = 'none'; } };
+  var OMNI = { ad: 'OmniRoute', api: omniAdres, anahtar: function () { return omniAyar().anahtar || ''; }, dinlen: {}, anahtarsiz: true,
+    zincir: function () { return [omniAyar().model || 'auto']; }, ince: function () {} };
   function groqMesajlar(input) {
     var l = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
     return l.map(function (m) { return { role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content) }; });
   }
-  function groqIstek(govde, o) {
-    var k = groqAnahtar(); if (!k) return Promise.reject(hata('not_granted', 'Groq anahtarı yok'));
+  function groqIstek(govde, o, S) {
+    S = S || GROQ;
+    var groqDinlen = S.dinlen, k = S.anahtar();
+    if (!k && !S.anahtarsiz) return Promise.reject(hata('not_granted', S.ad + ' anahtarı yok'));
     // Bilgi soruları yalnız güçlü modellerle (gpt-oss-20b PFK-1 basamağını yanlış anlattı, 2026-11-02); 20b yalnız tablet komutlarında
-    var l = (o && o.hafif && !(govde.tools && govde.tools.some(function (t) { return t.type === 'browser_search'; })) ? GROQ_ZINCIR : GROQ_ZINCIR.filter(function (m) { return !/-20b$/.test(m) && !(govde.tools && govde.tools.some(function (t) { return t.type === 'browser_search'; }) && !/gpt-oss/.test(m)); })).slice(), i = 0, tur = 0;
+    var l = S.zincir(o, govde), i = 0, tur = 0;
     function dene() {
       // sıradaki açık model; hepsi sınırdaysa en erken açılanı (en çok 20 sn) bekle
       var acik = l.filter(function (x) { return !(groqDinlen[x] > Date.now()); });
       var m = acik.length ? acik[0] : l.slice().sort(function (a, b) { return groqDinlen[a] - groqDinlen[b]; })[0];
       var bekle = acik.length ? 0 : groqDinlen[m] - Date.now();
-      if (bekle > 25000 || ++tur > 8) return Promise.reject(hata('rate_limited', 'Groq sınırı: ' + Math.ceil(bekle / 1000) + ' sn'));
+      if (bekle > 25000 || ++tur > 8) return Promise.reject(hata('rate_limited', S.ad + ' sınırı: ' + Math.ceil(bekle / 1000) + ' sn'));
       if (bekle > 0 && window.Carvis && window.Carvis._durum) window.Carvis._durum('Yoğunluk: ' + Math.ceil(bekle / 1000) + ' sn bekleniyor…');
       var g = Object.assign({ model: m }, govde);
       return new Promise(function (ok) { setTimeout(ok, Math.max(0, bekle)); }).then(function () { return dene1(m, g); });
     }
     function dene1(m, g) {
-      if (/gpt-oss/.test(m)) g.reasoning_effort = 'low'; else if (/qwen/.test(m)) g.reasoning_effort = 'none';
-      if (window.__carvisKayit) console.log('GROQ İSTEK ' + m + ' ~' + Math.round(JSON.stringify(g).length / 3.2) + ' token');
+      S.ince(m, g);
+      if (window.__carvisKayit) console.log(S.ad + ' İSTEK ' + m + ' ~' + Math.round(JSON.stringify(g).length / 3.2) + ' token');
       var ac = new AbortController(), zm = setTimeout(function () { ac.abort(); }, 30000);
       if (o && o.signal) { if (o.signal.aborted) ac.abort(); else o.signal.addEventListener('abort', function () { ac.abort(); }); }
-      return fetch(GROQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + k }, body: JSON.stringify(g), signal: ac.signal }).then(function (r) {
+      var bas = { 'Content-Type': 'application/json' }; if (k) bas.Authorization = 'Bearer ' + k;
+      return fetch(S.api(), { method: 'POST', headers: bas, body: JSON.stringify(g), signal: ac.signal }).then(function (r) {
         clearTimeout(zm);
         return r.json().catch(function () { return {}; }).then(function (j) {
           if (r.ok) {
@@ -266,29 +285,29 @@
           }
           // dakikalık token sınırı (8K/model): Groq kaç saniye sonra açılacağını yazar ("try again in 4.2s")
           if (r.status === 429) { var sn = /try again in ([\d.]+)(ms|s|m)/i.exec(JSON.stringify(j)); var bek = sn ? (+sn[1]) * (sn[2] === 'ms' ? 1 : sn[2] === 'm' ? 60000 : 1000) : 20000; groqDinlen[m] = Date.now() + Math.min(bek + 300, /per day|TPD|RPD/i.test(JSON.stringify(j)) ? 6 * 3600e3 : 120000); }
-          var e = hata(r.status === 429 ? 'rate_limited' : 'network', 'Groq ' + m + ' ' + r.status + ' ' + JSON.stringify(j.error || j).slice(0, 200)); throw e;
+          var e = hata(r.status === 429 ? 'rate_limited' : 'network', S.ad + ' ' + m + ' ' + r.status + ' ' + JSON.stringify(j.error || j).slice(0, 200)); throw e;
         });
-      }, function (e) { clearTimeout(zm); throw o && o.signal && o.signal.aborted ? hata('cancelled') : hata('network', 'Groq: ' + String(e)); })
+      }, function (e) { clearTimeout(zm); throw o && o.signal && o.signal.aborted ? hata('cancelled') : hata('network', S.ad + ': ' + String(e)); })
         .catch(function (e) { if (e.code === 'cancelled') throw e; if (window.__carvisKayit) console.log('GROQ ' + e.message.slice(0, 120)); if (e.code !== 'rate_limited' && ++i >= l.length) throw e; if (e.code !== 'rate_limited') groqDinlen[m] = Date.now() + 30000; return dene(); });
     }
     return dene();
   }
-  function groqSample(input, o) {
-    o = o || {};
+  function groqSample(input, o, S) {
+    o = o || {}; S = S || GROQ;
     if (o.images && o.images.length) return Promise.reject(hata('images_unavailable'));
     // dakikalık token sınırı için: istenirse bazı araçlar Groq'a gönderilmez (bilgi sorusunda müzik/WhatsApp vb.)
     var mesajlar = groqMesajlar(input), araclar = (o.tools || []).filter(function (t) { return !(o.groqAtla && o.groqAtla.test(t.name)); }), MAX_TUR = o.maxTur || 3, toplam = '';
     function kisa(sema) { var x = JSON.parse(JSON.stringify(sema || { type: 'object', properties: {} })); Object.keys(x.properties || {}).forEach(function (k) { var d = x.properties[k].description; if (d && d.length > 90) x.properties[k].description = d.slice(0, 90); }); return x; }
     var tanim = araclar.map(function (t) { var d = t.description || ''; return { type: 'function', function: { name: t.name, description: d.length > 260 ? d.slice(0, 257) + '…' : d, parameters: kisa(t.inputSchema) } }; });
-    if (window.Carvis && window.Carvis._durum) window.Carvis._durum('Düşünüyor… (yedek yapay zekâ)');
+    if (window.Carvis && window.Carvis._durum) window.Carvis._durum(S === OMNI ? 'Düşünüyor… (OmniRoute)' : 'Düşünüyor… (yedek yapay zekâ)');
     function calis(n) {
       var g = { messages: mesajlar, max_tokens: 4096, temperature: 0.4 };
       if (tanim.length && n < MAX_TUR) { g.tools = tanim; g.tool_choice = 'auto'; }
-      return groqIstek(g, o).then(function (j) {
+      return groqIstek(g, o, S).then(function (j) {
         var msg = (j.choices && j.choices[0] && j.choices[0].message) || {}, cagri = msg.tool_calls || [];
         if (window.__carvisKayit) console.log('GROQ TUR ' + n + ' ' + j._model + ' metin=' + (msg.content || '').length + ' cagri=' + cagri.map(function (c) { return c.function.name; }).join(','));
         if (msg.content) { toplam += (toplam && !/\s$/.test(toplam) ? '\n\n' : '') + msg.content; if (o.onText) o.onText({ text: toplam, delta: msg.content }); }
-        if (!cagri.length) return { text: toplam, truncated: (j.choices[0] || {}).finish_reason === 'length', modelApplied: 'groq:' + j._model };
+        if (!cagri.length) return { text: toplam, truncated: (j.choices[0] || {}).finish_reason === 'length', modelApplied: (S === OMNI ? 'omni:' : 'groq:') + j._model };
         mesajlar.push({ role: 'assistant', content: msg.content || '', tool_calls: cagri });
         return Promise.all(cagri.map(function (c) {
           var t = araclar.filter(function (x) { return x.name === c.function.name; })[0], arg = {};
@@ -305,9 +324,9 @@
     }
     return calis(0).catch(function (e) { if (toplam && !e.text) e.text = toplam; throw e; });
   }
-  function groqJson(input, o) {
+  function groqJson(input, o, S) {
     var m = groqMesajlar(input); m[m.length - 1].content += '\n\nYalnız geçerli JSON döndür.';
-    return groqIstek({ messages: m, max_tokens: 8192, temperature: 0.2, response_format: { type: 'json_object' } }, o).then(function (j) {
+    return groqIstek({ messages: m, max_tokens: 8192, temperature: 0.2, response_format: { type: 'json_object' } }, o, S).then(function (j) {
       var t = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
       var x = /[\[{][\s\S]*[\]}]/.exec(t); return JSON.parse(x ? x[0] : t);
     });
@@ -315,7 +334,7 @@
   // Yedeğe geçilecek hatalar: kota, geçici (503/zaman aşımı), ağ — ama yarıda kalmış metin varsa değil
   function yedeklenir(e, o) { return groqVar() && e && !e.text && !(o && o.images && o.images.length) && /rate_limited|gecici|network/.test(e.code || ''); }
   var geminiSample = sample, geminiJson = sample.json, geminiAra = window.yerelGemini.ara;
-  sample = function (input, o) {
+  var anaSample = function (input, o) {
     // Yönlendirme (2026-11-02): Gemini flash modelleri ücretsizde model başına GÜNDE 20 istek → değerli; tablet komutları
     // (müzik, ses, pomodoro, WhatsApp…) Groq'a gider (hızlı, günde 1000). Groq olmazsa Gemini.
     if (o && o.hafif && groqVar() && !(o.images && o.images.length)) {
@@ -327,8 +346,41 @@
       return groqSample(input, o);
     });
   };
-  sample.json = function (input, o) { return geminiJson(input, o).catch(function (e) { if (!yedeklenir(e, o)) throw e; return groqJson(input, o); }); };
+  // OmniRoute ayarlıysa önce o (görsel içeren istekler hariç); ulaşılamazsa / hata verirse eski düzen (Gemini + Groq)
+  var omniSonHata = '';
+  sample = function (input, o) {
+    if (omniVar() && !(o && o.images && o.images.length)) {
+      return groqSample(input, o, OMNI).then(function (r) { omniSonHata = ''; return r; }, function (e) {
+        if (e && (e.code === 'cancelled' || e.text)) throw e;
+        omniSonHata = String(e && e.message || e).slice(0, 200);
+        if (e && e.code === 'network') omniUyku = Date.now() + 120000;
+        if (window.__carvisKayit) console.log('OmniRoute olmadı → yedek: ' + omniSonHata);
+        return anaSample(input, o);
+      });
+    }
+    return anaSample(input, o);
+  };
+  var anaJson = function (input, o) { return geminiJson(input, o).catch(function (e) { if (!yedeklenir(e, o)) throw e; return groqJson(input, o); }); };
+  sample.json = function (input, o) { return omniVar() ? groqJson(input, o, OMNI).catch(function (e) { if (e && e.code === 'cancelled') throw e; omniSonHata = String(e && e.message || e).slice(0, 200); return anaJson(input, o); }) : anaJson(input, o); };
   sample.limits = geminiSample.limits;
+  window.yerelAyar.omni = {
+    oku: omniAyar, var: omniVar, adres: omniAdres, sonHata: function () { return omniSonHata; },
+    yaz: function (a) { try { localStorage.setItem('omni_ayar', JSON.stringify(a || {})); } catch (e) {} },
+    test: function () {
+      omniUyku = 0;
+      if (!omniAdres()) return Promise.reject(new Error('Adres boş.'));
+      if (/^http:\/\//i.test(omniAdres()) && location.protocol === 'https:') return Promise.reject(new Error('Adres "http://" ile başlıyor; Android güvenlik gereği uygulama içinden http adresine bağlanamıyor. Tailscale (tailscale serve) ya da Cloudflare Tunnel ile "https://" adres kullan.'));
+      var t0 = Date.now();
+      return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, OMNI).then(function (j) {
+        var c = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+        return 'Bağlandı ✓ (' + (j.model || j._model) + ', ' + (Date.now() - t0) + ' ms): ' + c.slice(0, 60);
+      }, function (e) {
+        var m = String(e && e.message || e);
+        if (/Failed to fetch|NetworkError|TypeError/i.test(m)) m += ' — Adrese ulaşılamadı: OmniRoute kapalı olabilir, adres yanlış olabilir ya da sunucu tarayıcı isteklerine (CORS) izin vermiyor olabilir.';
+        throw new Error(m);
+      });
+    }
+  };
   sample.groq = groqSample; // test
   window.yerelGemini.ara = function (soru, o) {
     return geminiAra(soru, o).catch(function (e) {
