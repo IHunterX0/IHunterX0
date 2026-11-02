@@ -1,0 +1,6 @@
+# Büyük / telifli içerik repoya konmaz (APK'nın içinde duruyor)
+www/kitaplar/
+www/lab/
+vosk-tr/
+*.apk
+*.7z*

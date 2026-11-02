@@ -1,0 +1,2 @@
+{ "name": "1001 Çalışma Kitapları", "short_name": "1001", "start_url": "index.html", "display": "standalone", "background_color": "#060c11", "theme_color": "#060c11", "lang": "tr",
+  "icons": [ { "src": "ikon-192.png", "sizes": "192x192", "type": "image/png" }, { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" } ] }
