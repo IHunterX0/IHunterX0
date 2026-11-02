@@ -269,11 +269,16 @@
   var CalNo = 0, Son = {};
   function iptalHatasi() { return Object.assign(new Error('iptal'), { iptal: true }); }
   function bekleNo(no, ms) { return bekle(ms).then(function () { if (no !== CalNo) throw iptalHatasi(); }); }
+  // Kullanıcı raporu (r17): tablette Spotify kapalıyken "genel yol" listeyi o an aktif olan iPhone'a çaldı.
+  // Cihaz sürümünde (YEREL) liste ASLA başka cihaza gitmez: Spotify kapalıysa tablette açılır, tablet listede aranır.
   function tabletHazirla(no, uri) {
-    var d = YEREL ? yDurum() : null;
-    if (!d || d.izin === false || !d.var) { adim('yerel oturum yok → genel yol'); return Promise.resolve(null); }
-    var uyandir = !d.calisiyor ? (adim('tablet duraklatılmış → oynat (uyandırma)'), K.spotifyKomut('oynat'), bekleNo(no, 1500)) : Promise.resolve();
-    var n = 0, onde = false;
+    if (!YEREL) { adim('tarayıcı → aktif cihaza'); return Promise.resolve(null); }
+    var d = yDurum() || {};
+    var n = 0, onde = false, uyandir;
+    if (d.izin !== false && !d.var) { // Spotify tablette kapalı: aç (öne gelir), listede görünmesini bekle
+      onde = true; adim('tablette Spotify kapalı → açılıyor'); spotifydaAc(uri); uyandir = bekleNo(no, 3000);
+    } else if (d.izin !== false && !d.calisiyor) { adim('tablet duraklatılmış → oynat (uyandırma)'); K.spotifyKomut('oynat'); uyandir = bekleNo(no, 1500); }
+    else uyandir = Promise.resolve();
     function ara() {
       if (no !== CalNo) throw iptalHatasi();
       return tabletBul().then(function (c) {
@@ -349,10 +354,10 @@
       function dene(i) {
         return yollar[i]().then(function (ok) {
           adim('yol ' + (i + 1) + ' (' + adlar[i] + '): ' + (ok ? 'tablette çalıyor ✓' : 'kabul edildi ama tablette başlamadı'));
-          if (ok) { if (D.calYolu !== i) { D.calYolu = i; kaydet(); } return; }
+          if (ok) { if (D.calYolu !== i) { D.calYolu = i; kaydet(); } if (i === 2) adim('ipucu: Spotify yalnız öndeyken yeni şarkı başlatabiliyor → Samsung pil ayarından Spotify\'ı "Kısıtlanmamış" yap, arka planda da çalışsın'); return; }
           if (i < 2) return dene(i + 1);
           if (bas0) { D.calYolu = 0; kaydet(); }
-          throw Object.assign(new Error('Spotify isteği kabul ediyor ama tablette çalma başlamıyor. Tanılama raporunu gönderirsen bakarım.'), { bilgi: true });
+          throw Object.assign(new Error('Spotify isteği kabul ediyor ama tablette çalma başlamıyor. En sık sebep Samsung pil kısıtlaması: Ayarlar → Uygulamalar → Spotify → Pil → "Kısıtlanmamış" yap; Ayarlar → Pil → Arka plan kullanım sınırları → "Uyuyan/Derin uyuyan uygulamalar" listesinden Spotify\'ı çıkar. Sonra tekrar dene.'), { bilgi: true });
         });
       }
       return dene(bas0);
@@ -421,7 +426,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r18';
+  var SURUM = '2026.11.03-r19';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
