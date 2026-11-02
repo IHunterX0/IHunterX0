@@ -169,7 +169,10 @@ public final class SpotifyYerel {
         for (int i = 0; i < n.getChildCount(); i++) topla(n.getChild(i), l, d + 1);
     }
 
-    /** Spotify ön plandaysa listenin Çal düğmesini bulup dokunur; bulamazsa null. Alt mini çalar ve "şimdi çalıyor" paneli hariç. */
+    /** Spotify ön plandaysa listenin Çal düğmesini bulup dokunur; bulamazsa null.
+     *  Kullanıcı (r24): yanlış düğmeye (şimdi çalan şarkının devamı) dokunuldu → adaylar puanlanır:
+     *  0 = etiketinde liste adı ("carvis") geçen; 1 = bilinen kimlik, sol taraf; 2 = Çal etiketi, sol taraf;
+     *  5 = sağ taraf (şimdi çalıyor paneli olabilir). Alt %28 (mini çalar) ve panel kimlikleri hiç seçilmez. */
     static String tikla() {
         CarvisErisim s = CarvisErisim.ornek;
         if (s == null) return null;
@@ -177,43 +180,41 @@ public final class SpotifyYerel {
         if (kok == null) return null;
         CharSequence pk = kok.getPackageName();
         if (pk == null || !PAKET.contentEquals(pk)) { listeSon = "bekleniyor:" + pk; return null; }
-        int H = s.getResources().getDisplayMetrics().heightPixels;
-        AccessibilityNodeInfo en = null; int enUst = Integer.MAX_VALUE; String neden = null;
+        int H = s.getResources().getDisplayMetrics().heightPixels, W = s.getResources().getDisplayMetrics().widthPixels;
+        List<AccessibilityNodeInfo> l = new ArrayList<>(); topla(kok, l, 0);
+        AccessibilityNodeInfo en = null; int enPuan = 99, enUst = Integer.MAX_VALUE; String neden = null;
+        StringBuilder adaylar = new StringBuilder(); int say = 0;
         Rect r = new Rect();
-        for (String id : OYNAT_IDLER) {
-            for (AccessibilityNodeInfo n : kok.findAccessibilityNodeInfosByViewId(id)) {
-                n.getBoundsInScreen(r);
-                if (!n.isVisibleToUser() || r.isEmpty() || r.top > H * 0.72 || sagPanelde(n)) continue;
-                if (r.top < enUst) { en = n; enUst = r.top; neden = id.substring(id.indexOf('/') + 1); }
-            }
-        }
-        if (en == null) {
-            List<AccessibilityNodeInfo> l = new ArrayList<>();
-            topla(kok, l, 0);
-            for (AccessibilityNodeInfo n : l) {
-                String t = etiket(n);
-                if (!calEtiketi(t)) continue;
-                n.getBoundsInScreen(r);
-                if (!n.isVisibleToUser() || r.isEmpty() || r.top > H * 0.72 || sagPanelde(n)) continue;
-                if (r.top < enUst) { en = n; enUst = r.top; neden = "etiket:" + t; }
-            }
+        for (AccessibilityNodeInfo n : l) {
+            if (!n.isVisibleToUser()) continue;
+            String id = n.getViewIdResourceName(), kisaId = id == null ? "" : id.substring(id.indexOf('/') + 1);
+            String t = etiket(n);
+            boolean bilinen = id != null && Arrays.asList(OYNAT_IDLER).contains(id);
+            if (!bilinen && !calEtiketi(t)) continue;
+            n.getBoundsInScreen(r);
+            if (r.isEmpty() || r.top > H * 0.72 || sagPanelde(n)) continue;
+            boolean sol = r.centerX() < W * 0.65;
+            int puan = (t != null && t.contains("carvis")) ? 0 : !sol ? 5 : bilinen ? 1 : 2;
+            if (say++ < 8) adaylar.append("[").append(kisaId.length() > 0 ? kisaId : "-").append(" '").append(t == null ? "" : t).append("' x=").append(r.centerX()).append(" y=").append(r.top).append(" p=").append(puan).append("] ");
+            if (puan < enPuan || (puan == enPuan && r.top < enUst)) { en = n; enPuan = puan; enUst = r.top; neden = (kisaId.length() > 0 ? kisaId : "") + "'" + (t == null ? "" : t) + "'"; }
         }
         if (en == null) {
             listeSon = "araniyor";
-            // Tanılama: ekrandaki dokunulabilir öğeleri özetle (bulunamazsa rapora girer)
-            List<AccessibilityNodeInfo> l2 = new ArrayList<>(); topla(kok, l2, 0);
-            StringBuilder sb = new StringBuilder(); int say = 0;
+            List<AccessibilityNodeInfo> l2 = l;
+            StringBuilder sb = new StringBuilder(); int k = 0;
             for (AccessibilityNodeInfo n : l2) {
                 if (!(n.isClickable() || n.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK)) || !n.isVisibleToUser()) continue;
                 n.getBoundsInScreen(r);
                 String id = n.getViewIdResourceName(); String t = etiket(n);
                 if ((id == null || id.length() == 0) && t == null) continue;
-                sb.append("[").append(id == null ? "-" : id.substring(id.indexOf('/') + 1)).append(" '").append(t == null ? "" : t).append("' y=").append(r.top).append(sagPanelde(n) ? " panel" : "").append("] ");
-                if (++say >= 30) break;
+                sb.append("[").append(id == null ? "-" : id.substring(id.indexOf('/') + 1)).append(" '").append(t == null ? "" : t).append("' x=").append(r.centerX()).append(" y=").append(r.top).append(sagPanelde(n) ? " panel" : "").append("] ");
+                if (++k >= 30) break;
             }
             dokum = sb.toString();
             return null;
         }
-        return CarvisErisim.tiklaDugum(en) ? neden : null;
+        Rect rr = new Rect(); en.getBoundsInScreen(rr);
+        String sonuc = neden + " @" + rr.centerX() + "," + rr.top + " (puan " + enPuan + ") | adaylar: " + adaylar;
+        return CarvisErisim.tiklaDugum(en) ? sonuc : null;
     }
 }

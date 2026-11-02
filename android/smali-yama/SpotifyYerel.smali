@@ -1145,37 +1145,37 @@
 .end method
 
 .method static tikla()Ljava/lang/String;
-    .locals 20
+    .locals 31
 
-    .line 174
+    .line 177
     sget-object v0, Lcom/dogac/bin1/CarvisErisim;->ornek:Lcom/dogac/bin1/CarvisErisim;
 
-    .line 175
+    .line 178
     const/4 v1, 0x0
 
     if-nez v0, :cond_0
 
     return-object v1
 
-    .line 176
+    .line 179
     :cond_0
     invoke-virtual {v0}, Lcom/dogac/bin1/CarvisErisim;->getRootInActiveWindow()Landroid/view/accessibility/AccessibilityNodeInfo;
 
     move-result-object v2
 
-    .line 177
+    .line 180
     if-nez v2, :cond_1
 
     return-object v1
 
-    .line 178
+    .line 181
     :cond_1
     invoke-virtual {v2}, Landroid/view/accessibility/AccessibilityNodeInfo;->getPackageName()Ljava/lang/CharSequence;
 
     move-result-object v3
 
-    .line 179
-    if-eqz v3, :cond_1c
+    .line 182
+    if-eqz v3, :cond_24
 
     const-string v4, "com.spotify.music"
 
@@ -1185,10 +1185,20 @@
 
     if-nez v4, :cond_2
 
-    goto/16 :goto_b
+    goto/16 :goto_11
 
-    .line 180
+    .line 183
     :cond_2
+    invoke-virtual {v0}, Lcom/dogac/bin1/CarvisErisim;->getResources()Landroid/content/res/Resources;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+
+    move-result-object v3
+
+    iget v3, v3, Landroid/util/DisplayMetrics;->heightPixels:I
+
     invoke-virtual {v0}, Lcom/dogac/bin1/CarvisErisim;->getResources()Landroid/content/res/Resources;
 
     move-result-object v0
@@ -1197,549 +1207,799 @@
 
     move-result-object v0
 
-    iget v0, v0, Landroid/util/DisplayMetrics;->heightPixels:I
-
-    .line 181
-    nop
-
-    .line 182
-    new-instance v3, Landroid/graphics/Rect;
-
-    invoke-direct {v3}, Landroid/graphics/Rect;-><init>()V
-
-    .line 183
-    sget-object v4, Lcom/dogac/bin1/SpotifyYerel;->OYNAT_IDLER:[Ljava/lang/String;
-
-    array-length v5, v4
-
-    const v7, 0x7fffffff
-
-    move-object v9, v1
-
-    move-object v10, v9
-
-    const/4 v8, 0x0
-
-    :goto_0
-    const/16 v11, 0x2f
-
-    const-wide v12, 0x3fe70a3d70a3d70aL    # 0.72
-
-    if-ge v8, v5, :cond_8
-
-    aget-object v14, v4, v8
+    iget v0, v0, Landroid/util/DisplayMetrics;->widthPixels:I
 
     .line 184
-    invoke-virtual {v2, v14}, Landroid/view/accessibility/AccessibilityNodeInfo;->findAccessibilityNodeInfosByViewId(Ljava/lang/String;)Ljava/util/List;
+    new-instance v4, Ljava/util/ArrayList;
 
-    move-result-object v15
+    invoke-direct {v4}, Ljava/util/ArrayList;-><init>()V
 
-    invoke-interface {v15}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+    const/4 v5, 0x0
 
-    move-result-object v15
-
-    :goto_1
-    invoke-interface {v15}, Ljava/util/Iterator;->hasNext()Z
-
-    move-result v16
-
-    if-eqz v16, :cond_7
-
-    invoke-interface {v15}, Ljava/util/Iterator;->next()Ljava/lang/Object;
-
-    move-result-object v16
-
-    move-object/from16 v1, v16
-
-    check-cast v1, Landroid/view/accessibility/AccessibilityNodeInfo;
+    invoke-static {v2, v4, v5}, Lcom/dogac/bin1/SpotifyYerel;->topla(Landroid/view/accessibility/AccessibilityNodeInfo;Ljava/util/List;I)V
 
     .line 185
-    invoke-virtual {v1, v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->getBoundsInScreen(Landroid/graphics/Rect;)V
+    nop
 
     .line 186
-    invoke-virtual {v1}, Landroid/view/accessibility/AccessibilityNodeInfo;->isVisibleToUser()Z
+    new-instance v2, Ljava/lang/StringBuilder;
 
-    move-result v16
-
-    if-eqz v16, :cond_5
-
-    invoke-virtual {v3}, Landroid/graphics/Rect;->isEmpty()Z
-
-    move-result v16
-
-    if-nez v16, :cond_5
-
-    iget v6, v3, Landroid/graphics/Rect;->top:I
-
-    move-object/from16 v17, v4
-
-    move/from16 v18, v5
-
-    int-to-double v4, v6
-
-    move-object v6, v9
-
-    move-object/from16 v19, v10
-
-    int-to-double v9, v0
-
-    mul-double/2addr v9, v12
-
-    cmpl-double v4, v4, v9
-
-    if-gtz v4, :cond_6
-
-    invoke-static {v1}, Lcom/dogac/bin1/SpotifyYerel;->sagPanelde(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
-
-    move-result v4
-
-    if-eqz v4, :cond_3
-
-    goto :goto_3
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
 
     .line 187
-    :cond_3
-    iget v4, v3, Landroid/graphics/Rect;->top:I
+    new-instance v6, Landroid/graphics/Rect;
 
-    if-ge v4, v7, :cond_4
-
-    iget v7, v3, Landroid/graphics/Rect;->top:I
-
-    invoke-virtual {v14, v11}, Ljava/lang/String;->indexOf(I)I
-
-    move-result v4
-
-    add-int/lit8 v4, v4, 0x1
-
-    invoke-virtual {v14, v4}, Ljava/lang/String;->substring(I)Ljava/lang/String;
-
-    move-result-object v4
-
-    move-object v9, v1
-
-    move-object v10, v4
-
-    goto :goto_2
-
-    :cond_4
-    move-object v9, v6
-
-    move-object/from16 v10, v19
+    invoke-direct {v6}, Landroid/graphics/Rect;-><init>()V
 
     .line 188
-    :goto_2
-    move-object/from16 v4, v17
-
-    move/from16 v5, v18
-
-    const/4 v1, 0x0
-
-    goto :goto_1
-
-    .line 186
-    :cond_5
-    move-object/from16 v17, v4
-
-    move/from16 v18, v5
-
-    move-object v6, v9
-
-    move-object/from16 v19, v10
-
-    .line 184
-    :cond_6
-    :goto_3
-    move-object v9, v6
-
-    move-object/from16 v4, v17
-
-    move/from16 v5, v18
-
-    move-object/from16 v10, v19
-
-    const/4 v1, 0x0
-
-    goto :goto_1
-
-    .line 183
-    :cond_7
-    move-object/from16 v17, v4
-
-    move/from16 v18, v5
-
-    move-object v6, v9
-
-    move-object/from16 v19, v10
-
-    add-int/lit8 v8, v8, 0x1
-
-    const/4 v1, 0x0
-
-    goto :goto_0
-
-    .line 190
-    :cond_8
-    if-nez v9, :cond_f
-
-    .line 191
-    new-instance v1, Ljava/util/ArrayList;
-
-    invoke-direct {v1}, Ljava/util/ArrayList;-><init>()V
-
-    .line 192
-    const/4 v4, 0x0
-
-    invoke-static {v2, v1, v4}, Lcom/dogac/bin1/SpotifyYerel;->topla(Landroid/view/accessibility/AccessibilityNodeInfo;Ljava/util/List;I)V
-
-    .line 193
-    invoke-interface {v1}, Ljava/util/List;->iterator()Ljava/util/Iterator;
-
-    move-result-object v1
-
-    :goto_4
-    invoke-interface {v1}, Ljava/util/Iterator;->hasNext()Z
-
-    move-result v4
-
-    if-eqz v4, :cond_e
-
-    invoke-interface {v1}, Ljava/util/Iterator;->next()Ljava/lang/Object;
-
-    move-result-object v4
-
-    check-cast v4, Landroid/view/accessibility/AccessibilityNodeInfo;
-
-    .line 194
-    invoke-static {v4}, Lcom/dogac/bin1/SpotifyYerel;->etiket(Landroid/view/accessibility/AccessibilityNodeInfo;)Ljava/lang/String;
-
-    move-result-object v5
-
-    .line 195
-    invoke-static {v5}, Lcom/dogac/bin1/SpotifyYerel;->calEtiketi(Ljava/lang/String;)Z
-
-    move-result v6
-
-    if-nez v6, :cond_9
-
-    move-object v6, v9
-
-    goto :goto_6
-
-    .line 196
-    :cond_9
-    invoke-virtual {v4, v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->getBoundsInScreen(Landroid/graphics/Rect;)V
-
-    .line 197
-    invoke-virtual {v4}, Landroid/view/accessibility/AccessibilityNodeInfo;->isVisibleToUser()Z
-
-    move-result v6
-
-    if-eqz v6, :cond_c
-
-    invoke-virtual {v3}, Landroid/graphics/Rect;->isEmpty()Z
-
-    move-result v6
-
-    if-nez v6, :cond_c
-
-    iget v6, v3, Landroid/graphics/Rect;->top:I
-
-    int-to-double v14, v6
-
-    move-object v6, v9
-
-    int-to-double v8, v0
-
-    mul-double/2addr v8, v12
-
-    cmpl-double v8, v14, v8
-
-    if-gtz v8, :cond_d
-
-    invoke-static {v4}, Lcom/dogac/bin1/SpotifyYerel;->sagPanelde(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
-
-    move-result v8
-
-    if-eqz v8, :cond_a
-
-    goto :goto_6
-
-    .line 198
-    :cond_a
-    iget v8, v3, Landroid/graphics/Rect;->top:I
-
-    if-ge v8, v7, :cond_b
-
-    iget v6, v3, Landroid/graphics/Rect;->top:I
-
-    new-instance v7, Ljava/lang/StringBuilder;
-
-    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v8, "etiket:"
-
-    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-interface {v4}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
     move-result-object v7
 
-    invoke-virtual {v7, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const/16 v8, 0x63
+
+    const v9, 0x7fffffff
+
+    move-object v10, v1
+
+    move-object v11, v10
+
+    move v12, v5
+
+    :goto_0
+    invoke-interface {v7}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v13
+
+    const-string v14, "] "
+
+    const-string v15, " y="
+
+    const-string v5, "\' x="
+
+    const-string v1, " \'"
+
+    const-string v17, "-"
+
+    move-object/from16 v18, v11
+
+    const-string v11, "["
+
+    move-object/from16 v19, v4
+
+    const-string v20, ""
+
+    const/16 v21, 0x1
+
+    if-eqz v13, :cond_17
+
+    invoke-interface {v7}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v13
+
+    check-cast v13, Landroid/view/accessibility/AccessibilityNodeInfo;
+
+    .line 189
+    invoke-virtual {v13}, Landroid/view/accessibility/AccessibilityNodeInfo;->isVisibleToUser()Z
+
+    move-result v22
+
+    if-nez v22, :cond_3
+
+    move-object/from16 v23, v7
+
+    move v14, v8
+
+    move-object/from16 v24, v10
+
+    goto/16 :goto_b
+
+    .line 190
+    :cond_3
+    invoke-virtual {v13}, Landroid/view/accessibility/AccessibilityNodeInfo;->getViewIdResourceName()Ljava/lang/String;
+
+    move-result-object v4
+
+    move-object/from16 v23, v7
+
+    if-nez v4, :cond_4
+
+    move-object/from16 v7, v20
+
+    goto :goto_1
+
+    :cond_4
+    const/16 v7, 0x2f
+
+    invoke-virtual {v4, v7}, Ljava/lang/String;->indexOf(I)I
+
+    move-result v7
+
+    add-int/lit8 v7, v7, 0x1
+
+    invoke-virtual {v4, v7}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+
+    move-result-object v7
+
+    .line 191
+    :goto_1
+    move-object/from16 v24, v10
+
+    invoke-static {v13}, Lcom/dogac/bin1/SpotifyYerel;->etiket(Landroid/view/accessibility/AccessibilityNodeInfo;)Ljava/lang/String;
+
+    move-result-object v10
+
+    .line 192
+    if-eqz v4, :cond_5
+
+    sget-object v22, Lcom/dogac/bin1/SpotifyYerel;->OYNAT_IDLER:[Ljava/lang/String;
+
+    move/from16 v25, v9
+
+    invoke-static/range {v22 .. v22}, Ljava/util/Arrays;->asList([Ljava/lang/Object;)Ljava/util/List;
+
+    move-result-object v9
+
+    invoke-interface {v9, v4}, Ljava/util/List;->contains(Ljava/lang/Object;)Z
+
+    move-result v4
+
+    if-eqz v4, :cond_6
+
+    move/from16 v4, v21
+
+    goto :goto_2
+
+    :cond_5
+    move/from16 v25, v9
+
+    :cond_6
+    const/4 v4, 0x0
+
+    .line 193
+    :goto_2
+    if-nez v4, :cond_7
+
+    invoke-static {v10}, Lcom/dogac/bin1/SpotifyYerel;->calEtiketi(Ljava/lang/String;)Z
+
+    move-result v9
+
+    if-nez v9, :cond_7
+
+    move v14, v8
+
+    move/from16 v9, v25
+
+    goto/16 :goto_b
+
+    .line 194
+    :cond_7
+    invoke-virtual {v13, v6}, Landroid/view/accessibility/AccessibilityNodeInfo;->getBoundsInScreen(Landroid/graphics/Rect;)V
+
+    .line 195
+    invoke-virtual {v6}, Landroid/graphics/Rect;->isEmpty()Z
+
+    move-result v9
+
+    if-nez v9, :cond_16
+
+    iget v9, v6, Landroid/graphics/Rect;->top:I
+
+    move/from16 v26, v8
+
+    int-to-double v8, v9
+
+    move-object/from16 v27, v14
+
+    move-object/from16 v28, v15
+
+    int-to-double v14, v3
+
+    const-wide v29, 0x3fe70a3d70a3d70aL    # 0.72
+
+    mul-double v14, v14, v29
+
+    cmpl-double v8, v8, v14
+
+    if-gtz v8, :cond_15
+
+    invoke-static {v13}, Lcom/dogac/bin1/SpotifyYerel;->sagPanelde(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
+
+    move-result v8
+
+    if-eqz v8, :cond_8
+
+    move/from16 v9, v25
+
+    move/from16 v14, v26
+
+    goto/16 :goto_b
+
+    .line 196
+    :cond_8
+    invoke-virtual {v6}, Landroid/graphics/Rect;->centerX()I
+
+    move-result v8
+
+    int-to-double v8, v8
+
+    int-to-double v14, v0
+
+    const-wide v29, 0x3fe4cccccccccccdL    # 0.65
+
+    mul-double v14, v14, v29
+
+    cmpg-double v8, v8, v14
+
+    if-gez v8, :cond_9
+
+    move/from16 v8, v21
+
+    goto :goto_3
+
+    :cond_9
+    const/4 v8, 0x0
+
+    .line 197
+    :goto_3
+    if-eqz v10, :cond_a
+
+    const-string v9, "carvis"
+
+    invoke-virtual {v10, v9}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+
+    move-result v9
+
+    if-eqz v9, :cond_a
+
+    const/4 v4, 0x0
+
+    goto :goto_5
+
+    :cond_a
+    if-nez v8, :cond_b
+
+    const/16 v21, 0x5
+
+    :goto_4
+    move/from16 v4, v21
+
+    goto :goto_5
+
+    :cond_b
+    if-eqz v4, :cond_c
+
+    goto :goto_4
+
+    :cond_c
+    const/16 v21, 0x2
+
+    goto :goto_4
+
+    .line 198
+    :goto_5
+    add-int/lit8 v8, v12, 0x1
+
+    const/16 v9, 0x8
+
+    if-ge v12, v9, :cond_f
+
+    invoke-virtual {v2, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v9
+
+    invoke-virtual {v7}, Ljava/lang/String;->length()I
+
+    move-result v11
+
+    if-lez v11, :cond_d
+
+    move-object v11, v7
+
+    goto :goto_6
+
+    :cond_d
+    move-object/from16 v11, v17
+
+    :goto_6
+    invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v9
+
+    invoke-virtual {v9, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    if-nez v10, :cond_e
+
+    move-object/from16 v9, v20
+
+    goto :goto_7
+
+    :cond_e
+    move-object v9, v10
+
+    :goto_7
+    invoke-virtual {v1, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v6}, Landroid/graphics/Rect;->centerX()I
+
+    move-result v5
+
+    invoke-virtual {v1, v5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    move-object/from16 v9, v28
+
+    invoke-virtual {v1, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    iget v5, v6, Landroid/graphics/Rect;->top:I
+
+    invoke-virtual {v1, v5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    const-string v5, " p="
+
+    invoke-virtual {v1, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    move-object/from16 v12, v27
+
+    invoke-virtual {v1, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    .line 199
+    :cond_f
+    move/from16 v14, v26
+
+    if-lt v4, v14, :cond_12
+
+    if-ne v4, v14, :cond_10
+
+    iget v1, v6, Landroid/graphics/Rect;->top:I
+
+    move/from16 v9, v25
+
+    if-ge v1, v9, :cond_11
+
+    goto :goto_8
+
+    :cond_10
+    move/from16 v9, v25
+
+    .line 200
+    :cond_11
+    move v4, v14
+
+    move-object/from16 v11, v18
+
+    move-object/from16 v10, v24
+
+    goto :goto_a
+
+    .line 199
+    :cond_12
+    :goto_8
+    iget v1, v6, Landroid/graphics/Rect;->top:I
+
+    new-instance v5, Ljava/lang/StringBuilder;
+
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v7}, Ljava/lang/String;->length()I
+
+    move-result v9
+
+    if-lez v9, :cond_13
+
+    goto :goto_9
+
+    :cond_13
+    move-object/from16 v7, v20
+
+    :goto_9
+    invoke-virtual {v5, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v5
+
+    const-string v7, "\'"
+
+    invoke-virtual {v5, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v5
+
+    if-nez v10, :cond_14
+
+    move-object/from16 v10, v20
+
+    :cond_14
+    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v5
+
+    invoke-virtual {v5, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v5
 
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    move-result-object v10
+    move-result-object v5
 
-    move-object v9, v4
+    move v9, v1
 
-    move v7, v6
+    move-object v11, v5
 
-    goto :goto_5
+    move-object v10, v13
 
-    :cond_b
-    move-object v9, v6
+    .line 200
+    :goto_a
+    move v12, v8
 
-    .line 199
-    :goto_5
-    goto :goto_4
+    move-object/from16 v7, v23
 
-    .line 197
-    :cond_c
-    move-object v6, v9
+    const/4 v1, 0x0
 
-    .line 193
-    :cond_d
-    :goto_6
-    move-object v9, v6
+    const/4 v5, 0x0
 
-    goto :goto_4
+    move v8, v4
 
-    :cond_e
-    move-object v6, v9
+    move-object/from16 v4, v19
+
+    goto/16 :goto_0
+
+    .line 195
+    :cond_15
+    move/from16 v9, v25
+
+    move/from16 v14, v26
+
+    goto :goto_b
+
+    :cond_16
+    move v14, v8
+
+    move/from16 v9, v25
+
+    .line 188
+    :goto_b
+    move v8, v14
+
+    move-object/from16 v11, v18
+
+    move-object/from16 v4, v19
+
+    move-object/from16 v7, v23
+
+    move-object/from16 v10, v24
+
+    const/4 v1, 0x0
+
+    const/4 v5, 0x0
+
+    goto/16 :goto_0
 
     .line 201
-    :cond_f
-    if-nez v9, :cond_1a
+    :cond_17
+    move-object/from16 v24, v10
+
+    move-object v12, v14
+
+    move-object v9, v15
+
+    move v14, v8
+
+    if-nez v24, :cond_22
 
     .line 202
     const-string v0, "araniyor"
 
     sput-object v0, Lcom/dogac/bin1/SpotifyYerel;->listeSon:Ljava/lang/String;
 
+    .line 203
+    nop
+
     .line 204
-    new-instance v0, Ljava/util/ArrayList;
+    new-instance v0, Ljava/lang/StringBuilder;
 
-    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
-
-    const/4 v1, 0x0
-
-    invoke-static {v2, v0, v1}, Lcom/dogac/bin1/SpotifyYerel;->topla(Landroid/view/accessibility/AccessibilityNodeInfo;Ljava/util/List;I)V
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
 
     .line 205
-    new-instance v2, Ljava/lang/StringBuilder;
+    invoke-interface/range {v19 .. v19}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
-    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+    move-result-object v2
+
+    const/16 v16, 0x0
+
+    :cond_18
+    :goto_c
+    invoke-interface {v2}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v3
+
+    if-eqz v3, :cond_21
+
+    invoke-interface {v2}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v3
+
+    check-cast v3, Landroid/view/accessibility/AccessibilityNodeInfo;
 
     .line 206
-    invoke-interface {v0}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+    invoke-virtual {v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->isClickable()Z
 
-    move-result-object v0
+    move-result v4
 
-    move v6, v1
+    if-nez v4, :cond_19
 
-    :cond_10
-    :goto_7
-    invoke-interface {v0}, Ljava/util/Iterator;->hasNext()Z
+    invoke-virtual {v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->getActionList()Ljava/util/List;
 
-    move-result v1
+    move-result-object v4
 
-    if-eqz v1, :cond_19
+    sget-object v7, Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction;->ACTION_CLICK:Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction;
 
-    invoke-interface {v0}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+    invoke-interface {v4, v7}, Ljava/util/List;->contains(Ljava/lang/Object;)Z
 
-    move-result-object v1
+    move-result v4
 
-    check-cast v1, Landroid/view/accessibility/AccessibilityNodeInfo;
+    if-eqz v4, :cond_18
+
+    :cond_19
+    invoke-virtual {v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->isVisibleToUser()Z
+
+    move-result v4
+
+    if-nez v4, :cond_1a
+
+    goto :goto_c
 
     .line 207
-    invoke-virtual {v1}, Landroid/view/accessibility/AccessibilityNodeInfo;->isClickable()Z
-
-    move-result v4
-
-    if-nez v4, :cond_11
-
-    invoke-virtual {v1}, Landroid/view/accessibility/AccessibilityNodeInfo;->getActionList()Ljava/util/List;
-
-    move-result-object v4
-
-    sget-object v5, Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction;->ACTION_CLICK:Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction;
-
-    invoke-interface {v4, v5}, Ljava/util/List;->contains(Ljava/lang/Object;)Z
-
-    move-result v4
-
-    if-eqz v4, :cond_10
-
-    :cond_11
-    invoke-virtual {v1}, Landroid/view/accessibility/AccessibilityNodeInfo;->isVisibleToUser()Z
-
-    move-result v4
-
-    if-nez v4, :cond_12
-
-    goto :goto_7
+    :cond_1a
+    invoke-virtual {v3, v6}, Landroid/view/accessibility/AccessibilityNodeInfo;->getBoundsInScreen(Landroid/graphics/Rect;)V
 
     .line 208
-    :cond_12
-    invoke-virtual {v1, v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->getBoundsInScreen(Landroid/graphics/Rect;)V
-
-    .line 209
-    invoke-virtual {v1}, Landroid/view/accessibility/AccessibilityNodeInfo;->getViewIdResourceName()Ljava/lang/String;
+    invoke-virtual {v3}, Landroid/view/accessibility/AccessibilityNodeInfo;->getViewIdResourceName()Ljava/lang/String;
 
     move-result-object v4
 
-    invoke-static {v1}, Lcom/dogac/bin1/SpotifyYerel;->etiket(Landroid/view/accessibility/AccessibilityNodeInfo;)Ljava/lang/String;
-
-    move-result-object v5
-
-    .line 210
-    if-eqz v4, :cond_13
-
-    invoke-virtual {v4}, Ljava/lang/String;->length()I
-
-    move-result v7
-
-    if-nez v7, :cond_14
-
-    :cond_13
-    if-nez v5, :cond_14
-
-    goto :goto_7
-
-    .line 211
-    :cond_14
-    const-string v7, "["
-
-    invoke-virtual {v2, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-static {v3}, Lcom/dogac/bin1/SpotifyYerel;->etiket(Landroid/view/accessibility/AccessibilityNodeInfo;)Ljava/lang/String;
 
     move-result-object v7
 
-    if-nez v4, :cond_15
+    .line 209
+    if-eqz v4, :cond_1b
 
-    const-string v4, "-"
-
-    goto :goto_8
-
-    :cond_15
-    invoke-virtual {v4, v11}, Ljava/lang/String;->indexOf(I)I
+    invoke-virtual {v4}, Ljava/lang/String;->length()I
 
     move-result v8
 
-    add-int/lit8 v8, v8, 0x1
+    if-nez v8, :cond_1c
 
-    invoke-virtual {v4, v8}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+    :cond_1b
+    if-nez v7, :cond_1c
+
+    goto :goto_c
+
+    .line 210
+    :cond_1c
+    invoke-virtual {v0, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    if-nez v4, :cond_1d
+
+    move-object/from16 v4, v17
+
+    const/16 v10, 0x2f
+
+    goto :goto_d
+
+    :cond_1d
+    const/16 v10, 0x2f
+
+    invoke-virtual {v4, v10}, Ljava/lang/String;->indexOf(I)I
+
+    move-result v13
+
+    add-int/lit8 v13, v13, 0x1
+
+    invoke-virtual {v4, v13}, Ljava/lang/String;->substring(I)Ljava/lang/String;
 
     move-result-object v4
 
-    :goto_8
-    invoke-virtual {v7, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    :goto_d
+    invoke-virtual {v8, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v4
 
-    const-string v7, " \'"
+    invoke-virtual {v4, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
+    move-result-object v4
+
+    if-nez v7, :cond_1e
+
+    move-object/from16 v7, v20
+
+    :cond_1e
     invoke-virtual {v4, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v4
 
-    const-string v7, ""
-
-    if-nez v5, :cond_16
-
-    move-object v5, v7
-
-    :cond_16
     invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v4
 
-    const-string v5, "\' y="
+    invoke-virtual {v6}, Landroid/graphics/Rect;->centerX()I
 
-    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result v7
 
-    move-result-object v4
-
-    iget v5, v3, Landroid/graphics/Rect;->top:I
-
-    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v7}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
 
     move-result-object v4
 
-    invoke-static {v1}, Lcom/dogac/bin1/SpotifyYerel;->sagPanelde(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
+    invoke-virtual {v4, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    move-result v1
+    move-result-object v4
 
-    if-eqz v1, :cond_17
+    iget v7, v6, Landroid/graphics/Rect;->top:I
 
-    const-string v7, " panel"
+    invoke-virtual {v4, v7}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
 
-    :cond_17
-    invoke-virtual {v4, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v4
 
-    move-result-object v1
+    invoke-static {v3}, Lcom/dogac/bin1/SpotifyYerel;->sagPanelde(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
 
-    const-string v4, "] "
+    move-result v3
 
-    invoke-virtual {v1, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    if-eqz v3, :cond_1f
+
+    const-string v3, " panel"
+
+    goto :goto_e
+
+    :cond_1f
+    move-object/from16 v3, v20
+
+    :goto_e
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v3
+
+    invoke-virtual {v3, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    .line 211
+    add-int/lit8 v3, v16, 0x1
+
+    const/16 v4, 0x1e
+
+    if-lt v3, v4, :cond_20
+
+    goto :goto_f
 
     .line 212
-    add-int/lit8 v6, v6, 0x1
+    :cond_20
+    move/from16 v16, v3
 
-    const/16 v1, 0x1e
-
-    if-lt v6, v1, :cond_18
-
-    goto :goto_9
+    goto/16 :goto_c
 
     .line 213
-    :cond_18
-    goto/16 :goto_7
-
-    .line 214
-    :cond_19
-    :goto_9
-    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    :cond_21
+    :goto_f
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
     move-result-object v0
 
     sput-object v0, Lcom/dogac/bin1/SpotifyYerel;->dokum:Ljava/lang/String;
 
-    .line 215
+    .line 214
     const/4 v0, 0x0
 
     return-object v0
 
+    .line 216
+    :cond_22
+    new-instance v0, Landroid/graphics/Rect;
+
+    invoke-direct {v0}, Landroid/graphics/Rect;-><init>()V
+
+    move-object/from16 v1, v24
+
+    invoke-virtual {v1, v0}, Landroid/view/accessibility/AccessibilityNodeInfo;->getBoundsInScreen(Landroid/graphics/Rect;)V
+
     .line 217
-    :cond_1a
-    invoke-static {v9}, Lcom/dogac/bin1/CarvisErisim;->tiklaDugum(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
+    new-instance v3, Ljava/lang/StringBuilder;
 
-    move-result v0
+    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
 
-    if-eqz v0, :cond_1b
+    move-object/from16 v11, v18
 
-    move-object v1, v10
+    invoke-virtual {v3, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    goto :goto_a
+    move-result-object v3
 
-    :cond_1b
+    const-string v4, " @"
+
+    invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v3
+
+    invoke-virtual {v0}, Landroid/graphics/Rect;->centerX()I
+
+    move-result v4
+
+    invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v3
+
+    const-string v4, ","
+
+    invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v3
+
+    iget v0, v0, Landroid/graphics/Rect;->top:I
+
+    invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v3, " (puan "
+
+    invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v14}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v3, ") | adaylar: "
+
+    invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    .line 218
+    invoke-static {v1}, Lcom/dogac/bin1/CarvisErisim;->tiklaDugum(Landroid/view/accessibility/AccessibilityNodeInfo;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_23
+
+    move-object v1, v0
+
+    goto :goto_10
+
+    :cond_23
     const/4 v1, 0x0
 
-    :goto_a
+    :goto_10
     return-object v1
 
-    .line 179
-    :cond_1c
-    :goto_b
+    .line 182
+    :cond_24
+    :goto_11
     new-instance v0, Ljava/lang/StringBuilder;
 
     invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
