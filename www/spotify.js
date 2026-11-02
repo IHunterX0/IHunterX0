@@ -11,7 +11,7 @@
   'use strict';
   var U = window.Uygulama; if (!U) return;
   if (/[?&]gomulu\b/.test(location.search)) return;
-  var el = U.el, $ = U.$, K = window.AndroidKopru || null;
+  var el = U.el, $ = U.$, $$ = U.$$, K = window.AndroidKopru || null;
   var YONLENDIR = location.origin + location.pathname;
   var KAPSAM = ['user-library-read', 'playlist-read-private', 'playlist-read-collaborative', 'playlist-modify-private', 'user-top-read',
     'user-read-playback-state', 'user-modify-playback-state', 'user-read-currently-playing', 'user-read-recently-played'].join(' ');
@@ -67,6 +67,18 @@
   // uzun beklemeler kullanıcıyı dondurmaz; her istek 12 sn'de zaman aşımına uğrar.
   var soguma = oku('spotify_soguma', 0);
   function sogumaKaldi() { return Math.max(0, soguma - Date.now()); }
+  var hataKaydi = [];
+  function hataKaydet(yol, e) { hataKaydi.unshift({ t: new Date().toLocaleTimeString('tr-TR'), yol: String(yol).replace(API, '').split('?')[0], durum: e.durum || '-', neden: e.neden || '', m: String(e.message || e).slice(0, 160) }); hataKaydi.length = Math.min(hataKaydi.length, 12); }
+  // Spotify'ın İngilizce hatalarını ne yapılacağıyla birlikte Türkçeye çevirir (kaynak: Spotify Şubat/Mart 2026 geliştirici modu kuralları)
+  function cevir(e) {
+    var m = String(e && e.message || e || ''), d = e && e.durum, n = e && e.neden;
+    if (n === 'QUOTA_EXCEEDED') return 'Spotify geliştirici kotası doldu (hesap başına sayılıyor). Bir süre sonra tekrar dene; bu sırada yerel mod çalışmaya devam eder.';
+    if (d === 403 && /premium/i.test(m) && !/player|playback/i.test(m)) return 'Spotify, Mart 2026\'dan beri geliştirici uygulamalarının çalışması için uygulama SAHİBİNİN Premium olmasını şart koşuyor. Hesabın Premium değilse "Spotify hesabı" bağlantısı çalışmaz — yerel mod (bildirim erişimiyle) yine çalışır.';
+    if (d === 403 && /regist|user may not|developer dashboard|not.*allow/i.test(m)) return 'Spotify hesabın, geliştirici panelindeki uygulamanın "User Management" listesinde yok. developer.spotify.com/dashboard → uygulaman → User Management → kendi adını ve Spotify e-postanı ekle.';
+    if (d === 403 && /premium/i.test(m)) return 'Bu işlem (uygulama içinden çalma) Spotify Premium istiyor; yerel mod Premium istemez.';
+    if (d === 401) return 'Spotify oturumu geçersiz; "Bağlantıyı kes" deyip yeniden bağlan.';
+    return m;
+  }
   var ard429 = 0; // art arda kota hatası: Retry-After okunamazsa bekleme 30 sn → 1 → 2 → 4 … en çok 10 dk
   function sogumaHatasi() { var sn = Math.ceil(sogumaKaldi() / 1000); var h = new Error('Spotify istek sınırı doldu; ' + (sn > 90 ? Math.ceil(sn / 60) + ' dk' : sn + ' sn') + ' sonra tekrar dene.'); h.durum = 429; return h; }
   function api(yol, o, tekrar) {
@@ -89,7 +101,7 @@
       if (r.status === 204 || r.status === 202) return null;
       return r.text().then(function (m) {
         var j = null; try { j = m ? JSON.parse(m) : null; } catch (e) {}
-        if (!r.ok) { var h = new Error((j && j.error && (j.error.message || j.error)) || ('Spotify ' + r.status)); h.durum = r.status; h.neden = j && j.error && j.error.reason; throw h; }
+        if (!r.ok) { var h = new Error((j && j.error && (j.error.message || j.error)) || ('Spotify ' + r.status)); h.durum = r.status; h.neden = j && j.error && j.error.reason; hataKaydet(yol, h); throw h; }
         return j;
       });
     });
@@ -123,7 +135,7 @@
         var kendi = listeler.filter(function (l) { return l.sahip; }).slice(0, 4);
         return kendi.reduce(function (z, l) {
           return z.then(function () { if (sogumaKaldi()) return; var isle = function (j) { (j.items || []).forEach(function (it) { ekle(it.item || it.track, 'liste:' + l.ad); }); };
-            return istek('/playlists/' + l.id + '/items?limit=100').then(isle).catch(function (e) { if (e.durum === 429) return; return istek('/playlists/' + l.id + '/tracks?limit=100').then(isle); }).catch(function () {}); });
+            return istek('/playlists/' + l.id + '/items?limit=50').then(isle).catch(function (e) { if (e.durum === 429) return; return istek('/playlists/' + l.id + '/tracks?limit=50').then(isle); }).catch(function () {}); });
         }, Promise.resolve());
       })
       .then(function () {
@@ -144,6 +156,38 @@
   function jsonAyikla(m) { var a = m.indexOf('{'), b = m.lastIndexOf('}'); if (a < 0 || b < a) throw new Error('Öneri okunamadı.'); return JSON.parse(m.slice(a, b + 1)); }
   function katla2(t) { return String(t || '').toLocaleLowerCase('tr').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim(); }
   function karistir(l) { l = l.slice(); for (var i = l.length - 1; i > 0; i--) { var j = Math.random() * (i + 1) | 0, t = l[i]; l[i] = l[j]; l[j] = t; } return l; }
+  var Zevk = oku('spotify_zevk', '');
+  function kutuKaynak() {
+    function yerelKutu() { return { t: 0, sarkilar: Dinlenen.map(function (x, i) { return { id: 'y' + i, u: null, a: x.a, s: x.s, k: 'son' }; }), listeler: [] }; }
+    function sec(x) { return x && x.sarkilar && x.sarkilar.length ? x : yerelKutu(); }
+    if (!bagli()) return Promise.resolve(sec(Kutu));
+    return kutuphaneYukle(false).then(sec, function () { return sec(Kutu); });
+  }
+  function satirdanSarki(q, i) { var p = String(q).split(/\s+[-–—]\s+/); return { id: 'n' + Date.now().toString(36) + i, u: null, s: p.length > 1 ? p[0].trim() : '', a: (p.length > 1 ? p.slice(1).join(' - ') : p[0]).trim(), yeni: true }; }
+  function yeniCevir(k) {
+    var y = (k.yeniAra || []).map(satirdanSarki); k.yeniAra = []; if (!y.length) return;
+    var l = []; k.sarkilar.forEach(function (x, i) { l.push(x); if (i % 4 === 3 && y.length) l.push(y.shift()); }); k.sarkilar = l.concat(y);
+  }
+  // Kütüphane yoksa (Spotify hesabı bağlı değil / kullanılamıyor): yazdığın zevk + yerelde dinlediklerinden 15 şarkı önerir
+  function zevktenOner(kutu, ruh) {
+    var ipucu = kutu.sarkilar.slice(0, 40).map(function (x) { return x.a + ' — ' + x.s; }).join('; ');
+    var istem = 'Sen bir DJ\'sin. Tıp öğrencisi kullanıcının ruh hâli: "' + ruh + '". Saat ' + new Date().getHours() + ':00.\n' +
+      (Zevk ? 'Sevdiği sanatçılar/türler: ' + Zevk + '\n' : '') + (ipucu ? 'Son dinledikleri: ' + ipucu + '\n' : '') +
+      'Bu ruh hâline ve zevkine uyan, Spotify\'da GERÇEKTEN var olan 15 şarkı öner; akış ruh hâlini yakalayıp istenen yöne taşısın. Ders/odak isteniyorsa az sözlü olanları öne al. Zevk bilgisi azsa Türk ve yabancı karışık, bilinen şarkılar seç.\n' +
+      'YALNIZ JSON yaz: {"baslik":"2-4 kelime","yorum":"1-2 samimi Türkçe cümle","yeni":["Sanatçı - Şarkı"]}';
+    var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 25 sn\'de cevap vermedi')); }, 25000); });
+    return Promise.race([U.Y.sample(istem, { cache: false, hafif: true }), zaman]).then(function (c) {
+      var j = jsonAyikla(c.text || ''), l = (j.yeni || []).slice(0, 18).map(satirdanSarki).filter(function (x) { return x.a; });
+      l.forEach(function (x) { x.yeni = false; });
+      if (l.length < 3) throw new Error('öneri boş geldi');
+      var k = { id: Date.now().toString(36), ruh: ruh, baslik: j.baslik || ruh, yorum: j.yorum || '', sarkilar: l, yeniAra: [], t: Date.now() };
+      karisimSakla(k); return k;
+    }, function (e) {
+      if (kutu.sarkilar.length >= 5) return yerelKarisim(kutu, ruh, 'zaman aşımı/kota');
+      var m = String(e && (e.code || e.message) || e);
+      throw new Error(/rate|kota|429/i.test(m) ? 'Yapay zekâ kotası şu an dolu; biraz sonra tekrar dene.' : 'Yapay zekâ cevap vermedi: ' + (e && e.message || e));
+    });
+  }
   function yerelKarisim(kutu, ruh, neden) {
     var tercih = kutu.sarkilar.filter(function (x) { return /son|favori/.test(x.k); }), digeri = kutu.sarkilar.filter(function (x) { return !/son|favori/.test(x.k); });
     var l = karistir(tercih).slice(0, 12).concat(karistir(digeri).slice(0, 6));
@@ -154,9 +198,10 @@
     var anahtar = katla2(ruh);
     var onbellek = taze ? null : karisimlar().filter(function (x) { return !x.yerel && katla2(x.ruh) === anahtar && Date.now() - x.t < 6 * 3600e3; })[0];
     if (onbellek) return Promise.resolve(Object.assign({}, onbellek, { yeniAra: [], onbellekten: true }));
-    return Promise.all([kutuphaneYukle(false), U.AI ? U.AI.hazir().catch(function () { return false; }) : Promise.resolve(!!(U.Y && U.Y.sample))]).then(function (r) {
+    return Promise.all([kutuKaynak(), U.AI ? U.AI.hazir().catch(function () { return false; }) : Promise.resolve(!!(U.Y && U.Y.sample))]).then(function (r) {
       var kutu = r[0];
-      if (!r[1]) return yerelKarisim(kutu, ruh, 'anahtar yok');
+      if (!r[1]) { if (kutu.sarkilar.length >= 5) return yerelKarisim(kutu, ruh, 'yapay zekâ anahtarı yok'); throw new Error('Öneri için yapay zekâ gerekiyor: Gemini anahtarını gir (ya da Spotify\'da birkaç şarkı dinle, onlardan karıştırayım).'); }
+      if (kutu.sarkilar.length < 15) return zevktenOner(kutu, ruh);
       var l = kutu.sarkilar.slice().sort(function (a, b) { function p(x) { return /son/.test(x.k) ? 0 : /favori/.test(x.k) ? 1 : /begeni/.test(x.k) ? 2 : 3; } return p(a) - p(b); });
       l = l.slice(0, 120).concat(karistir(l.slice(120)).slice(0, 100)); // en çok dinlenenler + kütüphaneden rastgele bir kesit
       var istem = 'Sen bir DJ\'sin. Tıp öğrencisi kullanıcının ruh hâli: "' + ruh + '". Saat ' + new Date().getHours() + ':00.\n' +
@@ -170,6 +215,7 @@
         var secim = (j.secim || []).map(function (i) { return l[+i]; }).filter(function (x) { if (!x || g[x.id]) return false; g[x.id] = 1; return true; });
         if (secim.length < 3) throw new Error('öneri boş geldi');
         var k = { id: Date.now().toString(36), ruh: ruh, baslik: j.baslik || ruh, yorum: j.yorum || '', sarkilar: secim, yeniAra: (j.yeni || []).slice(0, 4), t: Date.now() };
+        if (YEREL) yeniCevir(k); // yerel mod aramayla çaldığı için Spotify araması gerekmez
         karisimSakla(k);
         return k;
       }).catch(function (e) {
@@ -195,7 +241,7 @@
 
   /* ---------------- çalma ---------------- */
   function bekle(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
-  function hataMetni(e) { return ((e && e.message) || String(e)) + (e && e.durum ? ' [Spotify ' + e.durum + (e.neden ? ' · ' + e.neden : '') + ']' : ''); }
+  function hataMetni(e) { return cevir(e) + (e && e.durum ? ' [Spotify ' + e.durum + (e.neden ? ' · ' + e.neden : '') + ']' : ''); }
   function spotifydaAc(uri) { try { location.href = uri; } catch (e) {} }
   function oneDon() { try { if (K && K.oneGetir && K.onPlandaMi && !K.onPlandaMi()) K.oneGetir(); } catch (e) {} }
   function cihazBul() {
@@ -245,7 +291,7 @@
       throw e;
     }).then(function () { D.premium = true; kaydet(); setTimeout(simdiYenile, 900); });
   }
-  function kontrol(komut) {
+  function kontrolApi(komut) {
     var yol = { duraklat: ['PUT', '/me/player/pause', 'duraklat'], devam: ['PUT', '/me/player/play', 'oynat'], sonraki: ['POST', '/me/player/next', 'sonraki'], onceki: ['POST', '/me/player/previous', 'onceki'] }[komut];
     if (!yol) return Promise.reject(new Error('Bilinmeyen komut'));
     var yedek = function () { if (K && K.medya) { K.medya(yol[2]); return null; } throw new Error('Kontrol edilemedi.'); };
@@ -283,21 +329,105 @@
   }
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
+  /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
+  var SURUM = '2026.11.02-r13';
+  var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
+  function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
+  function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
+  function izinHatasi() { var e = new Error('Carvis\'in Spotify\'ı uygulamadan çıkmadan kontrol edebilmesi için "Bildirim erişimi" izni gerekiyor (Ayarlar → Bildirim erişimi → C.A.R.V.I.S.).'); e.izin = true; return e; }
+  var Dinlenen = oku('spotify_dinlenen', []); // yerelde görülen şarkılar → API yokken zevk kaynağı
+  function dinlenenEkle(d) { if (!d.baslik) return; var k = sade(d.baslik) + '|' + sade(d.sanatci); if (Dinlenen.some(function (x) { return x.k === k; })) return; Dinlenen.unshift({ k: k, a: d.baslik, s: d.sanatci || '' }); Dinlenen = Dinlenen.slice(0, 300); yaz('spotify_dinlenen', Dinlenen); }
+  var Kuyruk = null; // { k, i, t, onceki, bizim, konum, sure }
+  function yerelSarkiCal(x, d) {
+    if (x.u && d && (d.eylemler & 8192)) { var r = K.spotifyUri(x.u); if (r === 'ok') return r; } // ACTION_PLAY_FROM_URI
+    return K.spotifyCal((x.a + ' ' + String(x.s || '').split(',')[0]).trim());
+  }
+  function yerelBaslat(k, i) {
+    return Promise.resolve().then(function () {
+      var d = yDurum(); if (!d) throw new Error('Yerel Spotify kontrolü bu sürümde yok.');
+      if (d.izin === false) throw izinHatasi();
+      var x = k.sarkilar[i || 0]; if (!x) throw new Error('Karışım boş.');
+      Kuyruk = { k: k, i: i || 0, t: Date.now(), onceki: d.baslik || '', bizim: null };
+      if (!d.var) { // Spotify kapalı: bir kez açılır (başlatmanın tek yolu), sonra Carvis'e dönülür
+        K.muzik((x.a + ' ' + String(x.s || '').split(',')[0]).trim(), 'spotify');
+        setTimeout(function () { try { if (K.onPlandaMi && !K.onPlandaMi()) K.oneGetir(); } catch (e) {} }, 7000);
+        return 'acildi';
+      }
+      var r = yerelSarkiCal(x, d);
+      if (r === 'izin_yok') throw izinHatasi();
+      if (r === 'oturum_yok') { K.muzik((x.a + ' ' + x.s).trim(), 'spotify'); setTimeout(function () { try { if (!K.onPlandaMi()) K.oneGetir(); } catch (e) {} }, 7000); return 'acildi'; }
+      if (r !== 'ok') throw new Error('Spotify komutu kabul etmedi (' + r + ').');
+      setTimeout(simdiYenile, 1500);
+      return 'ok';
+    });
+  }
+  function ilerle(n) {
+    if (!Kuyruk) return false;
+    var j = Kuyruk.i + n; if (j < 0 || j >= Kuyruk.k.sarkilar.length) { Kuyruk = null; return false; }
+    var d = yDurum() || {};
+    Kuyruk.i = j; Kuyruk.t = Date.now(); Kuyruk.onceki = d.baslik || ''; Kuyruk.bizim = null;
+    yerelSarkiCal(Kuyruk.k.sarkilar[j], d); setTimeout(simdiYenile, 1500); kuyrukCiz();
+    return true;
+  }
+  // Kuyruk bekçisi: yerel (ağsız) yoklama. Şarkımız bitip Spotify başka şarkıya geçince sıradakini çalar;
+  // kullanıcı Spotify'da elle başka şarkı seçerse (bizimki bitmeden) karışımı bırakır.
+  setInterval(function () {
+    if (!YEREL) return;
+    var d = yDurum(); if (!d || !d.var) return;
+    if (d.calisiyor) dinlenenEkle(d);
+    if (!Kuyruk) return;
+    if (!Kuyruk.bizim) {
+      if (d.calisiyor && d.baslik && (d.baslik !== Kuyruk.onceki || Date.now() - Kuyruk.t > 6000)) { Kuyruk.bizim = d.baslik; Kuyruk.konum = d.konum || 0; Kuyruk.sure = d.sure || 0; Kuyruk.calar = true; Kuyruk.ornekT = Date.now(); }
+      else if (Date.now() - Kuyruk.t > 45000) Kuyruk = null;
+      return;
+    }
+    if (d.baslik === Kuyruk.bizim) { Kuyruk.konum = d.konum || 0; Kuyruk.sure = d.sure || 0; Kuyruk.calar = !!d.calisiyor; Kuyruk.ornekT = Date.now(); if (!d.calisiyor && Kuyruk.sure && Kuyruk.konum >= Kuyruk.sure - 2500) ilerle(1); return; }
+    // Şarkı değişti: bizimki bitmiş miydi? Son ölçümden bu yana geçen süreyi de say (arka planda zamanlayıcılar seyrekleşir)
+    var tahmin = (Kuyruk.konum || 0) + (Kuyruk.calar ? Date.now() - (Kuyruk.ornekT || Date.now()) : 0);
+    var bitmisti = !Kuyruk.sure || tahmin >= Kuyruk.sure - 9000;
+    if (bitmisti) ilerle(1); else Kuyruk = null;
+  }, 2500);
+  function kontrol(komut) {
+    if (YEREL) {
+      var d = yDurum();
+      if (d && d.izin !== false && d.var) {
+        if (Kuyruk && (komut === 'sonraki' || komut === 'onceki') && ilerle(komut === 'sonraki' ? 1 : -1)) return Promise.resolve();
+        var r = K.spotifyKomut(komut === 'devam' ? 'oynat' : komut);
+        if (r === 'ok') { setTimeout(simdiYenile, 600); return Promise.resolve(); }
+      }
+    }
+    return kontrolApi(komut);
+  }
+  function karisimCal(k, i) {
+    if (YEREL) return yerelBaslat(k, i);
+    var l = k.sarkilar.slice(i || 0).filter(function (x) { return x.u; }).map(function (x) { return x.u; });
+    if (!l.length) return Promise.reject(new Error('Bu karışım yalnız cihaz sürümünde çalınabilir.'));
+    return cal(l, 0, k).then(function () { return 'ok'; });
+  }
+  function calMesaji(r) { return r === 'acildi' ? 'Spotify kapalıydı: bir kez açtım, birkaç saniyede buraya dönüyorum. Sonraki şarkılar kendiliğinden sıralanır.' : '▶ Çalıyor — Spotify arka planda, uygulamadan çıkmadın.'; }
+
   var Simdi = null;
   var mini = el('div', { class: 'sp-mini', hidden: true, role: 'region', 'aria-label': 'Spotify' });
   document.body.appendChild(mini);
   function simdiYenile() {
-    if (!bagli() || document.hidden) return Promise.resolve();
+    if (document.hidden) return Promise.resolve();
+    var d = yDurum();
+    if (d && d.var && d.baslik) {
+      Simdi = { a: d.baslik, s: d.sanatci || '', kapak: d.kapak ? { url: d.kapak } : null, calisiyor: !!d.calisiyor, ilerleme: d.konum || 0, sure: d.sure || 1, alindi: Date.now() };
+      miniCiz(); simdiKartCiz(); return Promise.resolve();
+    }
+    if (YEREL && d && d.izin !== false) { Simdi = null; miniCiz(); simdiKartCiz(); return Promise.resolve(); }
+    if (!bagli()) return Promise.resolve();
     return api('/me/player/currently-playing').then(function (j) {
       Simdi = j && j.item ? { a: j.item.name, s: (j.item.artists || []).map(function (x) { return x.name; }).join(', '), kapak: ((j.item.album || {}).images || []).slice(-2)[0], calisiyor: !!j.is_playing, ilerleme: j.progress_ms || 0, sure: j.item.duration_ms || 1, alindi: Date.now() } : null;
       miniCiz(); simdiKartCiz();
     }).catch(function () {});
   }
-  // "Ne çalıyor" yoklaması: yalnız uygulama görünürken VE (müzik sayfası açık ya da bir şey çalıyor) iken, 15 sn'de bir.
-  // Hiçbir şey çalmıyorsa ve müzik sayfasında değilsen Spotify'a hiç istek gitmez. İlerleme çubuğu yerelde ilerler.
-  setInterval(function () { if (bagli() && !document.hidden && !sogumaKaldi() && (U.Durum.gorunum === 'muzik' || (Simdi && Simdi.calisiyor))) simdiYenile(); }, 15000);
+  // Yoklama: yerel modda ağ yok (3 sn); API modunda yalnız müzik sayfasında/çalarken 15 sn
+  setInterval(function () { if (YEREL && !document.hidden) simdiYenile(); }, 3000);
+  setInterval(function () { if (!YEREL && bagli() && !document.hidden && !sogumaKaldi() && (U.Durum.gorunum === 'muzik' || (Simdi && Simdi.calisiyor))) simdiYenile(); }, 15000);
   setInterval(function () { if (Simdi && Simdi.calisiyor && U.Durum.gorunum === 'muzik') cubukGuncelle(); }, 1000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && (U.Durum.gorunum === 'muzik' || Simdi)) simdiYenile(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) simdiYenile(); });
   function dugme(t, et, f) { return el('button', { class: 'sp-d', type: 'button', 'aria-label': et, title: et, onclick: function (e) { e.stopPropagation(); f(); } }, [t]); }
   function miniCiz() {
     if (!Simdi || U.Durum.gorunum === 'muzik') { mini.hidden = true; return; }
@@ -336,6 +466,8 @@
     '.sp-yeni{font:600 9.5px var(--f-kod);letter-spacing:.15em;color:var(--holo-sicak,#ffb547);border:1px solid currentColor;padding:1px 5px}',
     '.sp-durum{font:12px var(--f-kod);color:var(--metin-sonuk);letter-spacing:.05em}',
     '.sp-hata{color:var(--kotu)}',
+    '.sp-sarki.simdi{background:rgba(94,231,255,.14);border-left-color:var(--holo)}.sp-sarki.simdi .n{color:var(--holo)}',
+    '.sp-rapor{white-space:pre-wrap;font:12px/1.5 var(--f-kod);background:rgba(2,10,16,.8);border:1px solid rgba(94,231,255,.25);padding:10px;margin-top:10px;max-height:320px;overflow:auto}',
     // mini oynatıcı
     '.sp-mini{position:fixed;z-index:58;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;max-width:min(460px,calc(100vw - 180px));',
     'background:var(--holo-tarama),rgba(4,16,26,.88);border:1px solid var(--holo-kenar,rgba(94,231,255,.38));box-shadow:var(--holo-isik),0 10px 30px rgba(0,0,0,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}',
@@ -376,18 +508,22 @@
           el('button', { class: 'dugme ana', type: 'button', onclick: function () { kontrol(Simdi.calisiyor ? 'duraklat' : 'devam'); } }, [Simdi.calisiyor ? '⏸ Duraklat' : '▶ Çal']),
           el('button', { class: 'dugme', type: 'button', onclick: function () { kontrol('sonraki'); } }, ['⏭'])])])]));
   }
+  function izinDugmesi() { return el('button', { class: 'dugme ana', type: 'button', onclick: function () { try { K.bildirimIzniAc(); } catch (e) {} } }, ['🔓 Bildirim erişimini aç']); }
+  function hataYaz(yer, e) { yer.innerHTML = ''; yer.appendChild(el('span', { class: 'sp-hata', text: e && e.bilgi ? e.message : (e && e.izin ? e.message : hataMetni(e)) })); if (e && e.izin) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(izinDugmesi()); } }
   function ruhKarisimCal(ruh, taze, kap) {
     return ruhHalindenOner(ruh, taze).then(function (k) {
       sonKarisim = k; if (kap) karisimCiz(kap, k);
-      var d = function (t) { var x = kap && kap.querySelector('.sp-durum'); if (x && sonKarisim === k) x.textContent = t; };
+      var yer = function () { var x = kap && kap.querySelector('.sp-durum.cal'); return x && sonKarisim === k ? x : null; };
+      var d = function (t) { var x = yer(); if (x) x.textContent = t; };
       d('Başlatılıyor…');
-      return cal(k.sarkilar.map(function (x) { return x.u; }), 0, k).then(function () { d('▶ Çalıyor — uygulamadan çıkmana gerek yok.'); return true; }, function (e) { d(e.bilgi ? e.message : hataMetni(e)); k._hata = e; return false; })
+      return karisimCal(k, 0).then(function (r) { d(calMesaji(r)); return true; }, function (e) { var x = yer(); if (x) hataYaz(x, e); k._hata = e; return false; })
         .then(function (caliyor) {
-          var arka = yenileriEkle(k, caliyor).then(function (yeni) { if (yeni.length && kap && sonKarisim === k) { karisimCiz(kap, k); d((caliyor ? '▶ Çalıyor · ' : '') + yeni.length + ' yeni öneri sıraya eklendi.'); } });
+          var arka = YEREL ? Promise.resolve() : yenileriEkle(k, caliyor).then(function (yeni) { if (yeni.length && kap && sonKarisim === k) { karisimCiz(kap, k); d((caliyor ? '▶ Çalıyor · ' : '') + yeni.length + ' yeni öneri sıraya eklendi.'); } });
           return { k: k, caliyor: caliyor, arka: arka };
         });
     }, function (e) { if (kap) hataGoster(kap, e); throw e; }).catch(function (e) { return { hata: e }; });
   }
+  function kuyrukCiz() { $$('.sp-sarki').forEach(function (b, i) { b.classList.toggle('simdi', !!(Kuyruk && Kuyruk.k === sonKarisim && Kuyruk.i === i)); }); }
   function karisimCiz(kap, k) {
     kap.innerHTML = '';
     if (!k) return;
@@ -395,45 +531,70 @@
     if (k.yorum) kap.appendChild(el('p', { text: k.yorum }));
     if (k.onbellekten || k.yerel) kap.appendChild(el('p', { class: 'sp-durum' }, [k.onbellekten ? 'Bu ruh hâli için birkaç saat önce kurulan karışım. ' : '',
       el('button', { class: 'cip', type: 'button', onclick: function () { kap.innerHTML = '<div class="yukleniyor">Yeni karışım kuruluyor…</div>'; ruhKarisimCal(k.ruh, true, kap); } }, ['↻ Yeni karışım kur'])]));
-    var durum = el('span', { class: 'sp-durum' });
-    kap.appendChild(el('div', { class: 'sp-satir' }, [
-      el('button', { class: 'dugme ana', type: 'button', onclick: function () { durum.textContent = 'Başlatılıyor…'; cal(k.sarkilar.map(function (x) { return x.u; }), 0, k).then(function () { durum.textContent = '▶ Çalıyor — uygulamadan çıkmana gerek yok.'; }, function (e) { durum.textContent = e.bilgi ? e.message : hataMetni(e); }); } }, ['▶ Hepsini çal']),
-      el('button', { class: 'dugme', type: 'button', onclick: function () { var b = this; b.disabled = true; durum.textContent = 'Spotify\'a kaydediliyor…'; karisimiKaydet(k).then(function () { durum.textContent = '✓ Listelerine eklendi: 1001 · ' + k.baslik; }, function (e) { b.disabled = false; durum.textContent = 'Kaydedilemedi: ' + hataMetni(e); }); } }, ['💾 Spotify\'a kaydet']),
-      durum]));
+    var durum = el('span', { class: 'sp-durum cal' });
+    function basla(i) { durum.textContent = 'Başlatılıyor…'; karisimCal(k, i).then(function (r) { durum.textContent = calMesaji(r); kuyrukCiz(); }, function (e) { hataYaz(durum, e); }); }
+    var satir = [el('button', { class: 'dugme ana', type: 'button', onclick: function () { basla(0); } }, ['▶ Hepsini çal'])];
+    if (bagli()) satir.push(el('button', { class: 'dugme', type: 'button', onclick: function () { var b = this; b.disabled = true; durum.textContent = 'Spotify\'a kaydediliyor…'; karisimiKaydet(k).then(function () { durum.textContent = '✓ Listelerine eklendi: 1001 · ' + k.baslik; }, function (e) { b.disabled = false; durum.textContent = 'Kaydedilemedi: ' + hataMetni(e); }); } }, ['💾 Spotify\'a kaydet']));
+    satir.push(durum);
+    kap.appendChild(el('div', { class: 'sp-satir' }, satir));
     var l = el('div', { class: 'sp-liste' });
     k.sarkilar.forEach(function (x, i) {
-      l.appendChild(el('button', { class: 'sp-sarki', type: 'button', style: 'animation-delay:' + Math.min(i * 30, 600) + 'ms', title: 'Buradan başlat', onclick: function () { durum.textContent = 'Başlatılıyor…'; cal(k.sarkilar.map(function (y) { return y.u; }), i, k).then(function () { durum.textContent = '▶ ' + x.a; }, function (e) { durum.textContent = e.bilgi ? e.message : hataMetni(e); }); } },
+      l.appendChild(el('button', { class: 'sp-sarki', type: 'button', style: 'animation-delay:' + Math.min(i * 30, 600) + 'ms', title: 'Buradan başlat', onclick: function () { basla(i); } },
         [el('span', { class: 'n', text: String(i + 1).padStart(2, '0') }), el('span', {}, [el('b', { text: x.a }), el('small', { text: x.s })]), x.yeni ? el('span', { class: 'sp-yeni', text: 'YENİ' }) : el('span')]));
     });
-    kap.appendChild(l);
+    kap.appendChild(l); kuyrukCiz();
+  }
+  /* ---------------- tanılama ---------------- */
+  function tanila() {
+    var r = ['C.A.R.V.I.S. ' + SURUM + ' · ' + new Date().toLocaleString('tr-TR')], sat = function (a, b) { r.push('• ' + a + ': ' + b); };
+    var d = yDurum();
+    sat('Yerel kontrol (Android köprüsü)', YEREL ? 'var' : 'YOK (bu sürüm eski ya da tarayıcı)');
+    if (YEREL) {
+      try { sat('Spotify yüklü', K.spotifyYuklu() ? 'evet' : 'HAYIR'); } catch (e) {}
+      sat('Bildirim erişimi', d && d.izin ? 'verilmiş' : 'VERİLMEMİŞ → yerel mod çalışmaz');
+      if (d && d.izin) {
+        sat('Spotify oturumu', d.var ? (d.calisiyor ? 'çalıyor: ' : 'duraklatılmış: ') + (d.baslik || '?') + ' — ' + (d.sanatci || '?') : 'yok (Spotify kapalı; ilk çalmada bir kez açılır)');
+        if (d.var) sat('Desteklenen', ['aramayla çal ' + ((d.eylemler & 2048) ? '✓' : '✗'), 'adresle çal ' + ((d.eylemler & 8192) ? '✓' : '✗'), 'sonraki ' + ((d.eylemler & 32) ? '✓' : '✗')].join(', '));
+      }
+    }
+    sat('Kuyruk', Kuyruk ? (Kuyruk.i + 1) + '/' + Kuyruk.k.sarkilar.length + ' · ' + (Kuyruk.bizim || 'başlıyor') : 'yok');
+    sat('Yerel dinleme geçmişi', Dinlenen.length + ' şarkı');
+    sat('Spotify hesabı (isteğe bağlı)', !D.clientId ? 'kurulmadı' : !bagli() ? 'Client ID var, bağlı değil' : 'bağlı (' + (D.ben ? D.ben.ad : '?') + ', ' + (D.premium === true ? 'Premium' : D.premium === false ? 'Premium DEĞİL' : 'Premium bilinmiyor') + ')');
+    if (sogumaKaldi()) sat('Spotify API soğuma', Math.ceil(sogumaKaldi() / 1000) + ' sn');
+    sat('Kütüphane önbelleği', Kutu ? Kutu.sarkilar.length + ' şarkı' : 'yok');
+    var api1 = bagli() && !sogumaKaldi() ? api('/me').then(function (m) { D.premium = m.product === 'premium'; kaydet(); sat('API /me', 'tamam · ürün: ' + m.product + (m.product !== 'premium' ? ' → Mart 2026 kuralı: geliştirici uygulaması için sahibin Premium olması gerekir' : '')); }, function (e) { sat('API /me', 'HATA ' + hataMetni(e)); }) : Promise.resolve();
+    var ai = (U.AI ? U.AI.hazir() : Promise.resolve(false)).then(function (ok) { sat('Yapay zekâ', ok ? 'hazır' : 'KAPALI (anahtar yok)'); }, function () { sat('Yapay zekâ', 'hata'); });
+    return Promise.all([api1, ai]).then(function () {
+      if (hataKaydi.length) { r.push('Son Spotify API hataları:'); hataKaydi.forEach(function (h) { r.push('  ' + h.t + ' ' + h.yol + ' → ' + h.durum + ' ' + h.neden + ' ' + h.m); }); }
+      return r.join('\n');
+    });
   }
   var RUH_CIPLER = ['🎯 Odaklanmam lazım', '🌙 Gece ders çalışıyorum', '⚡ Enerji lazım', '🌧 Biraz hüzünlüyüm', '☀️ Keyfim yerinde', '😌 Sakinleşmek istiyorum', '🔥 Sınav öncesi motivasyon', '🧘 Stresliyim'];
   U.GORUNUMLER.muzik = function () {
     var ana = $('#ana'); ana.innerHTML = '';
     var sayfa = el('div', { class: 'sayfa' }); ana.appendChild(sayfa);
     sayfa.appendChild(el('div', { class: 'kahraman' }, [el('div', { class: 'ust-etiket', text: 'Ses modülü' }), el('h1', {}, ['Müzik', el('span', { class: 'sp-beta', text: 'BETA' })]),
-      el('p', { class: 'var-etiket', text: 'Ruh hâlini söyle; Carvis senin beğenilerinden ve listelerinden bir karışım kursun. Spotify arka planda çalar, uygulamadan çıkmazsın.' })]));
+      el('p', { class: 'var-etiket', text: 'Ruh hâlini söyle; Carvis bir karışım kurup Spotify\'da çalsın. Spotify arka planda çalar, uygulamadan çıkmazsın.' }),
+      el('p', { class: 'sp-durum', text: 'Sürüm ' + SURUM + (YEREL ? ' · yerel mod' : ' · tarayıcı') })]));
     sayfaDurum = el('p', { class: 'sp-durum' });
-    if (!D.clientId) { kurulumCiz(sayfa); return; }
-    if (!bagli()) {
-      var k = el('div', { class: 'sp-kutu' }, [el('h2', { text: 'BAĞLANTI' }), el('p', { text: 'Spotify hesabını bağla. Giriş sayfası uygulamanın içinde açılır (Google/Facebook ile giriş WebView\'da çalışmaz; e-posta ya da e-postana gelen kodla giriş yap).' })]);
-      var hk = el('div');
-      k.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme ana', type: 'button', onclick: function () { baglan().catch(function (e) { hataGoster(hk, e); }); } }, ['🔗 Spotify\'a bağlan']),
-        el('button', { class: 'dugme', type: 'button', onclick: function () { D.clientId = null; kaydet(); U.git('muzik'); } }, ['Client ID\'yi değiştir'])]));
-      k.appendChild(hk); sayfa.appendChild(k);
-      if (donus) donus.then(function () { U.git('muzik'); }, function (e) { hataGoster(hk, e); });
+    var d = yDurum();
+    if (YEREL && d && d.izin === false) sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'TEK ADIM' }),
+      el('p', { text: 'Carvis, Spotify\'ı uygulamadan çıkmadan çalıp durdurabilmek için Android\'in "Bildirim erişimi" iznine ihtiyaç duyuyor (Spotify hesabı, Premium ya da internet kotası gerekmez). Açılan listede C.A.R.V.I.S.\'i aç, sonra geri dön.' }),
+      el('div', { class: 'sp-satir' }, [izinDugmesi(), el('button', { class: 'dugme', type: 'button', onclick: function () { U.git('muzik'); } }, ['↻ Kontrol et'])])]));
+    if (!YEREL && !bagli()) { // tarayıcı: yalnız Spotify hesabıyla çalışır
+      if (!D.clientId) kurulumCiz(sayfa); else baglantiCiz(sayfa);
       return;
     }
-    // bağlı
     simdiKap = el('div');
     sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'ŞİMDİ ÇALIYOR' }), simdiKap]));
-    simdiKartCiz(); simdiYenile(); premiumTazele();
+    simdiKartCiz(); simdiYenile(); if (bagli()) premiumTazele();
     var giris = el('input', { type: 'text', placeholder: 'Bugün nasılsın? "yorgunum ama 2 saat daha çalışmam lazım"…', 'aria-label': 'Ruh hâli', enterkeyhint: 'go' });
     var oner = el('button', { class: 'dugme ana', type: 'button' }, ['✦ Öner']);
     var karisimKap = el('div', { class: 'sp-kutu', hidden: !sonKarisim });
     function calistir(ruh) {
+      if (!String(ruh || '').trim()) { giris.focus(); return; }
       giris.value = ruh; oner.disabled = true; karisimKap.hidden = false;
-      karisimKap.innerHTML = '<div class="yukleniyor">' + (Kutu ? 'Ruh hâline göre seçiliyor…' : 'Kütüphanen ilk kez taranıyor (bir kerelik), sonra seçilecek…') + '</div>';
+      karisimKap.innerHTML = '<div class="yukleniyor">' + (bagli() && !Kutu ? 'Kütüphanen ilk kez taranıyor (bir kerelik), sonra seçilecek…' : 'Ruh hâline göre seçiliyor…') + '</div>';
       ruhKarisimCal(ruh, false, karisimKap).then(function () { oner.disabled = false; });
     }
     oner.addEventListener('click', function () { calistir(giris.value); });
@@ -442,6 +603,10 @@
     var cipler = el('div', { class: 'sp-cipler' });
     RUH_CIPLER.forEach(function (c) { cipler.appendChild(el('button', { class: 'cip', type: 'button', onclick: function () { calistir(c.replace(/^\S+\s/, '')); } }, [c])); });
     ruhKutu.appendChild(cipler);
+    var zevk = el('input', { type: 'text', value: Zevk, placeholder: 'Sevdiğin sanatçılar / türler (ör. Duman, Arctic Monkeys, lo-fi, Ludovico Einaudi)', 'aria-label': 'Müzik zevkin' });
+    zevk.addEventListener('change', function () { Zevk = zevk.value.trim(); yaz('spotify_zevk', Zevk); U.toast('Zevkin kaydedildi'); });
+    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [zevk]));
+    ruhKutu.appendChild(el('p', { class: 'sp-durum', text: bagli() ? 'Öneriler Spotify kütüphanenden (beğeniler, en çok dinlediklerin, listelerin) seçilir.' : 'Öneriler yazdığın zevkten ve Spotify\'da dinlediklerinden (Carvis açıkken öğrenir: ' + Dinlenen.length + ' şarkı) kurulur. İstersen aşağıdan Spotify hesabını da bağlayabilirsin.' }));
     var gecmis = karisimlar().slice(0, 6);
     if (gecmis.length > 1) {
       var gl = el('div', { class: 'sp-cipler' }, [el('span', { class: 'sp-durum', text: 'Son karışımlar:' })]);
@@ -451,40 +616,45 @@
     sayfa.appendChild(ruhKutu);
     sayfa.appendChild(karisimKap);
     if (sonKarisim) karisimCiz(karisimKap, sonKarisim);
-    // kütüphane
-    var kb = el('span', { class: 'sp-durum' });
-    function kbYaz() { kb.textContent = Kutu ? Kutu.sarkilar.length + ' şarkı · ' + Kutu.listeler.length + ' liste · ' + new Date(Kutu.t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' taraması' : 'Kütüphane henüz taranmadı.'; }
-    kbYaz();
-    sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'KÜTÜPHANE' }),
-      el('p', { text: (D.ben ? D.ben.ad + ' olarak bağlı' : 'Bağlı') + (D.premium === false ? ' · Premium yok: şarkı başlatınca Spotify açılır; duraklat/sonraki uygulamadan çalışır.' : '.') }),
-      el('div', { class: 'sp-satir' }, [kb,
-        el('button', { class: 'dugme', type: 'button', onclick: function () { var b = this; b.disabled = true; kutuphaneYukle(true).then(kbYaz, function (e) { kb.textContent = e.message; }).then(function () { b.disabled = false; }); } }, ['↻ Tazele']),
-        el('button', { class: 'dugme', type: 'button', onclick: function () { if (!confirm('Spotify bağlantısı kesilsin mi?')) return; D = { clientId: D.clientId }; kaydet(); Kutu = null; try { localStorage.removeItem(KUTU_ANAHTAR); } catch (e) {} Simdi = null; miniCiz(); U.git('muzik'); } }, ['Bağlantıyı kes'])]),
-      sayfaDurum]));
-    if (!Kutu) kutuphaneYukle(false).then(kbYaz, function () {});
+    // Spotify hesabı (isteğe bağlı)
+    var hesap = el('div', { class: 'sp-kutu' }, [el('h2', { text: 'SPOTIFY HESABI · İSTEĞE BAĞLI' })]);
+    if (bagli()) {
+      var kb = el('span', { class: 'sp-durum' });
+      var kbYaz = function () { kb.textContent = Kutu ? Kutu.sarkilar.length + ' şarkı · ' + Kutu.listeler.length + ' liste · ' + new Date(Kutu.t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' taraması' : 'Kütüphane henüz taranmadı.'; };
+      kbYaz();
+      hesap.appendChild(el('p', { text: (D.ben ? D.ben.ad + ' olarak bağlı' : 'Bağlı') + (D.premium === false ? ' · Premium değil: Mart 2026\'dan beri Spotify, geliştirici uygulamaları için sahibin Premium olmasını istiyor; kütüphane okunamayabilir. Yerel mod etkilenmez.' : '.') }));
+      hesap.appendChild(el('div', { class: 'sp-satir' }, [kb,
+        el('button', { class: 'dugme', type: 'button', onclick: function () { var b = this; b.disabled = true; kutuphaneYukle(true).then(kbYaz, function (e) { kb.textContent = hataMetni(e); }).then(function () { b.disabled = false; }); } }, ['↻ Tazele']),
+        el('button', { class: 'dugme', type: 'button', onclick: function () { if (!confirm('Spotify bağlantısı kesilsin mi?')) return; D = { clientId: D.clientId }; kaydet(); Kutu = null; try { localStorage.removeItem(KUTU_ANAHTAR); } catch (e) {} U.git('muzik'); } }, ['Bağlantıyı kes'])]));
+      hesap.appendChild(sayfaDurum);
+      if (!Kutu) kutuphaneYukle(false).then(kbYaz, function (e) { kb.textContent = hataMetni(e); });
+    } else {
+      hesap.appendChild(el('p', { text: 'Gerekli değil. Bağlarsan öneriler beğenilerinden ve listelerinden seçilir, karışımları Spotify\'a liste olarak kaydedebilirsin. Not: Spotify, Mart 2026\'dan beri bu bağlantı için hesabının Premium olmasını şart koşuyor.' }));
+      var ic = el('div'); hesap.appendChild(ic);
+      if (!D.clientId) ic.appendChild(el('button', { class: 'dugme', type: 'button', onclick: function () { ic.innerHTML = ''; kurulumCiz(ic); } }, ['Kurulumu göster'])); else baglantiCiz(ic);
+    }
+    sayfa.appendChild(hesap);
+    // tanılama
+    var rapor = el('pre', { class: 'sp-rapor', hidden: true });
+    var kopya = el('button', { class: 'dugme', type: 'button', hidden: true, onclick: function () { try { navigator.clipboard.writeText(rapor.textContent); U.toast('Kopyalandı — Claude\'a yapıştır'); } catch (e) {} } }, ['Kopyala']);
+    sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'TANILAMA' }),
+      el('p', { class: 'sp-durum', text: 'Bir şey çalışmazsa buna bas, çıkan raporu kopyalayıp gönder.' }),
+      el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { rapor.hidden = false; rapor.textContent = 'Kontrol ediliyor…'; tanila().then(function (t) { rapor.textContent = t; kopya.hidden = false; }); } }, ['🩺 Tanılama çalıştır']), kopya]), rapor]));
   };
-  function kurulumCiz(sayfa) {
-    var cid = el('input', { type: 'text', placeholder: 'Client ID (32 karakter)', 'aria-label': 'Spotify Client ID', autocomplete: 'off', spellcheck: 'false' });
+  function baglantiCiz(kap) {
     var hk = el('div');
-    var kopyala = el('button', { class: 'dugme', type: 'button', onclick: function () { try { navigator.clipboard.writeText(YONLENDIR); U.toast('Kopyalandı'); } catch (e) {} } }, ['Kopyala']);
-    sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'KURULUM · TEK SEFERLİK' }),
-      el('p', { text: 'Spotify, kişisel uygulamaların kendi anahtarıyla bağlanmasını istiyor. 3 dakikalık iş:' }),
-      el('ol', { class: 'sp-adim' }, [
-        el('li', {}, ['developer.spotify.com/dashboard adresine Spotify hesabınla gir → ', el('b', { text: 'Create app' }), '.']),
-        el('li', {}, ['App name: ', el('b', { text: '1001 Carvis' }), ' · Description: istediğin bir şey · ', el('b', { text: 'Web API' }), ' kutusunu işaretle.']),
-        el('li', {}, ['Redirect URI olarak tam olarak şunu ekle:', el('div', { class: 'sp-kod' }, [el('code', { text: YONLENDIR }), kopyala])]),
-        el('li', {}, ['Kaydet; ', el('b', { text: 'Settings' }), ' sayfasındaki ', el('b', { text: 'Client ID' }), '\'yi aşağıya yapıştır.']),
-        el('li', {}, ['Gerekirse ', el('b', { text: 'User Management' }), ' bölümüne kendi Spotify e-postanı ekle.'])]),
-      el('div', { class: 'sp-satir' }, [cid, el('button', { class: 'dugme ana', type: 'button', onclick: function () {
-        var v = cid.value.trim(); if (!/^[0-9a-f]{32}$/i.test(v)) { hataGoster(hk, new Error('Client ID 32 karakterlik bir kod olmalı.')); return; }
-        D.clientId = v; kaydet(); U.git('muzik'); } }, ['Kaydet'])]), hk]));
+    kap.appendChild(el('p', { text: 'Giriş sayfası uygulamanın içinde açılır (Google/Facebook ile giriş WebView\'da çalışmaz; e-posta ya da e-postana gelen kodla giriş yap).' }));
+    kap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme ana', type: 'button', onclick: function () { baglan().catch(function (e) { hataGoster(hk, e); }); } }, ['🔗 Spotify\'a bağlan']),
+      el('button', { class: 'dugme', type: 'button', onclick: function () { D.clientId = null; kaydet(); U.git('muzik'); } }, ['Client ID\'yi değiştir'])]));
+    kap.appendChild(hk);
+    if (donus) donus.then(function () { U.git('muzik'); }, function (e) { hk.innerHTML = ''; hk.appendChild(el('p', { class: 'sp-hata', text: hataMetni(e) })); });
   }
   U.SEKMELER.push({ id: 'muzik', ad: 'Müzik', ikon: '♫' });
   if (U.sekmeleriCiz) U.sekmeleriCiz();
 
   /* ---------------- Carvis araçları ---------------- */
   function araclar() {
-    if (!bagli()) return [];
+    if (!YEREL && !bagli()) return [];
     return [
       { name: 'spotify_ruh_hali', description: 'Kullanıcının ruh hâline/isteğine göre KENDİ Spotify kütüphanesinden (beğeniler, en çok dinledikleri, listeleri) karışım kurar ve uygulamadan çıkmadan çalar ("canım sıkkın bir şey aç", "odaklanacağım müzik", "enerjik bir şeyler", "bana göre bir şey çal"). Belirli bir şarkı/sanatçı istenirse muzik_cal kullan.',
         inputSchema: { type: 'object', properties: { ruh_hali: { type: 'string', description: 'Kullanıcının kendi sözleriyle ruh hâli/istek' } }, required: ['ruh_hali'] },
@@ -497,6 +667,6 @@
   var eskiEk = U.sohbetEkAraclari;
   U.sohbetEkAraclari = function () { return (eskiEk ? eskiEk() : []).concat(araclar()); };
 
-  window.Spotify = { bagli: bagli, oner: ruhHalindenOner, cal: cal, kontrol: kontrol, kaydet: karisimiKaydet, kutuphane: kutuphaneYukle, simdi: function () { return Simdi; }, _test: { D: function () { return D; } } };
-  if (bagli()) setTimeout(simdiYenile, 2500);
+  window.Spotify = { bagli: bagli, oner: ruhHalindenOner, cal: cal, kontrol: kontrol, kaydet: karisimiKaydet, karisimCal: karisimCal, tanila: tanila, yerel: function () { return YEREL; }, kuyruk: function () { return Kuyruk; }, kutuphane: kutuphaneYukle, simdi: function () { return Simdi; }, _test: { D: function () { return D; } } };
+  setTimeout(simdiYenile, 2500);
 })();

@@ -563,6 +563,36 @@ public class MainActivity extends android.app.Activity {
     }
 
     class Kopru {
+        @android.webkit.JavascriptInterface
+        public void bildirimIzniAc() {
+            com.dogac.bin1.SpotifyYerel.bildirimIzniAc(com.dogac.bin1.MainActivity.this);
+        }
+
+        @android.webkit.JavascriptInterface
+        public java.lang.String spotifyCal(java.lang.String str) {
+            return com.dogac.bin1.SpotifyYerel.cal(com.dogac.bin1.MainActivity.this, str);
+        }
+
+        @android.webkit.JavascriptInterface
+        public java.lang.String spotifyDurum() {
+            return com.dogac.bin1.SpotifyYerel.durum(com.dogac.bin1.MainActivity.this);
+        }
+
+        @android.webkit.JavascriptInterface
+        public java.lang.String spotifyKomut(java.lang.String str) {
+            return com.dogac.bin1.SpotifyYerel.komut(com.dogac.bin1.MainActivity.this, str);
+        }
+
+        @android.webkit.JavascriptInterface
+        public java.lang.String spotifyUri(java.lang.String str) {
+            return com.dogac.bin1.SpotifyYerel.uri(com.dogac.bin1.MainActivity.this, str);
+        }
+
+        @android.webkit.JavascriptInterface
+        public boolean spotifyYuklu() {
+            return com.dogac.bin1.SpotifyYerel.yuklu(com.dogac.bin1.MainActivity.this);
+        }
+
         Kopru() {
         }
 
