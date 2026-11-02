@@ -11,6 +11,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import org.json.JSONObject;
+import android.graphics.Rect;
+import android.view.accessibility.AccessibilityNodeInfo;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 /** Spotify'ı Web API olmadan, Android medya oturumu üzerinden kontrol eder (uygulama değişmez, Premium/kota gerekmez).
  *  Bildirim erişimi (CarvisBildirim) verilmiş olmalı; Spotify en az bir kez açılmış olmalı. */
@@ -102,5 +108,88 @@ public final class SpotifyYerel {
     /** Spotify yüklü mü */
     public static boolean yuklu(Context c) {
         try { c.getPackageManager().getPackageInfo(PAKET, 0); return true; } catch (Exception e) { return false; }
+    }
+
+    /* ---- Liste aç + Çal'a dokun (kullanıcı r22: Spotify dışarıdan başlatılan çalmayı kabul etmiyor, elle çalma çalışıyor) ---- */
+    static volatile String listeSon = "";
+    static final String[] OYNAT_IDLER = { "com.spotify.music:id/button_play_and_pause", "com.spotify.music:id/play_button", "com.spotify.music:id/actionbar_play_button", "com.spotify.music:id/button_play", "com.spotify.music:id/playlist_play_button" };
+    static final List<String> OYNAT_ETIKET = Arrays.asList("çal", "play", "oynat", "çalma listesini çal", "play playlist", "listeyi çal", "karışık çal", "shuffle play");
+
+    /** spotify:playlist:… adresini Spotify'da açar, sonra listenin Çal düğmesine (erişilebilirlikle) dokunur. */
+    public static String listeCal(Context c, String adres) {
+        if (CarvisErisim.ornek == null) return "erisim_yok";
+        try {
+            c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(adres)).setPackage(PAKET).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) { return "hata:" + e.getMessage(); }
+        listeSon = "aciliyor";
+        dene(36, 1600L);
+        return "ok";
+    }
+
+    public static String listeDurum() { return listeSon; }
+
+    static void dene(final int kalan, long gecikme) {
+        CarvisErisim.ana.postDelayed(new Runnable() {
+            public void run() {
+                String r = null;
+                try { r = tikla(); } catch (Exception e) { listeSon = "hata:" + e.getMessage(); }
+                if (r != null) { listeSon = "tiklandi:" + r; return; }
+                if (kalan <= 1) { if (!listeSon.startsWith("hata")) listeSon = "bulunamadi"; return; }
+                dene(kalan - 1, 500L);
+            }
+        }, gecikme);
+    }
+
+    static boolean sagPanelde(AccessibilityNodeInfo n) {
+        for (AccessibilityNodeInfo x = n; x != null; x = x.getParent()) {
+            String id = x.getViewIdResourceName();
+            if (id != null) { String k = id.toLowerCase(Locale.ROOT); if (k.contains("now_playing") || k.contains("nowplaying") || k.contains("npv") || k.contains("mini") || k.contains("connect_device")) return true; }
+        }
+        return false;
+    }
+
+    static String etiket(AccessibilityNodeInfo n) {
+        CharSequence t = n.getContentDescription();
+        if (t == null) t = n.getText();
+        return t == null ? null : t.toString().trim().toLowerCase(new Locale("tr"));
+    }
+
+    static void topla(AccessibilityNodeInfo n, List<AccessibilityNodeInfo> l, int d) {
+        if (n == null || d > 40) return;
+        l.add(n);
+        for (int i = 0; i < n.getChildCount(); i++) topla(n.getChild(i), l, d + 1);
+    }
+
+    /** Spotify ön plandaysa listenin Çal düğmesini bulup dokunur; bulamazsa null. Alt mini çalar ve "şimdi çalıyor" paneli hariç. */
+    static String tikla() {
+        CarvisErisim s = CarvisErisim.ornek;
+        if (s == null) return null;
+        AccessibilityNodeInfo kok = s.getRootInActiveWindow();
+        if (kok == null) return null;
+        CharSequence pk = kok.getPackageName();
+        if (pk == null || !PAKET.contentEquals(pk)) { listeSon = "bekleniyor:" + pk; return null; }
+        int H = s.getResources().getDisplayMetrics().heightPixels;
+        AccessibilityNodeInfo en = null; int enUst = Integer.MAX_VALUE; String neden = null;
+        Rect r = new Rect();
+        for (String id : OYNAT_IDLER) {
+            for (AccessibilityNodeInfo n : kok.findAccessibilityNodeInfosByViewId(id)) {
+                n.getBoundsInScreen(r);
+                if (!n.isVisibleToUser() || r.isEmpty() || r.top > H * 0.72 || sagPanelde(n)) continue;
+                if (r.top < enUst) { en = n; enUst = r.top; neden = id.substring(id.indexOf('/') + 1); }
+            }
+        }
+        if (en == null) {
+            List<AccessibilityNodeInfo> l = new ArrayList<>();
+            topla(kok, l, 0);
+            for (AccessibilityNodeInfo n : l) {
+                String t = etiket(n);
+                if (t == null || !OYNAT_ETIKET.contains(t)) continue;
+                n.getBoundsInScreen(r);
+                if (!n.isVisibleToUser() || r.isEmpty() || r.top > H * 0.72 || sagPanelde(n)) continue;
+                if (r.top < enUst) { en = n; enUst = r.top; neden = "etiket:" + t; }
+            }
+        }
+        if (en == null) { listeSon = "araniyor"; return null; }
+        return CarvisErisim.tiklaDugum(en) ? neden : null;
     }
 }

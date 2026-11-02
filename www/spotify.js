@@ -441,7 +441,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r22';
+  var SURUM = '2026.11.03-r23';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -524,8 +524,57 @@
     }, function (e) { if (e.durum === 429 || e.durum === 401 || e.durum === 403) throw e; return null; });
   }
   function hesapGerekli() { var e = new Error('Listeyi Spotify\'da sırayla çalmak için Spotify hesabını bağlaman gerekiyor (Premium\'un var; "Spotify hesabı" bölümünden, tek seferlik).'); e.hesap = true; return e; }
+  /* ---- Dokunarak çalma (kullanıcı r22 testi: Spotify, Web API'den başlatılan çalmada oynatıcıyı sıfırlıyor;
+     elle çalma sorunsuz). Karışım tek bir "Carvis · Şimdi" listesine yazılır, liste Spotify'da açılır ve
+     erişilebilirlik servisi listenin Çal düğmesine dokunur — Spotify için elle başlatılmış çalma. ---- */
+  function erisimVar() { try { return !!(K && K.erisimAcik && K.erisimAcik()); } catch (e) { return false; } }
+  function erisimHatasi() { var e = new Error('Carvis\'in Spotify\'da Çal\'a senin yerine dokunabilmesi için erişilebilirlik servisini açman gerekiyor: Ayarlar → Erişilebilirlik → Yüklü uygulamalar → C.A.R.V.I.S. → Aç.'); e.erisim = true; return e; }
+  function eslesirAd(a, b) { a = sade(a); b = sade(b); return !!(a && b && (a.indexOf(b) === 0 || b.indexOf(a) === 0)); }
+  function carvisListesi(uriler) {
+    uriler = uriler.slice(0, 100);
+    function yazListe(id) {
+      return api('/playlists/' + id + '/items', { method: 'PUT', body: { uris: uriler } }).catch(function (e) {
+        if (!eskiyeDus(e) || e.durum === 403) throw e;
+        return api('/playlists/' + id + '/tracks', { method: 'PUT', body: { uris: uriler } }).catch(function () { throw e; });
+      }).then(function () { return id; });
+    }
+    if (D.carvisListe) return yazListe(D.carvisListe).catch(function (e) { if (e.durum === 404 || e.durum === 403) { D.carvisListe = null; kaydet(); return carvisListesi(uriler); } throw e; });
+    return listeOlustur('Carvis · Şimdi', 'C.A.R.V.I.S. ruh hâli karışımı — her öneride otomatik güncellenir').then(function (p) { D.carvisListe = p.id; kaydet(); return yazListe(p.id); });
+  }
+  function dokunarakCal(k, i) {
+    var l = k.sarkilar.slice(i || 0, (i || 0) + 50);
+    Adimlar = []; var no = ++CalNo;
+    if (!erisimVar()) return Promise.reject(erisimHatasi());
+    return l.reduce(function (z, x) { return z.then(function () { return uriBul(x); }); }, Promise.resolve()).then(function () {
+      var uriler = l.map(function (x) { return x.u; }).filter(Boolean);
+      if (!uriler.length) throw new Error('Bu şarkılar Spotify\'da bulunamadı.');
+      adim('"Carvis · Şimdi" listesi güncelleniyor (' + uriler.length + ' şarkı)');
+      return carvisListesi(uriler);
+    }).then(function (id) {
+      if (no !== CalNo) throw iptalHatasi();
+      adim('liste Spotify\'da açılıyor, Çal\'a dokunulacak');
+      var r = K.spotifyListeCal('spotify:playlist:' + id);
+      if (r === 'erisim_yok') throw erisimHatasi();
+      if (r !== 'ok') throw new Error('Spotify açılamadı: ' + r);
+      var adlar = l.map(function (x) { return x.a; }), t0 = Date.now(), sonLd = '';
+      return (function bak() {
+        return bekleNo(no, 700).then(function () {
+          var d = yDurum() || {}, ld = ''; try { ld = K.spotifyListeDurum() || ''; } catch (e) {}
+          if (ld !== sonLd) { adim('dokunma: ' + ld); sonLd = ld; }
+          if (d.calisiyor && adlar.some(function (a) { return eslesirAd(d.baslik, a); })) {
+            adim('tablette çalıyor ✓ (' + d.baslik + ')'); karisimSakla(k); setTimeout(oneDon, 1500); return 'ok';
+          }
+          if (Date.now() - t0 > 18000 || (/bulunamadi|hata/.test(ld) && Date.now() - t0 > 4000)) {
+            throw Object.assign(new Error('Liste Spotify\'da açıldı ama Çal düğmesine dokunulamadı (' + (ld || 'yanıt yok') + '). Açık olan "Carvis · Şimdi" listesinde ▶\'a bir kez sen bas; sonraki seferlerde Carvis halleder.'), { bilgi: true });
+          }
+          return bak();
+        });
+      })();
+    });
+  }
   function karisimCal(k, i) {
     i = i || 0;
+    if (YEREL && bagli() && K.spotifyListeCal) return dokunarakCal(k, i);
     if (!bagli()) {
       if (YEREL && K.muzik) { var x = k.sarkilar[i]; K.muzik((x.a + ' ' + String(x.s || '').split(',')[0]).trim(), 'spotify'); }
       return Promise.reject(hesapGerekli());
@@ -545,7 +594,7 @@
       });
     });
   }
-  function calMesaji(r) { return '▶ Çalıyor — liste Spotify\'ın sırasında, ⏭ listedeki sonraki şarkıya geçer. Uygulamadan çıkmadın.'; }
+  function calMesaji(r) { return YEREL ? '▶ Çalıyor — "Carvis · Şimdi" listesi Spotify\'da başladı, ⏭ listede ilerler.' : '▶ Çalıyor — liste Spotify\'ın sırasında, ⏭ listedeki sonraki şarkıya geçer.'; }
 
   var Simdi = null;
   var mini = el('div', { class: 'sp-mini', hidden: true, role: 'region', 'aria-label': 'Spotify' });
@@ -651,7 +700,8 @@
   }
   function izinDugmesi() { return el('button', { class: 'dugme ana', type: 'button', onclick: function () { try { K.bildirimIzniAc(); } catch (e) {} } }, ['🔓 Bildirim erişimini aç']); }
   function hataYaz(yer, e) {
-    yer.innerHTML = ''; yer.appendChild(el('span', { class: 'sp-hata', text: e && (e.bilgi || e.izin || e.hesap) ? e.message : hataMetni(e) }));
+    yer.innerHTML = ''; yer.appendChild(el('span', { class: 'sp-hata', text: e && (e.bilgi || e.izin || e.hesap || e.erisim) ? e.message : hataMetni(e) }));
+    if (e && e.erisim) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(el('button', { class: 'dugme ana', type: 'button', onclick: function () { try { K.erisimAyarAc(); } catch (x) {} } }, ['♿ Erişilebilirliği aç'])); }
     if (e && e.izin) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(izinDugmesi()); }
     if (e && e.hesap) { yer.appendChild(document.createTextNode(' ')); yer.appendChild(el('button', { class: 'dugme', type: 'button', onclick: function () { var h = $('#spHesap'); if (h) h.scrollIntoView({ behavior: 'smooth' }); } }, ['↓ Hesabı bağla'])); }
   }
@@ -740,7 +790,9 @@
       }
     }
     sat('Kayıtlı tablet cihazı', D.cihaz ? 'var' : 'henüz yok');
-    sat('Liste çalma yolu', bagli() ? 'Spotify Web API (Premium)' : 'HESAP BAĞLI DEĞİL → liste çalınamaz, yalnız kontrol');
+    if (YEREL) sat('Erişilebilirlik (Çal\'a dokunma)', erisimVar() ? 'açık' : 'KAPALI → aç');
+    sat('Carvis · Şimdi listesi', D.carvisListe ? 'var' : 'henüz oluşturulmadı');
+    sat('Liste çalma yolu', !bagli() ? 'HESAP BAĞLI DEĞİL → liste çalınamaz, yalnız kontrol' : (YEREL && K.spotifyListeCal) ? 'liste aç + Çal\'a dokun (elle çalma gibi)' : 'Spotify Web API');
     sat('Yerel dinleme geçmişi', Dinlenen.length + ' şarkı');
     var sesA = false; try { sesA = localStorage.getItem('hx_ses') === '1'; } catch (e) {} sat('Arayüz sesleri', sesA ? 'açık (müzik çalarken susar)' : 'kapalı');
     sat('Spotify hesabı (isteğe bağlı)', !D.clientId ? 'kurulmadı' : !bagli() ? 'Client ID var, bağlı değil' : 'bağlı (' + (D.ben ? D.ben.ad : '?') + ', ' + (D.premium === true ? 'Premium' : D.premium === false ? 'Premium DEĞİL' : 'Premium bilinmiyor') + ')');
@@ -828,7 +880,8 @@
       el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { rapor.hidden = false; rapor.textContent = 'Kontrol ediliyor…'; tanila().then(function (t) { rapor.textContent = t; kopya.hidden = false; }); } }, ['🩺 Tanılama çalıştır']),
         bagli() ? el('button', { class: 'dugme', type: 'button', title: 'Tablete tek bir çalma komutu gönderir, 12 sn boyunca ne olduğunu kaydeder', onclick: function () {
           rapor.hidden = false; rapor.textContent = 'Test: tablete tek komut gönderiliyor, 12 sn izleniyor…';
-          testCal().then(function (m) { return tanila().then(function (t) { rapor.textContent = m + '\n\n' + t; kopya.hidden = false; }); });
+          var deneme = K && K.spotifyListeCal ? (function () { var l = ((Kutu && Kutu.sarkilar) || []).slice(0, 5); return dokunarakCal({ id: 'test', ruh: 'test', baslik: 'Test', sarkilar: l }, 0).then(function () { return 'TEST (dokunarak çalma): başarılı ✓'; }, function (e) { return 'TEST (dokunarak çalma): ' + (e.bilgi || e.erisim ? e.message : hataMetni(e)); }).then(function (m) { return izle(8000).then(function (s2) { return m + '\nSonraki 8 sn:\n' + s2.map(function (x) { return '  ' + x; }).join('\n'); }); }); })() : testCal();
+          deneme.then(function (m) { return tanila().then(function (t) { rapor.textContent = m + '\n\n' + t; kopya.hidden = false; }); });
         } }, ['▶ Test çalma']) : el('span'),
         YEREL ? el('button', { class: 'dugme', type: 'button', title: 'Bas, Spotify\'a geç ve elle bir şarkı çal; 30 sn sonra Carvis\'e dön', onclick: function () {
           rapor.hidden = false; rapor.textContent = 'İzleniyor (30 sn): şimdi Spotify\'a geç, elle bir şarkı başlat, 30 sn sonra buraya dön…';
