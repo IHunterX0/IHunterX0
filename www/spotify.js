@@ -426,7 +426,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r19';
+  var SURUM = '2026.11.03-r20';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -679,6 +679,39 @@
     kap.appendChild(l); kuyrukCiz();
   }
   /* ---------------- tanılama ---------------- */
+  // Kullanıcı (r18): "Spotify'da elle başlattığımda bile 1 sn çalıp duruyor." → Spotify'ın kendi durum/hata mesajını kaydet
+  var DURUM_AD = { 0: 'yok', 1: 'durdu', 2: 'duraklatıldı', 3: 'ÇALIYOR', 4: 'ileri sarma', 5: 'geri sarma', 6: 'YÜKLENİYOR', 7: 'HATA', 8: 'bağlanıyor', 9: 'öncekine geçiyor', 10: 'sonrakine geçiyor', 11: 'sıradakine geçiyor' };
+  function izle(ms) {
+    var satir = [], son = '', t0 = Date.now();
+    return new Promise(function (ok) {
+      var zm = setInterval(function () {
+        var d = yDurum() || {};
+        var k = d.izin === false ? 'bildirim izni yok' : !d.var ? 'Spotify oturumu yok' : (DURUM_AD[d.durum] || ('durum ' + d.durum)) + ' · ' + (d.baslik || '?') + (d.konum != null ? ' · ' + Math.round(d.konum / 1000) + ' sn' : '') + (d.hataMesaji ? ' · SPOTIFY HATASI: ' + d.hataMesaji : '') + (d.ekler ? ' · ' + d.ekler.slice(0, 160) : '');
+        var kisa = k.replace(/ · \d+ sn/, '');
+        if (kisa !== son) { satir.push('+' + ((Date.now() - t0) / 1000).toFixed(1) + ' sn  ' + k); son = kisa; }
+        if (Date.now() - t0 > ms) { clearInterval(zm); ok(satir); }
+      }, 400);
+    });
+  }
+  function sunucuDurumu() {
+    return api('/me/player').then(function (p) {
+      if (!p) return 'Spotify sunucusu: oynatıcı yok';
+      return 'Spotify sunucusu: ' + (p.is_playing ? 'ÇALIYOR' : 'çalmıyor') + ' · cihaz: ' + (p.device ? p.device.name + (p.device.is_active ? ' (aktif)' : '') : '?') + ' · şarkı: ' + (p.item ? p.item.name : '?') + (p.actions && p.actions.disallows ? ' · yasak: ' + Object.keys(p.actions.disallows).filter(function (k) { return p.actions.disallows[k]; }).join(',') : '');
+    }, function (e) { return 'Spotify sunucusu: ' + hataMetni(e); });
+  }
+  // Tek atış test: tableti bul, TEK çalma komutu gönder, 12 sn boyunca tabletteki durumu kaydet (yol denemesi yok)
+  function testCal() {
+    Adimlar = []; var no = ++CalNo;
+    var x = (Kutu && Kutu.sarkilar[0]) || { u: 'spotify:track:4LRPiXqCikLlN15c3yImP7', a: 'As It Was' };
+    return tabletHazirla(no, x.u).then(function (c) {
+      if (!c) throw new Error('tablet bulunamadı');
+      adim('TEK çalma komutu → ' + c.name + ' (' + x.a + ')');
+      var iz = izle(12000);
+      return api('/me/player/play?device_id=' + encodeURIComponent(c.id), { method: 'PUT', body: { uris: [x.u] } })
+        .then(function () { adim('Spotify: komut kabul edildi'); }, function (e) { adim('Spotify: ' + hataMetni(e)); }).then(function () { return iz; });
+    }).then(function (satir) { return sunucuDurumu().then(function (s2) { return ['Tablette 12 sn boyunca olanlar:'].concat(satir.map(function (l) { return '  ' + l; }), [s2]).join('\n'); }); },
+      function (e) { return 'Test yapılamadı: ' + (e.bilgi ? e.message : hataMetni(e)); });
+  }
   function tanila() {
     var r = ['C.A.R.V.I.S. ' + SURUM + ' · ' + new Date().toLocaleString('tr-TR')], sat = function (a, b) { r.push('• ' + a + ': ' + b); };
     var d = yDurum();
@@ -777,13 +810,15 @@
     sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'TANILAMA' }),
       el('p', { class: 'sp-durum', text: 'Bir şey çalışmazsa buna bas, çıkan raporu kopyalayıp gönder.' }),
       el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { rapor.hidden = false; rapor.textContent = 'Kontrol ediliyor…'; tanila().then(function (t) { rapor.textContent = t; kopya.hidden = false; }); } }, ['🩺 Tanılama çalıştır']),
-        bagli() ? el('button', { class: 'dugme', type: 'button', title: 'Kütüphanenden bir şarkıyı çalmayı dener, her adımı rapora yazar', onclick: function () {
-          rapor.hidden = false; rapor.textContent = 'Test çalma deneniyor…';
-          var x = (Kutu && Kutu.sarkilar[0]) || { u: 'spotify:track:4LRPiXqCikLlN15c3yImP7' };
-          cal([x.u], 0, null, x.a).then(function () { return 'TEST: çalma isteği başarılı (' + (x.a || 'As It Was') + ').'; }, function (e) { return 'TEST: başarısız — ' + hataMetni(e); })
-            .then(function (m) { return bekle(2500).then(function () { var d = yDurum(); return m + (d ? '\nTablette şu an: ' + (d.calisiyor ? 'ÇALIYOR ' : 'çalmıyor ') + (d.baslik || '') : ''); }); })
-            .then(function (m) { return tanila().then(function (t) { rapor.textContent = m + '\n\n' + t; kopya.hidden = false; }); });
-        } }, ['▶ Test çalma']) : el('span'), kopya]), rapor]));
+        bagli() ? el('button', { class: 'dugme', type: 'button', title: 'Tablete tek bir çalma komutu gönderir, 12 sn boyunca ne olduğunu kaydeder', onclick: function () {
+          rapor.hidden = false; rapor.textContent = 'Test: tablete tek komut gönderiliyor, 12 sn izleniyor…';
+          testCal().then(function (m) { return tanila().then(function (t) { rapor.textContent = m + '\n\n' + t; kopya.hidden = false; }); });
+        } }, ['▶ Test çalma']) : el('span'),
+        YEREL ? el('button', { class: 'dugme', type: 'button', title: 'Bas, Spotify\'a geç ve elle bir şarkı çal; 30 sn sonra Carvis\'e dön', onclick: function () {
+          rapor.hidden = false; rapor.textContent = 'İzleniyor (30 sn): şimdi Spotify\'a geç, elle bir şarkı başlat, 30 sn sonra buraya dön…';
+          izle(30000).then(function (satir) { return sunucuDurumu().then(function (s2) { return tanila().then(function (t) { rapor.textContent = ['30 sn izleme:'].concat(satir.map(function (l) { return '  ' + l; }), [s2, '', t]).join('\n'); kopya.hidden = false; }); }); });
+        } }, ['📈 İzle (30 sn)']) : el('span'),
+        kopya]), rapor]));
   };
   function baglantiCiz(kap) {
     var hk = el('div');

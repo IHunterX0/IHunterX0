@@ -75,6 +75,8 @@ public final class SpotifyYerel {
                 long konum = ps.getPosition();
                 if (cal && ps.getLastPositionUpdateTime() > 0) konum += (long) ((SystemClock.elapsedRealtime() - ps.getLastPositionUpdateTime()) * ps.getPlaybackSpeed());
                 j.put("calisiyor", cal); j.put("durum", ps.getState()); j.put("konum", konum); j.put("eylemler", ps.getActions());
+                CharSequence hm = ps.getErrorMessage(); if (hm != null) j.put("hataMesaji", hm.toString());
+                Bundle ek = ps.getExtras(); if (ek != null) { StringBuilder sb = new StringBuilder(); for (String k : ek.keySet()) { Object v = ek.get(k); sb.append(k).append("=").append(String.valueOf(v)).append("; "); } if (sb.length() > 0) j.put("ekler", sb.toString()); }
             }
             if (md != null) {
                 j.put("baslik", md.getString(MediaMetadata.METADATA_KEY_TITLE));

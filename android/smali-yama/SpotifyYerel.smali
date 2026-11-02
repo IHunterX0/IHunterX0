@@ -20,7 +20,7 @@
 .method public static bildirimIzniAc(Landroid/content/Context;)V
     .locals 2
 
-    .line 97
+    .line 99
     :try_start_0
     new-instance v0, Landroid/content/Intent;
 
@@ -43,7 +43,7 @@
     :catch_0
     move-exception p0
 
-    .line 98
+    .line 100
     :goto_0
     return-void
 .end method
@@ -248,7 +248,7 @@
     move-result-object p0
 
     .line 73
-    if-eqz v0, :cond_4
+    if-eqz v0, :cond_6
 
     .line 74
     invoke-virtual {v0}, Landroid/media/session/PlaybackState;->getState()I
@@ -328,11 +328,102 @@
 
     invoke-virtual {v1, v2, v3, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
 
+    .line 78
+    invoke-virtual {v0}, Landroid/media/session/PlaybackState;->getErrorMessage()Ljava/lang/CharSequence;
+
+    move-result-object v2
+
+    if-eqz v2, :cond_4
+
+    const-string v3, "hataMesaji"
+
+    invoke-interface {v2}, Ljava/lang/CharSequence;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-virtual {v1, v3, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
     .line 79
     :cond_4
-    if-eqz p0, :cond_7
+    invoke-virtual {v0}, Landroid/media/session/PlaybackState;->getExtras()Landroid/os/Bundle;
 
-    .line 80
+    move-result-object v0
+
+    if-eqz v0, :cond_6
+
+    new-instance v2, Ljava/lang/StringBuilder;
+
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v0}, Landroid/os/Bundle;->keySet()Ljava/util/Set;
+
+    move-result-object v3
+
+    invoke-interface {v3}, Ljava/util/Set;->iterator()Ljava/util/Iterator;
+
+    move-result-object v3
+
+    :goto_1
+    invoke-interface {v3}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v4
+
+    if-eqz v4, :cond_5
+
+    invoke-interface {v3}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v4
+
+    check-cast v4, Ljava/lang/String;
+
+    invoke-virtual {v0, v4}, Landroid/os/Bundle;->get(Ljava/lang/String;)Ljava/lang/Object;
+
+    move-result-object v5
+
+    invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v4
+
+    const-string v6, "="
+
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v4
+
+    invoke-static {v5}, Ljava/lang/String;->valueOf(Ljava/lang/Object;)Ljava/lang/String;
+
+    move-result-object v5
+
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v4
+
+    const-string v5, "; "
+
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    goto :goto_1
+
+    :cond_5
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->length()I
+
+    move-result v0
+
+    if-lez v0, :cond_6
+
+    const-string v0, "ekler"
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-virtual {v1, v0, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    .line 81
+    :cond_6
+    if-eqz p0, :cond_9
+
+    .line 82
     const-string v0, "baslik"
 
     const-string v2, "android.media.metadata.TITLE"
@@ -343,34 +434,34 @@
 
     invoke-virtual {v1, v0, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
 
-    .line 81
+    .line 83
     const-string v0, "android.media.metadata.ARTIST"
 
     invoke-virtual {p0, v0}, Landroid/media/MediaMetadata;->getString(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
 
-    .line 82
+    .line 84
     const-string v2, "sanatci"
 
-    if-eqz v0, :cond_5
+    if-eqz v0, :cond_7
 
-    :goto_1
-    goto :goto_2
+    :goto_2
+    goto :goto_3
 
-    :cond_5
+    :cond_7
     const-string v0, "android.media.metadata.ALBUM_ARTIST"
 
     invoke-virtual {p0, v0}, Landroid/media/MediaMetadata;->getString(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
 
-    goto :goto_1
+    goto :goto_2
 
-    :goto_2
+    :goto_3
     invoke-virtual {v1, v2, v0}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
 
-    .line 83
+    .line 85
     const-string v0, "album"
 
     const-string v2, "android.media.metadata.ALBUM"
@@ -381,7 +472,7 @@
 
     invoke-virtual {v1, v0, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
 
-    .line 84
+    .line 86
     const-string v0, "sure"
 
     const-string v2, "android.media.metadata.DURATION"
@@ -392,15 +483,15 @@
 
     invoke-virtual {v1, v0, v2, v3}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
 
-    .line 85
+    .line 87
     const-string v0, "android.media.metadata.ALBUM_ART_URI"
 
     invoke-virtual {p0, v0}, Landroid/media/MediaMetadata;->getString(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
 
-    .line 86
-    if-nez v0, :cond_6
+    .line 88
+    if-nez v0, :cond_8
 
     const-string v0, "android.media.metadata.ART_URI"
 
@@ -408,9 +499,9 @@
 
     move-result-object v0
 
-    .line 87
-    :cond_6
-    if-eqz v0, :cond_7
+    .line 89
+    :cond_8
+    if-eqz v0, :cond_9
 
     const-string p0, "http"
 
@@ -418,21 +509,21 @@
 
     move-result p0
 
-    if-eqz p0, :cond_7
+    if-eqz p0, :cond_9
 
     const-string p0, "kapak"
 
     invoke-virtual {v1, p0, v0}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
 
-    .line 91
-    :cond_7
-    goto :goto_4
+    .line 93
+    :cond_9
+    goto :goto_5
 
-    .line 89
+    .line 91
     :catch_0
     move-exception p0
 
-    goto :goto_3
+    goto :goto_4
 
     .line 68
     :catch_1
@@ -448,8 +539,8 @@
 
     return-object p0
 
-    .line 90
-    :goto_3
+    .line 92
+    :goto_4
     :try_start_2
     const-string v0, "hata"
 
@@ -465,13 +556,13 @@
     :try_end_2
     .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_2
 
-    goto :goto_4
+    goto :goto_5
 
     :catch_2
     move-exception p0
 
-    .line 92
-    :goto_4
+    .line 94
+    :goto_5
     invoke-virtual {v1}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
 
     move-result-object p0
@@ -684,7 +775,7 @@
 .method public static yuklu(Landroid/content/Context;)Z
     .locals 2
 
-    .line 102
+    .line 104
     const/4 v0, 0x0
 
     :try_start_0
