@@ -530,35 +530,47 @@
       [sesSec, perde].forEach(function (x) { x.addEventListener('change', function () { K.sesAyarla(sesSec.value, +perde.value); }); });
       govde.appendChild(satir('Ses', sesSec)); govde.appendChild(satir('Perde (tını)', perde)); govde.appendChild(dene);
     }
-    // OmniRoute (kullanıcı, 2026-11-03): kendi OpenAI uyumlu ağ geçidi; her ağdan erişim için https adres (Tailscale / Cloudflare Tunnel)
-    var Om = window.yerelAyar && window.yerelAyar.omni;
-    if (Om) {
-      // Kullanıcı (2026-11-03): "pc açılmıyor, deepseek falan niye kullanmıyoduk" → aynı OpenAI uyumlu ayar; hazır seçenekler
-      govde.appendChild(el('h4', { text: '🔀 Ek yapay zekâ sağlayıcısı (DeepSeek / OpenRouter / OmniRoute)' }));
-      govde.appendChild(el('p', { class: 'var-etiket', text: 'Ayarlıysa Carvis önce bunu kullanır; ulaşılamazsa Gemini/Groq\'a döner. Hazır seçeneklerden birine dokun, sonra anahtarını gir. İstekler Android üzerinden gider (http://127.0.0.1 de çalışır). Model adlarını sağlayıcının sitesinden kontrol et (zamanla değişebilir).' }));
-      var HAZIR = [
-        { ad: 'DeepSeek (ücretli, ucuz)', url: 'https://api.deepseek.com', model: 'deepseek-chat', not: 'Anahtar: platform.deepseek.com → API keys.' },
-        { ad: 'OpenRouter (ücretsiz modeller var)', url: 'https://openrouter.ai/api/v1', model: '', not: 'Anahtar: openrouter.ai → Keys. Model: openrouter.ai/models sayfasında "free" filtresiyle seç (ör. deepseek/… :free) ve tam adını yaz.' },
-        { ad: 'OmniRoute (bu tablette, Termux)', url: 'http://127.0.0.1:20128', model: '', not: 'Termux\'ta OmniRoute çalışıyor olmalı (npx omniroute). Model: OmniRoute panelindeki combo adı (http://localhost:20128). Anahtar: panelde API anahtarı açtıysan.' },
-        { ad: 'OmniRoute (başka cihaz)', url: '', model: '', not: 'Tailscale / Cloudflare Tunnel adresini yaz.' }
-      ];
-      var hazirNot = el('p', { class: 'var-etiket' });
-      govde.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin:6px 0' }, HAZIR.map(function (h) {
-        return el('button', { class: 'dugme kucuk', type: 'button', text: h.ad, onclick: function () { oUrl.value = h.url; oModel.value = h.model; oKey.value = ''; hazirNot.textContent = h.not; oKaydet(); oKey.focus(); } });
-      })));
-      govde.appendChild(hazirNot);
-      var oa = Om.oku();
-      var oUrl = el('input', { type: 'url', value: oa.url || '', placeholder: 'https://…  (sonuna /v1 eklemene gerek yok)', style: stil, autocomplete: 'off' });
-      var oKey = el('input', { type: 'password', value: oa.anahtar || '', placeholder: 'OmniRoute API anahtarı (varsa)', style: stil, autocomplete: 'off' });
-      var oModel = el('input', { type: 'text', value: oa.model || '', placeholder: 'Model ya da combo adı (boşsa "auto")', style: stil, autocomplete: 'off' });
-      var oAcik = el('input', { type: 'checkbox', checked: oa.acik === false ? null : true });
-      var oSonuc = el('p', { class: 'var-etiket', 'aria-live': 'polite', text: Om.sonHata() ? 'Son hata: ' + Om.sonHata() : '' });
-      function oKaydet() { Om.yaz({ url: oUrl.value.trim(), anahtar: oKey.value.trim(), model: oModel.value.trim(), acik: oAcik.checked }); }
-      [oUrl, oKey, oModel, oAcik].forEach(function (x) { x.addEventListener('change', oKaydet); });
-      govde.appendChild(satir('Adres', oUrl)); govde.appendChild(satir('Anahtar', oKey)); govde.appendChild(satir('Model / combo', oModel));
-      govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [oAcik, 'Ek sağlayıcıyı kullan']));
-      govde.appendChild(el('button', { class: 'dugme kucuk', type: 'button', text: '🔌 Bağlantıyı test et', onclick: function () { oKaydet(); oSonuc.textContent = 'Deneniyor…'; Om.test().then(function (m) { oSonuc.textContent = m; }, function (e) { oSonuc.textContent = '✗ ' + e.message; }); } }));
-      govde.appendChild(oSonuc);
+    // Sağlayıcı zinciri (kullanıcı, 2026-11-03: "omniroute'u termux'suz sen hallet", "ücret ödemeyeceğim")
+    var SG = window.yerelAyar && window.yerelAyar.saglayici;
+    if (SG) {
+      govde.appendChild(el('h4', { text: '🔀 Yapay zekâ sağlayıcıları (ücretsiz, sırayla)' }));
+      govde.appendChild(el('p', { class: 'var-etiket', text: 'OmniRoute gibi: Carvis listedekileri yukarıdan aşağı dener; biri kotasını doldurursa ya da ulaşılamazsa sıradakine geçer, en sonda Gemini ve Groq. Her birine bir kez ücretsiz anahtarını gir, "Modelleri getir"e bas, "Test" ile dene.' }));
+      var sgKap = el('div', { style: 'display:grid;gap:10px' });
+      govde.appendChild(sgKap);
+      var sgCiz = function () {
+        sgKap.innerHTML = '';
+        var l = SG.liste();
+        if (!l.length) sgKap.appendChild(el('p', { class: 'var-etiket', text: 'Henüz sağlayıcı yok. Aşağıdan ekle.' }));
+        l.forEach(function (x, i) {
+          var h = SG.hazir[x.tur] || {};
+          var kaydet = function () { var t = SG.liste(); t[i] = x; SG.yaz(t); };
+          var anahtar = el('input', { type: 'password', value: x.anahtar || '', placeholder: 'Anahtar', style: stil, autocomplete: 'off' });
+          anahtar.addEventListener('change', function () { x.anahtar = anahtar.value.trim(); kaydet(); });
+          var taban = el('input', { type: 'url', value: x.taban || '', placeholder: 'Adres (ör. http://127.0.0.1:20128)', style: stil, autocomplete: 'off', hidden: x.tur !== 'omniroute' ? true : null });
+          taban.addEventListener('change', function () { x.taban = taban.value.trim(); kaydet(); });
+          var modeller = el('input', { type: 'text', value: (x.modeller || []).join(', '), placeholder: 'Modeller (virgülle) — "Modelleri getir" doldurur', style: stil, autocomplete: 'off' });
+          modeller.addEventListener('change', function () { x.modeller = modeller.value.split(',').map(function (m) { return m.trim(); }).filter(Boolean); kaydet(); });
+          var sonuc = el('p', { class: 'var-etiket', 'aria-live': 'polite', text: SG.sonHata(x.id) ? 'Son hata: ' + SG.sonHata(x.id) : '' });
+          var acik = el('input', { type: 'checkbox', checked: x.acik === false ? null : true });
+          acik.addEventListener('change', function () { x.acik = acik.checked; kaydet(); });
+          var d = function (t, f) { return el('button', { class: 'dugme kucuk', type: 'button', text: t, onclick: f }); };
+          sgKap.appendChild(el('div', { style: 'border:1px solid var(--cizgi);border-radius:8px;padding:10px;display:grid;gap:6px' }, [
+            el('div', { style: 'display:flex;gap:8px;align-items:center' }, [el('b', { text: (i + 1) + '. ' + x.ad, style: 'flex:1' }), el('label', { style: 'display:flex;gap:4px;align-items:center;font-size:12px' }, [acik, 'açık'])]),
+            h.anahtarYeri ? el('p', { class: 'var-etiket', text: 'Anahtar: ' + h.anahtarYeri }) : el('span'),
+            taban, anahtar, modeller,
+            el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [
+              d('⇣ Modelleri getir', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Modeller alınıyor…'; SG.modelleriGetir(x).then(function (m) { if (!m.length) { sonuc.textContent = 'Uygun model bulunamadı.'; return; } x.modeller = m.slice(0, 6); kaydet(); modeller.value = x.modeller.join(', '); sonuc.textContent = m.length + ' uygun model bulundu; ilk ' + x.modeller.length + ' tanesi sıraya alındı.'; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
+              d('🔌 Test', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Deneniyor…'; SG.test(x).then(function (m) { sonuc.textContent = m; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
+              i > 0 ? d('↑', function () { var t = SG.liste(); var y = t.splice(i, 1)[0]; t.splice(i - 1, 0, y); SG.yaz(t); sgCiz(); }) : el('span'),
+              d('🗑', function () { if (!confirm(x.ad + ' silinsin mi?')) return; var t = SG.liste(); t.splice(i, 1); SG.yaz(t); sgCiz(); })]),
+            sonuc]));
+        });
+        sgKap.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [el('span', { class: 'var-etiket', text: 'Ekle:' })].concat(Object.keys(SG.hazir).map(function (k) {
+          var h = SG.hazir[k];
+          return el('button', { class: 'dugme kucuk', type: 'button', text: '＋ ' + h.ad, onclick: function () { var t = SG.liste(); t.push({ id: 's' + Date.now().toString(36), tur: k, ad: h.ad, taban: h.taban || (k === 'omniroute' ? 'http://127.0.0.1:20128' : ''), anahtar: '', modeller: [], acik: true }); SG.yaz(t); sgCiz(); } });
+        }))));
+      };
+      sgCiz();
     }
     govde.appendChild(el('h4', { text: '🧠 Carvis\'in hafızası' }));
     var liste = el('ul', { class: 'var-etiket' }), yeni = el('input', { type: 'text', placeholder: 'Ör. "Sabahları çalışmayı seviyorum"', style: stil + ';flex:1;min-width:0' });

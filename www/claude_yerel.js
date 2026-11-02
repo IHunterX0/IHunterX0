@@ -231,17 +231,42 @@
   }
   function groqVar() { return groqAnahtar().length > 10; }
   window.yerelAyar.groqVar = groqVar;
-  /* ---------- OmniRoute (kullanıcı, 2026-11-03: "benim omniroute hesabım var, tek wifide değil her yerde çalışsın") ----------
-     OpenAI uyumlu ağ geçidi; Groq ile aynı istemci kullanılır. Ayar girilmişse önce OmniRoute, olmazsa Gemini/Groq. */
-  function omniAyar() { try { return JSON.parse(localStorage.getItem('omni_ayar') || '{}'); } catch (e) { return {}; } }
-  function omniAdres() {
-    var u = String(omniAyar().url || '').trim().replace(/\/+$/, '');
-    if (!u) return '';
-    if (/\/chat\/completions$/.test(u)) return u;
-    return /\/v1$/.test(u) ? u + '/chat/completions' : u + '/v1/chat/completions';
+  /* ---------- Sağlayıcı zinciri (kullanıcı, 2026-11-03: "omniroute'u PC'siz/Termux'suz sen hallet", "ücret ödemeyeceğim") ----------
+     OmniRoute'un yaptığını uygulamanın içinde yapar: OpenAI uyumlu ücretsiz sağlayıcılar sırayla denenir, kota/ağ hatasında
+     sıradakine geçilir; en sonda Gemini + Groq. Her sağlayıcıda birden çok model (kendi içinde de sırayla). */
+  var HAZIR_SAGLAYICI = {
+    openrouter: { ad: 'OpenRouter (ücretsiz)', taban: 'https://openrouter.ai/api/v1', anahtarYeri: 'openrouter.ai → Keys (kart gerekmez)', ucretsizFiltre: true },
+    github: { ad: 'GitHub Models', taban: 'https://models.github.ai/inference', modelListe: 'https://models.github.ai/catalog/models', anahtarYeri: 'github.com → Settings → Developer settings → Personal access tokens → Fine-grained → izin: Models (read)' },
+    cerebras: { ad: 'Cerebras', taban: 'https://api.cerebras.ai/v1', anahtarYeri: 'cloud.cerebras.ai → API Keys' },
+    mistral: { ad: 'Mistral', taban: 'https://api.mistral.ai/v1', anahtarYeri: 'console.mistral.ai → API Keys (ücretsiz "Experiment" planı)' },
+    omniroute: { ad: 'OmniRoute', taban: '', anahtarYeri: 'OmniRoute panelindeki API anahtarı (varsa)' }
+  };
+  function sagListe() {
+    var l = null; try { l = JSON.parse(localStorage.getItem('saglayicilar_v1') || 'null'); } catch (e) {}
+    if (!l) { // eski tek ayardan taşı
+      l = []; var e = null; try { e = JSON.parse(localStorage.getItem('omni_ayar') || 'null'); } catch (x) {}
+      if (e && e.url) l.push({ id: 's' + Date.now().toString(36), tur: /openrouter/.test(e.url) ? 'openrouter' : 'omniroute', ad: /openrouter/.test(e.url) ? 'OpenRouter (ücretsiz)' : 'OmniRoute', taban: e.url, anahtar: e.anahtar || '', modeller: e.model ? [e.model] : [], acik: e.acik !== false });
+    }
+    return l;
   }
-  var omniUyku = 0; // ulaşılamazsa 2 dk atla (PC kapalıyken her soruda zaman aşımı beklenmesin)
-  function omniVar() { var a = omniAyar(); return !!(a.url && a.acik !== false && (a.anahtar || !/deepseek\.com|openrouter\.ai/i.test(a.url))) && Date.now() > omniUyku; }
+  function sagYaz(l) { try { localStorage.setItem('saglayicilar_v1', JSON.stringify(l)); } catch (e) {} saglayiciNesneleri = null; }
+  function sagAdres(taban, ek) {
+    var u = String(taban || '').trim().replace(/\/+$/, '');
+    if (!u) return '';
+    if (/\/chat\/completions$/.test(u)) return ek === 'models' ? u.replace(/\/chat\/completions$/, '/models') : u;
+    var b = /\/v1$|\/inference$|\/api\/v1$/.test(u) ? u : u + '/v1';
+    return b + (ek === 'models' ? '/models' : '/chat/completions');
+  }
+  var sagUyku = {}, sagSonHata = {}, saglayiciNesneleri = null;
+  function sagNesneleri() {
+    if (saglayiciNesneleri) return saglayiciNesneleri;
+    saglayiciNesneleri = sagListe().filter(function (x) { return x.acik !== false && x.taban && (x.anahtar || x.tur === 'omniroute') && (x.modeller || []).length; }).map(function (x) {
+      return { id: x.id, ad: x.ad, api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true,
+        zincir: function () { return x.modeller.slice(0, 4); }, ince: function () {} };
+    });
+    return saglayiciNesneleri;
+  }
+  function sagHazir() { var t = Date.now(); return sagNesneleri().filter(function (S) { return !(sagUyku[S.id] > t); }); }
   // Android üzerinden ağ isteği (kullanıcı: OmniRoute tabletin içinde, Termux'ta → http://127.0.0.1:20128).
   // WebView'ın karışık içerik / CORS / yerel ağ kısıtlarına takılmaz; ek sağlayıcı istekleri bununla gider.
   var httpBekleyen = {}, httpSayac = 0;
@@ -266,8 +291,6 @@
   var GROQ = { ad: 'Groq', api: function () { return GROQ_API; }, anahtar: groqAnahtar, dinlen: groqDinlen,
     zincir: function (o, govde) { var arama = govde.tools && govde.tools.some(function (t) { return t.type === 'browser_search'; }); return (o && o.hafif && !arama ? GROQ_ZINCIR : GROQ_ZINCIR.filter(function (m) { return !/-20b$/.test(m) && !(arama && !/gpt-oss/.test(m)); })).slice(); },
     ince: function (m, g) { if (/gpt-oss/.test(m)) g.reasoning_effort = 'low'; else if (/qwen/.test(m)) g.reasoning_effort = 'none'; } };
-  var OMNI = { ad: 'OmniRoute', api: omniAdres, anahtar: function () { return omniAyar().anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true,
-    zincir: function () { return [omniAyar().model || 'auto']; }, ince: function () {} };
   function groqMesajlar(input) {
     var l = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
     return l.map(function (m) { return { role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content) }; });
@@ -320,7 +343,7 @@
     var mesajlar = groqMesajlar(input), araclar = (o.tools || []).filter(function (t) { return !(o.groqAtla && o.groqAtla.test(t.name)); }), MAX_TUR = o.maxTur || 3, toplam = '';
     function kisa(sema) { var x = JSON.parse(JSON.stringify(sema || { type: 'object', properties: {} })); Object.keys(x.properties || {}).forEach(function (k) { var d = x.properties[k].description; if (d && d.length > 90) x.properties[k].description = d.slice(0, 90); }); return x; }
     var tanim = araclar.map(function (t) { var d = t.description || ''; return { type: 'function', function: { name: t.name, description: d.length > 260 ? d.slice(0, 257) + '…' : d, parameters: kisa(t.inputSchema) } }; });
-    if (window.Carvis && window.Carvis._durum) window.Carvis._durum(S === OMNI ? 'Düşünüyor… (ek sağlayıcı)' : 'Düşünüyor… (yedek yapay zekâ)');
+    if (window.Carvis && window.Carvis._durum) window.Carvis._durum(S && S.ek ? 'Düşünüyor… (' + S.ad + ')' : 'Düşünüyor… (yedek yapay zekâ)');
     function calis(n) {
       var g = { messages: mesajlar, max_tokens: 4096, temperature: 0.4 };
       if (tanim.length && n < MAX_TUR) { g.tools = tanim; g.tool_choice = 'auto'; }
@@ -328,7 +351,7 @@
         var msg = (j.choices && j.choices[0] && j.choices[0].message) || {}, cagri = msg.tool_calls || [];
         if (window.__carvisKayit) console.log('GROQ TUR ' + n + ' ' + j._model + ' metin=' + (msg.content || '').length + ' cagri=' + cagri.map(function (c) { return c.function.name; }).join(','));
         if (msg.content) { toplam += (toplam && !/\s$/.test(toplam) ? '\n\n' : '') + msg.content; if (o.onText) o.onText({ text: toplam, delta: msg.content }); }
-        if (!cagri.length) return { text: toplam, truncated: (j.choices[0] || {}).finish_reason === 'length', modelApplied: (S === OMNI ? 'omni:' : 'groq:') + j._model };
+        if (!cagri.length) return { text: toplam, truncated: (j.choices[0] || {}).finish_reason === 'length', modelApplied: (S && S.ek ? S.ad + ':' : 'groq:') + j._model };
         mesajlar.push({ role: 'assistant', content: msg.content || '', tool_calls: cagri });
         return Promise.all(cagri.map(function (c) {
           var t = araclar.filter(function (x) { return x.name === c.function.name; })[0], arg = {};
@@ -367,38 +390,63 @@
       return groqSample(input, o);
     });
   };
-  // OmniRoute ayarlıysa önce o (görsel içeren istekler hariç); ulaşılamazsa / hata verirse eski düzen (Gemini + Groq)
-  var omniSonHata = '';
-  sample = function (input, o) {
-    if (omniVar() && !(o && o.images && o.images.length)) {
-      return groqSample(input, o, OMNI).then(function (r) { omniSonHata = ''; return r; }, function (e) {
+  // Sağlayıcı zinciri: sırayla dene (görsel içeren istekler hariç), hepsi olmazsa eski düzen (Gemini + Groq)
+  function zincirle(calistir, yedek, input, o) {
+    var l = (o && o.images && o.images.length) ? [] : sagHazir(), i = 0;
+    function dene() {
+      if (i >= l.length) return yedek(input, o);
+      var S = l[i++];
+      return calistir(input, o, S).then(function (r) { sagSonHata[S.id] = ''; return r; }, function (e) {
         if (e && (e.code === 'cancelled' || e.text)) throw e;
-        omniSonHata = String(e && e.message || e).slice(0, 200);
-        if (e && e.code === 'network') omniUyku = Date.now() + 120000;
-        if (window.__carvisKayit) console.log('OmniRoute olmadı → yedek: ' + omniSonHata);
-        return anaSample(input, o);
+        sagSonHata[S.id] = String(e && e.message || e).slice(0, 200);
+        sagUyku[S.id] = Date.now() + (e && e.code === 'rate_limited' ? 60000 : e && e.code === 'network' ? 120000 : 30000);
+        if (window.__carvisKayit) console.log(S.ad + ' olmadı → sıradaki: ' + sagSonHata[S.id]);
+        return dene();
       });
     }
-    return anaSample(input, o);
-  };
+    return dene();
+  }
+  sample = function (input, o) { return zincirle(groqSample, anaSample, input, o); };
   var anaJson = function (input, o) { return geminiJson(input, o).catch(function (e) { if (!yedeklenir(e, o)) throw e; return groqJson(input, o); }); };
-  sample.json = function (input, o) { return omniVar() ? groqJson(input, o, OMNI).catch(function (e) { if (e && e.code === 'cancelled') throw e; omniSonHata = String(e && e.message || e).slice(0, 200); return anaJson(input, o); }) : anaJson(input, o); };
+  sample.json = function (input, o) { return zincirle(groqJson, anaJson, input, o); };
   sample.limits = geminiSample.limits;
-  window.yerelAyar.omni = {
-    oku: omniAyar, var: omniVar, adres: omniAdres, sonHata: function () { return omniSonHata; },
-    yaz: function (a) { try { localStorage.setItem('omni_ayar', JSON.stringify(a || {})); } catch (e) {} },
-    test: function () {
-      omniUyku = 0;
-      if (!omniAdres()) return Promise.reject(new Error('Adres boş.'));
-      if (/^http:\/\//i.test(omniAdres()) && location.protocol === 'https:' && !(K && K.httpIstek)) return Promise.reject(new Error('Adres "http://" ile başlıyor; Android güvenlik gereği uygulama içinden http adresine bağlanamıyor. Tailscale (tailscale serve) ya da Cloudflare Tunnel ile "https://" adres kullan.'));
-      var t0 = Date.now();
-      return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, OMNI).then(function (j) {
+  function sagGecici(x) { return { id: x.id || 'gecici', ad: x.ad || 'Sağlayıcı', api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true, zincir: function () { return (x.modeller || []).slice(0, 1); }, ince: function () {} }; }
+  window.yerelAyar.saglayici = {
+    hazir: HAZIR_SAGLAYICI, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
+    // Bağlantı testi: ilk modelle kısa bir istek
+    test: function (x) {
+      if (!x.taban) return Promise.reject(new Error('Adres boş.'));
+      if (!(x.modeller || []).length) return Promise.reject(new Error('Önce "Modelleri getir"e bas ya da model adı yaz.'));
+      if (/^http:\/\//i.test(x.taban) && location.protocol === 'https:' && !(K && K.httpIstek)) return Promise.reject(new Error('http adres yalnız cihaz sürümünde çalışır.'));
+      delete sagUyku[x.id]; var t0 = Date.now();
+      return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, sagGecici(x)).then(function (j) {
         var c = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
         return 'Bağlandı ✓ (' + (j.model || j._model) + ', ' + (Date.now() - t0) + ' ms): ' + c.slice(0, 60);
       }, function (e) {
         var m = String(e && e.message || e);
-        if (/Failed to fetch|NetworkError|TypeError/i.test(m)) m += ' — Adrese ulaşılamadı: OmniRoute kapalı olabilir, adres yanlış olabilir ya da sunucu tarayıcı isteklerine (CORS) izin vermiyor olabilir.';
+        if (/ 401 | 403 /.test(m)) m += ' — anahtar geçersiz ya da izni eksik.';
+        else if (/Failed to fetch|NetworkError|TypeError|Ağ hatası/i.test(m)) m += ' — adrese ulaşılamadı.';
         throw new Error(m);
+      });
+    },
+    // Model listesini sağlayıcıdan çek; OpenRouter'da yalnız ücretsiz + araç destekli olanlar
+    modelleriGetir: function (x) {
+      var h = HAZIR_SAGLAYICI[x.tur] || {}, url = h.modelListe || sagAdres(x.taban, 'models');
+      var bas = {}; if (x.anahtar) bas.Authorization = 'Bearer ' + x.anahtar;
+      return agIstegi(url, { method: 'GET', headers: bas }, { yerelAg: true }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) throw new Error('Model listesi alınamadı (' + r.status + '): ' + JSON.stringify(j.error || j).slice(0, 120));
+          var l = Array.isArray(j) ? j : (j.data || j.models || []);
+          var secilen = l.filter(function (m) {
+            if (h.ucretsizFiltre) { var pr = m.pricing || {}; var ucretsiz = +pr.prompt === 0 && +pr.completion === 0; var arac = !m.supported_parameters || m.supported_parameters.indexOf('tools') >= 0; return ucretsiz && arac; }
+            var tur = String(m.task || m.type || m.object || ''); return !/embed|image|audio|speech|moderation|rerank/i.test(String(m.id || m.name) + ' ' + tur);
+          }).map(function (m) { return { id: m.id || m.name, b: +(m.context_length || m.max_input_tokens || (m.limits && m.limits.max_input_tokens) || 0) }; })
+            .filter(function (m) { return m.id; });
+          // tercih: bilinen güçlü aileler önce, sonra bağlam uzunluğu
+          function puan(m) { var id = m.id.toLowerCase(); return (/deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
+          secilen.sort(function (a, b) { return puan(a) - puan(b); });
+          return secilen.map(function (m) { return m.id; });
+        });
       });
     }
   };
