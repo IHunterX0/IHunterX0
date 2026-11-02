@@ -248,14 +248,22 @@
     return api('/me/player/devices').then(function (d) {
       var l = ((d && d.devices) || []).filter(function (x) { return !x.is_restricted; });
       l.sort(function (a, b) { function p(x) { return x.is_active ? 0 : /tablet|smartphone/i.test(x.type) ? 1 : 2; } return p(a) - p(b); });
+      if (l[0] && /tablet|smartphone/i.test(l[0].type)) { D.cihaz = l[0].id; kaydet(); } // bu tabletin Spotify'ı
       return l[0] || null;
     });
   }
-  // Spotify kapalıysa: uygulamayı uyandır, cihaz listesinde görünene kadar bekle (en çok ~14 sn)
-  function spotifyUyandir(uri) {
+  // Cihaz görünene kadar seyrek yokla (en çok 5 kez, 2 sn arayla); kota hatası gelirse hemen dur
+  function cihazBekle(n) {
+    return bekle(2000).then(cihazBul).then(function (c) { return c || (n > 1 ? cihazBekle(n - 1) : null); }, function (e) { if (e.durum === 429) throw e; return n > 1 ? cihazBekle(n - 1) : null; });
+  }
+  // "Aktif cihaz yok" (kullanıcı raporu r14: 404 NO_ACTIVE_DEVICE — Spotify duraklatılmış kalınca tablet Connect listesinden düşüyor).
+  // Çare: Spotify'ı medya oturumundan "oynat" ile uyandır (bu komut çalışıyor), tablet listeye dönünce listeyi ona çal.
+  function cihazUyandir(uri) {
+    var d = typeof yDurum === 'function' ? yDurum() : null;
+    if (d && d.izin !== false && d.var) { try { K.spotifyKomut('oynat'); } catch (e) {} return cihazBekle(5); }
+    // Spotify hiç açık değil: bir kez açılır (tek yol), sonra Carvis'e dönülür
     spotifydaAc(uri);
-    var t0 = Date.now();
-    return (function dene() { return bekle(1500).then(cihazBul).then(function (c) { return c || (Date.now() - t0 > 14000 ? null : dene()); }); })();
+    return cihazBekle(6).then(function (c) { setTimeout(oneDon, 900); return c; });
   }
   function premiumTazele() {
     return api('/me').then(function (m) { D.premium = m.product === 'premium'; if (!D.ben) D.ben = { id: m.id, ad: m.display_name || m.id }; kaydet(); return D.premium; }).catch(function () { return D.premium; });
@@ -276,11 +284,12 @@
     }
     return oynat(null).catch(function (e) {
       if (e.durum === 404 || e.neden === 'NO_ACTIVE_DEVICE') {
+        var dene = function (c) { return oynat(c).catch(function (e2) { if (e2.durum === 404) return bekle(1200).then(function () { return oynat(c); }); throw e2; }); };
         return cihazBul().then(function (c) {
-          if (c) return api('/me/player', { method: 'PUT', body: { device_ids: [c.id], play: false } }).catch(function () {}).then(function () { return bekle(500); }).then(function () { return oynat(c); });
-          return spotifyUyandir(uriler[bas]).then(function (c2) {
-            if (!c2) throw new Error('Spotify açıldı ama tablet cihaz olarak görünmedi. Spotify\'da herhangi bir şarkıyı bir kez başlatıp geri dön, sonra tekrar dene.');
-            return oynat(c2).then(function () { setTimeout(oneDon, 700); });
+          if (c) return dene(c);
+          return cihazUyandir(uriler[bas]).then(function (c2) {
+            if (!c2) throw new Error('Tablet Spotify\'da cihaz olarak görünmedi. Spotify\'ı açıp herhangi bir şarkıyı 2-3 saniye çal, Carvis\'e dönüp tekrar dene.');
+            return dene(c2);
           });
         });
       }
@@ -330,7 +339,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.02-r14';
+  var SURUM = '2026.11.03-r15';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -427,7 +436,7 @@
       if (!uriler.length) throw new Error('Bu şarkılar Spotify\'da bulunamadı.');
       return cal(uriler, 0, k).then(function () {
         karisimSakla(k); Kuyruk = null;
-        kalan.reduce(function (z, x) { return z.then(function () { return uriBul(x).then(function (u) { if (u) return api('/me/player/queue?uri=' + encodeURIComponent(u), { method: 'POST' }).catch(function () {}); }); }); }, Promise.resolve())
+        kalan.reduce(function (z, x) { return z.then(function () { return bekle(300); }).then(function () { return uriBul(x).then(function (u) { if (u) return api('/me/player/queue?uri=' + encodeURIComponent(u), { method: 'POST' }).catch(function () {}); }); }); }, Promise.resolve())
           .then(function () { karisimSakla(k); }, function () {});
         return 'ok';
       });
@@ -594,6 +603,7 @@
         if (d.var) sat('Desteklenen', ['aramayla çal ' + ((d.eylemler & 2048) ? '✓' : '✗'), 'adresle çal ' + ((d.eylemler & 8192) ? '✓' : '✗'), 'sonraki ' + ((d.eylemler & 32) ? '✓' : '✗')].join(', '));
       }
     }
+    sat('Kayıtlı tablet cihazı', D.cihaz ? 'var' : 'henüz yok');
     sat('Liste çalma yolu', bagli() ? 'Spotify Web API (Premium)' : 'HESAP BAĞLI DEĞİL → liste çalınamaz, yalnız kontrol');
     sat('Yerel dinleme geçmişi', Dinlenen.length + ' şarkı');
     sat('Spotify hesabı (isteğe bağlı)', !D.clientId ? 'kurulmadı' : !bagli() ? 'Client ID var, bağlı değil' : 'bağlı (' + (D.ben ? D.ben.ad : '?') + ', ' + (D.premium === true ? 'Premium' : D.premium === false ? 'Premium DEĞİL' : 'Premium bilinmiyor') + ')');
