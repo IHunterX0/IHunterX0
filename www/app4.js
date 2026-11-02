@@ -125,7 +125,8 @@
       f.text().then(function (t) {
         var v = JSON.parse(t);
         if (v.sema !== '1001-yedek/1' || !v.belgeler) throw new Error('Bu bir 1001 yedeği değil.');
-        var adlar = Object.keys(v.belgeler).filter(function (a) { return /^(ilerleme|notlar|kartlarim|istatistik|testler|sohbetler|srs-[a-z0-9-]+|sonuclar-[a-z0-9-]+|sohbet-[a-z0-9]+)$/.test(a); });
+        // Yedeklenen her belge geri yüklenir (önceden plan, saraylar, eksikler, defter, Carvis profili vb. yedekleniyor ama geri yüklenmiyordu)
+        var adlar = Object.keys(v.belgeler).filter(function (a) { return YEDEK_BELGELER.indexOf(a) >= 0 || /^(srs-[a-z0-9-]+|sonuclar-[a-z0-9-]+|sohbet-[a-z0-9]+)$/.test(a); });
         durum.innerHTML = '';
         durum.appendChild(document.createTextNode(adlar.length + ' belge bulundu (' + new Date(v.tarih).toLocaleString('tr-TR') + '). Şu anki verilerin bunlarla DEĞİŞTİRİLECEK. '));
         var onay = el('button', { class: 'dugme kucuk tehlike', type: 'button' }, ['Evet, geri yükle']);
