@@ -535,11 +535,12 @@
     if (Om) {
       // Kullanıcı (2026-11-03): "pc açılmıyor, deepseek falan niye kullanmıyoduk" → aynı OpenAI uyumlu ayar; hazır seçenekler
       govde.appendChild(el('h4', { text: '🔀 Ek yapay zekâ sağlayıcısı (DeepSeek / OpenRouter / OmniRoute)' }));
-      govde.appendChild(el('p', { class: 'var-etiket', text: 'Ayarlıysa Carvis önce bunu kullanır; ulaşılamazsa Gemini/Groq\'a döner. Hazır seçeneklerden birine dokun, sonra anahtarını gir. Model adlarını sağlayıcının sitesinden kontrol et (zamanla değişebilir).' }));
+      govde.appendChild(el('p', { class: 'var-etiket', text: 'Ayarlıysa Carvis önce bunu kullanır; ulaşılamazsa Gemini/Groq\'a döner. Hazır seçeneklerden birine dokun, sonra anahtarını gir. İstekler Android üzerinden gider (http://127.0.0.1 de çalışır). Model adlarını sağlayıcının sitesinden kontrol et (zamanla değişebilir).' }));
       var HAZIR = [
         { ad: 'DeepSeek (ücretli, ucuz)', url: 'https://api.deepseek.com', model: 'deepseek-chat', not: 'Anahtar: platform.deepseek.com → API keys.' },
         { ad: 'OpenRouter (ücretsiz modeller var)', url: 'https://openrouter.ai/api/v1', model: '', not: 'Anahtar: openrouter.ai → Keys. Model: openrouter.ai/models sayfasında "free" filtresiyle seç (ör. deepseek/… :free) ve tam adını yaz.' },
-        { ad: 'OmniRoute (kendi sunucun)', url: '', model: '', not: 'Adres "https://" olmalı (Tailscale / Cloudflare Tunnel).' }
+        { ad: 'OmniRoute (bu tablette, Termux)', url: 'http://127.0.0.1:20128', model: '', not: 'Termux\'ta OmniRoute çalışıyor olmalı (npx omniroute). Model: OmniRoute panelindeki combo adı (http://localhost:20128). Anahtar: panelde API anahtarı açtıysan.' },
+        { ad: 'OmniRoute (başka cihaz)', url: '', model: '', not: 'Tailscale / Cloudflare Tunnel adresini yaz.' }
       ];
       var hazirNot = el('p', { class: 'var-etiket' });
       govde.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin:6px 0' }, HAZIR.map(function (h) {

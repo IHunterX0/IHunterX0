@@ -1446,3 +1446,13 @@
 
     return-object v1
 .end method
+
+.method public httpIstek(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static/range {p1 .. p5}, Lcom/dogac/bin1/YerelHttp;->istek(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+
+    return-void
+.end method

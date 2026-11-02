@@ -242,10 +242,31 @@
   }
   var omniUyku = 0; // ulaşılamazsa 2 dk atla (PC kapalıyken her soruda zaman aşımı beklenmesin)
   function omniVar() { var a = omniAyar(); return !!(a.url && a.acik !== false && (a.anahtar || !/deepseek\.com|openrouter\.ai/i.test(a.url))) && Date.now() > omniUyku; }
+  // Android üzerinden ağ isteği (kullanıcı: OmniRoute tabletin içinde, Termux'ta → http://127.0.0.1:20128).
+  // WebView'ın karışık içerik / CORS / yerel ağ kısıtlarına takılmaz; ek sağlayıcı istekleri bununla gider.
+  var httpBekleyen = {}, httpSayac = 0;
+  window.yerelHttpCevap = function (id, durum, govde, hataM) { var f = httpBekleyen[id]; delete httpBekleyen[id]; if (f) f(durum, govde, hataM); };
+  function yerelFetch(url, o) {
+    return new Promise(function (ok, red) {
+      var id = 'h' + (++httpSayac), bitti = false;
+      httpBekleyen[id] = function (durum, govde, hataM) {
+        if (bitti) return; bitti = true;
+        if (hataM) return red(new TypeError('Ağ hatası (Android): ' + hataM));
+        ok({ ok: durum >= 200 && durum < 300, status: durum, headers: { get: function () { return null; } },
+          json: function () { return Promise.resolve().then(function () { return JSON.parse(govde || '{}'); }); }, text: function () { return Promise.resolve(govde || ''); } });
+      };
+      if (o.signal) {
+        if (o.signal.aborted) { bitti = true; return red(new DOMException('iptal', 'AbortError')); }
+        o.signal.addEventListener('abort', function () { if (!bitti) { bitti = true; delete httpBekleyen[id]; red(new DOMException('iptal', 'AbortError')); } });
+      }
+      try { K.httpIstek(id, url, o.body == null ? null : o.body, JSON.stringify(o.headers || {}), 90000); } catch (e) { bitti = true; red(new TypeError('Android köprüsü: ' + e)); }
+    });
+  }
+  function agIstegi(url, o, S) { return S && S.yerelAg && K && K.httpIstek ? yerelFetch(url, o) : fetch(url, o); }
   var GROQ = { ad: 'Groq', api: function () { return GROQ_API; }, anahtar: groqAnahtar, dinlen: groqDinlen,
     zincir: function (o, govde) { var arama = govde.tools && govde.tools.some(function (t) { return t.type === 'browser_search'; }); return (o && o.hafif && !arama ? GROQ_ZINCIR : GROQ_ZINCIR.filter(function (m) { return !/-20b$/.test(m) && !(arama && !/gpt-oss/.test(m)); })).slice(); },
     ince: function (m, g) { if (/gpt-oss/.test(m)) g.reasoning_effort = 'low'; else if (/qwen/.test(m)) g.reasoning_effort = 'none'; } };
-  var OMNI = { ad: 'OmniRoute', api: omniAdres, anahtar: function () { return omniAyar().anahtar || ''; }, dinlen: {}, anahtarsiz: true,
+  var OMNI = { ad: 'OmniRoute', api: omniAdres, anahtar: function () { return omniAyar().anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true,
     zincir: function () { return [omniAyar().model || 'auto']; }, ince: function () {} };
   function groqMesajlar(input) {
     var l = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
@@ -273,7 +294,7 @@
       var ac = new AbortController(), zm = setTimeout(function () { ac.abort(); }, 30000);
       if (o && o.signal) { if (o.signal.aborted) ac.abort(); else o.signal.addEventListener('abort', function () { ac.abort(); }); }
       var bas = { 'Content-Type': 'application/json' }; if (k) bas.Authorization = 'Bearer ' + k;
-      return fetch(S.api(), { method: 'POST', headers: bas, body: JSON.stringify(g), signal: ac.signal }).then(function (r) {
+      return agIstegi(S.api(), { method: 'POST', headers: bas, body: JSON.stringify(g), signal: ac.signal }, S).then(function (r) {
         clearTimeout(zm);
         return r.json().catch(function () { return {}; }).then(function (j) {
           if (r.ok) {
@@ -369,7 +390,7 @@
     test: function () {
       omniUyku = 0;
       if (!omniAdres()) return Promise.reject(new Error('Adres boş.'));
-      if (/^http:\/\//i.test(omniAdres()) && location.protocol === 'https:') return Promise.reject(new Error('Adres "http://" ile başlıyor; Android güvenlik gereği uygulama içinden http adresine bağlanamıyor. Tailscale (tailscale serve) ya da Cloudflare Tunnel ile "https://" adres kullan.'));
+      if (/^http:\/\//i.test(omniAdres()) && location.protocol === 'https:' && !(K && K.httpIstek)) return Promise.reject(new Error('Adres "http://" ile başlıyor; Android güvenlik gereği uygulama içinden http adresine bağlanamıyor. Tailscale (tailscale serve) ya da Cloudflare Tunnel ile "https://" adres kullan.'));
       var t0 = Date.now();
       return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, OMNI).then(function (j) {
         var c = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
