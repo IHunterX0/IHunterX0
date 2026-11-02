@@ -441,7 +441,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r25';
+  var SURUM = '2026.11.03-r26';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -552,8 +552,9 @@
       return carvisListesi(uriler);
     }).then(function (id) {
       if (no !== CalNo) throw iptalHatasi();
-      adim('liste Spotify\'da açılıyor, Çal\'a dokunulacak');
-      var r = K.spotifyListeCal('spotify:playlist:' + id);
+      var ilkAd = (l.filter(function (x) { return x.u; })[0] || l[0]).a;
+      adim('liste Spotify\'da açılıyor, en üstteki şarkıya dokunulacak (' + ilkAd + ')');
+      var r = K.spotifyListeSarkiCal ? K.spotifyListeSarkiCal('spotify:playlist:' + id, ilkAd) : K.spotifyListeCal('spotify:playlist:' + id);
       if (r === 'erisim_yok') throw erisimHatasi();
       if (r !== 'ok') throw new Error('Spotify açılamadı: ' + r);
       var adlar = l.map(function (x) { return x.a; }), t0 = Date.now(), sonLd = '';
@@ -565,7 +566,7 @@
             adim('tablette çalıyor ✓ (' + d.baslik + ')'); karisimSakla(k); setTimeout(oneDon, 1500); return 'ok';
           }
           if (Date.now() - t0 > 18000 || (/bulunamadi|hata/.test(ld) && Date.now() - t0 > 4000)) {
-            throw Object.assign(new Error('Liste Spotify\'da açıldı ama Çal düğmesine dokunulamadı (' + (ld || 'yanıt yok') + '). Açık olan "Carvis · Şimdi" listesinde ▶\'a bir kez sen bas; sonraki seferlerde Carvis halleder.'), { bilgi: true });
+            throw Object.assign(new Error('Liste Spotify\'da açıldı ama en üstteki şarkıya dokunulamadı (' + (ld || 'yanıt yok') + '). "Carvis · Şimdi" listesinde ilk şarkıya bir kez sen dokun; raporu gönderirsen düzeltirim.'), { bilgi: true });
           }
           return bak();
         });

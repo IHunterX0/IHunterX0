@@ -1432,3 +1432,17 @@
 
     return-object v0
 .end method
+
+.method public spotifyListeSarkiCal(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    .locals 2
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/dogac/bin1/MainActivity$Kopru;->this$0:Lcom/dogac/bin1/MainActivity;
+
+    invoke-static {v0, p1, p2}, Lcom/dogac/bin1/SpotifyYerel;->listeSarkiCal(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v1
+
+    return-object v1
+.end method

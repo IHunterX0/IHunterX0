@@ -116,8 +116,18 @@ public final class SpotifyYerel {
     static final List<String> OYNAT_ETIKET = Arrays.asList("çal", "play", "oynat", "çalma listesini çal", "play playlist", "listeyi çal", "karışık çal", "shuffle play");
 
     /** spotify:playlist:… adresini Spotify'da açar, sonra listenin Çal düğmesine (erişilebilirlikle) dokunur. */
-    public static String listeCal(Context c, String adres) {
+    /* Kullanıcı (r25): "en üstteki şarkıya tıklasın, o hizaya" → listeyi aç, ilk şarkının satırına dokun
+       (Spotify listeyi o şarkıdan başlatır). Önce adıyla, bulunamazsa en üstteki şarkı satırı. */
+    static volatile String hedefAd = "";
+    static volatile int denemeNo = 0;
+    public static String listeSarkiCal(Context c, String adres, String ad) {
+        hedefAd = ad == null ? "" : ad.trim().toLowerCase(new Locale("tr"));
+        return listeAc(c, adres);
+    }
+    public static String listeCal(Context c, String adres) { hedefAd = ""; return listeAc(c, adres); }
+    static String listeAc(Context c, String adres) {
         if (CarvisErisim.ornek == null) return "erisim_yok";
+        denemeNo = 0;
         try {
             c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(adres)).setPackage(PAKET).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (Exception e) { return "hata:" + e.getMessage(); }
@@ -173,6 +183,33 @@ public final class SpotifyYerel {
      *  Kullanıcı (r24): yanlış düğmeye (şimdi çalan şarkının devamı) dokunuldu → adaylar puanlanır:
      *  0 = etiketinde liste adı ("carvis") geçen; 1 = bilinen kimlik, sol taraf; 2 = Çal etiketi, sol taraf;
      *  5 = sağ taraf (şimdi çalıyor paneli olabilir). Alt %28 (mini çalar) ve panel kimlikleri hiç seçilmez. */
+    static String sarkiyaDokun(AccessibilityNodeInfo kok, List<AccessibilityNodeInfo> l, int W, int H) {
+        Rect r = new Rect();
+        AccessibilityNodeInfo en = null; int enUst = Integer.MAX_VALUE; String neden = null;
+        // 1) ilk şarkının adıyla
+        if (hedefAd.length() > 0) {
+            for (AccessibilityNodeInfo n : l) {
+                CharSequence tx = n.getText(); if (tx == null || !n.isVisibleToUser()) continue;
+                String t = tx.toString().trim().toLowerCase(new Locale("tr"));
+                if (!(t.equals(hedefAd) || t.startsWith(hedefAd) || (t.length() > 3 && hedefAd.startsWith(t)))) continue;
+                n.getBoundsInScreen(r);
+                if (r.isEmpty() || r.top > H * 0.80 || r.centerX() > W * 0.70 || sagPanelde(n)) continue;
+                if (r.top < enUst) { en = n; enUst = r.top; neden = "şarkı adı '" + t + "'"; }
+            }
+        }
+        // 2) adıyla bulunamadıysa (birkaç denemeden sonra): en üstteki şarkı satırı
+        if (en == null && denemeNo >= 6) {
+            for (AccessibilityNodeInfo n : kok.findAccessibilityNodeInfosByViewId("com.spotify.music:id/row_root")) {
+                n.getBoundsInScreen(r);
+                if (!n.isVisibleToUser() || r.isEmpty() || r.top > H * 0.80 || r.centerX() > W * 0.70 || sagPanelde(n)) continue;
+                if (r.top < enUst) { en = n; enUst = r.top; neden = "en üstteki satır (row_root)"; }
+            }
+        }
+        if (en == null) return null;
+        Rect rr = new Rect(); en.getBoundsInScreen(rr);
+        return CarvisErisim.tiklaDugum(en) ? neden + " @" + rr.centerX() + "," + rr.top : null;
+    }
+
     static String tikla() {
         CarvisErisim s = CarvisErisim.ornek;
         if (s == null) return null;
@@ -180,8 +217,21 @@ public final class SpotifyYerel {
         if (kok == null) return null;
         CharSequence pk = kok.getPackageName();
         if (pk == null || !PAKET.contentEquals(pk)) { listeSon = "bekleniyor:" + pk; return null; }
+        denemeNo++;
         int H = s.getResources().getDisplayMetrics().heightPixels, W = s.getResources().getDisplayMetrics().widthPixels;
         List<AccessibilityNodeInfo> l = new ArrayList<>(); topla(kok, l, 0);
+        if (hedefAd.length() > 0) {
+            String r0 = sarkiyaDokun(kok, l, W, H);
+            if (r0 != null) return r0;
+            // Kullanıcı: "çal tuşu değil, en üstteki şarkı hizasına tıklasın" → Çal düğmesine ASLA düşülmez
+            listeSon = "şarkı satırı aranıyor (" + denemeNo + ")";
+            if (denemeNo >= 30) {
+                StringBuilder sb = new StringBuilder(); int k = 0; Rect r = new Rect();
+                for (AccessibilityNodeInfo n : l) { CharSequence tx = n.getText(); if (tx == null || !n.isVisibleToUser()) continue; n.getBoundsInScreen(r); sb.append("['").append(tx).append("' x=").append(r.centerX()).append(" y=").append(r.top).append("] "); if (++k >= 25) break; }
+                dokum = sb.toString();
+            }
+            return null;
+        }
         AccessibilityNodeInfo en = null; int enPuan = 99, enUst = Integer.MAX_VALUE; String neden = null;
         StringBuilder adaylar = new StringBuilder(); int say = 0;
         Rect r = new Rect();
