@@ -22,7 +22,9 @@
     'body{background:radial-gradient(1200px 700px at 85% -10%,rgba(79,224,255,.10),transparent 60%),radial-gradient(900px 600px at -10% 110%,rgba(120,90,255,.08),transparent 60%),var(--zemin)}',
     '#fxArka{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;transition:opacity .6s}',
     'body.fx-okuma #fxArka{opacity:.18}',
-    '#ana,.serit,.yan-panel{position:relative;z-index:1}',
+    // Yalnız #ana: .serit (sticky üst çubuk) ve .yan-panel (fixed panel) kendi konumlarını korumalı; aksi hâlde
+    // "Zamanım yok" gibi paneller sayfanın en altına düşüyordu.
+    '#ana{position:relative;z-index:1}',
     '.fx-tarama{position:fixed;inset:0;z-index:2;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}',
     // üst çubuk
     '.serit{background:linear-gradient(180deg,rgba(8,18,26,.92),rgba(8,18,26,.72));backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3)}',

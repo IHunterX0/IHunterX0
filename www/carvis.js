@@ -67,7 +67,8 @@
       konusmaBitti: function (id) { var f = bekleyenKonus[id]; delete bekleyenKonus[id]; if (f) f(); },
       durumYaz: function (t) { try { durum(t); } catch (e) {} },
       kelime: function (bas, son) { if (window.Holo) window.Holo.kelime(bas, son); },
-      dinleKomutu: function () { if (Carvis.konusuyor) Ses.sus(); },
+      // Söz kesme sinyali hoparlörden gelen kendi sesiyle tetikleniyordu (Carvis kendini susturuyordu): yok sayılır; kesmek için 🎙'a dokunulur.
+      dinleKomutu: function () {},
       alternatifler: function (l) { Ses.alternatifler = l || []; },
       duydu: function (metin) { var d = dinleSoz; dinleSoz = null; if (d) d.ok(metin || ''); },
       dinlemeHata: function (kod) { var d = dinleSoz; dinleSoz = null; Ses.sonHata = kod; if (d) { if (/no_match|speech_timeout|anlasilmadi|stt_yok|iptal/.test(kod)) d.ok(''); else d.red(new Error(kod)); } },
@@ -123,7 +124,7 @@
       el('button', { class: 'dugme kucuk ana', type: 'submit' }, ['Sor'])])
   ]);
   document.body.appendChild(balon); document.body.appendChild(dug);
-  dug.addEventListener('click', function () { if (balon.hidden) { balon.hidden = false; Carvis.ac(); } else if (Carvis.acik) Carvis.kapat(true); else Carvis.ac(); });
+  dug.addEventListener('click', function () { if (balon.hidden) { balon.hidden = false; Carvis.ac(); } else if (Carvis.acik && Carvis.konusuyor) Ses.sus(); else if (Carvis.acik) Carvis.kapat(true); else Carvis.ac(); });
   var uyandirmaAcik = false;
   // APK'da (yerel ses) varsayılan açık; kullanıcı kapatırsa '0' saklanır
   try { var _u = localStorage.getItem('carvis_uyandirma'); uyandirmaAcik = _u === null ? !!Ses.yerel : _u === '1'; } catch (e) {}
@@ -554,14 +555,16 @@
       if (Date.now() - (Carvis._uyanma || 0) < 2500) return; // çift sinyal: açıp anında kapatmasın
       Carvis._uyanma = Date.now();
       if (!Carvis.acik) Carvis.arkaPlan = !!arkaPlan; // uygulama dışında uyandı: yalnız sesle çalış, görsel gerekirse öne gel
-      if (balon.hidden) balon.hidden = false; if (Carvis.acik) { if (Carvis.konusuyor) { Ses.sus(); return; } Carvis.kapat(); } else Carvis.ac(); },
+      if (Carvis.acik && (Carvis.konusuyor || Date.now() - (Ses.sonBitis || 0) < 2000)) return; // kendi sesinin yankısı
+      if (balon.hidden) balon.hidden = false; if (Carvis.acik) Carvis.kapat(); else Carvis.ac(); },
     ac: function () {
       if (!Ses.destek) { durum('Bu cihazda ses yok; yazarak sor.'); balon.hidden = false; yaziGir.focus(); return; }
       if (Carvis.acik) return;
       Carvis.acik = true; Carvis._acilis = Date.now(); dug.classList.add('acik'); balon.hidden = false; oturumBildir(true);
       if (H) { H.temizle(); H.soru(''); H.goster(); }
-      // Android: oturum boyunca servis açık (konuşurken "Carvis" deyince söz kesilsin); tarayıcıda sürekli tanıma kapanır
-      Ses.uyandirma(Ses.yerel);
+      // Oturum boyunca uyandırma dinleyicisi KAPALI: açıkken Carvis kendi sesini "Carvis" sanıp susuyordu ve mikrofon iki kez çalışıp pili yiyordu.
+      // Oturumu kapatmak için "Carvis"/"kapat" demek yeterli (konuşma tanımadan, KAPAT), söz kesmek için 🎙'a dokunulur.
+      Ses.uyandirma(false);
       durum('Dinliyorum');
       selamMetni().then(function (m) { if (!Carvis.acik) return; if (m.length > 30) mesaj('cv-o', U.esc(m)); return Carvis.soyle(m); }).then(Carvis.dongu);
     },
@@ -573,6 +576,8 @@
     },
     dongu: function () {
       if (!Carvis.acik || Carvis.dersAktif) return;
+      var bekle = 700 - (Date.now() - (Ses.sonBitis || 0)); // konuşma biter bitmez mikrofonu açma: kendi sesinin kuyruğunu duyuyordu
+      if (bekle > 0 && bekle <= 700) return void setTimeout(Carvis.dongu, bekle);
       durum('Dinliyorum');
       Ses.dinle().then(function (t) {
         if (!Carvis.acik) return;
@@ -656,7 +661,7 @@
     soyle: function (md) {
       Carvis.son = md; var s = sesMetni(md);
       if (!s) return Promise.resolve();
-      Carvis.konusuyor = true; durum('Konuşuyor (kesmek için "dinle" de)');
+      Carvis.konusuyor = true; durum('Konuşuyor (kesmek için 🎙\'a dokun)');
       if (H) H.altyaziBasla(s);
       return Ses.konus(s).then(function () { Carvis.konusuyor = false; if (H) H.altyaziBitir(); });
     }
@@ -753,6 +758,12 @@
   window.Carvis = Carvis;
   window.Carvis._test = { gorselAc: gorselAc, sahneIsaretle: sahneIsaretle, sayfaAc: sayfaAc, UYANDIRMA: UYANDIRMA, KAPAT: KAPAT, yankiMi: yankiMi, profilMetni: profilMetni, selamMetni: selamMetni, araclar: araclar, Profil: function () { return Profil; }, ayarPaneli: ayarPaneli };
   if (uyandirmaAcik) setTimeout(uyandirmaUygula, 1500);
+  // Pil: uygulama görünmüyorsa ve "arka planda dinle" seçili değilse sürekli dinleme durur, geri gelince devam eder
+  document.addEventListener('visibilitychange', function () {
+    if (Carvis.acik) return;
+    var arka = false; try { arka = !!(K && K.arkaPlanMi && K.arkaPlanMi()); } catch (e) {}
+    if (document.hidden) { if (!arka) Ses.uyandirma(false); } else Ses.uyandirma(uyandirmaAcik);
+  });
 })();
 
 /* 1001 — 📱 Ekran süresi (yalnız Android APK): hangi uygulamada ne kadar kalındığı, uygulama başına günlük sınır, ders süresiyle karşılaştırma.
