@@ -275,6 +275,15 @@
     if (!YEREL) { adim('tarayıcı → aktif cihaza'); return Promise.resolve(null); }
     var d = yDurum() || {};
     var n = 0, onde = false, uyandir;
+    // Kullanıcı (r21): uyandırma eski şarkıyı devam ettirip doğrulamayı yanıltıyordu → tablet listede varsa uyandırma yok
+    var once = tabletBul().catch(function () { return null; });
+    return once.then(function (c0) {
+      if (c0) { adim('tablet listede: ' + c0.name + (c0.is_active ? ' (aktif)' : '') + ' → uyandırma gerekmedi'); return c0; }
+      return tabletUyandirVeBul(no, uri, d);
+    });
+  }
+  function tabletUyandirVeBul(no, uri, d) {
+    var n = 0, onde = false, uyandir;
     if (d.izin !== false && !d.var) { // Spotify tablette kapalı: aç (öne gelir), listede görünmesini bekle
       onde = true; adim('tablette Spotify kapalı → açılıyor'); spotifydaAc(uri); uyandir = bekleNo(no, 3000);
     } else if (d.izin !== false && !d.calisiyor) { adim('tablet duraklatılmış → oynat (uyandırma)'); K.spotifyKomut('oynat'); uyandir = bekleNo(no, 1500); }
@@ -342,25 +351,31 @@
       if (c.is_active || !n) return Promise.resolve(c);
       return b(1500).then(cihazBul).then(function (c2) { if (c2 && c2.id === c.id && c2.is_active) { adim('tablet aktif oldu'); return c2; } return aktifBekle(c, n - 1); }, function () { return c; });
     }
-    // Üç yol; işe yarayan yol hatırlanır (D.calYolu), sonraki çalmalar doğrudan ondan başlar (ilk seferki bekleme bir kez yaşanır)
-    function tabletteCal(c) {
-      var yollar = [
-        function () { return aktifBekle(c, 4).then(function (c1) { if (!c1.is_active) adim('tablet hâlâ aktif görünmüyor, yine de gönderiliyor'); return oynatTekrar(c1); }).then(function () { return caliyorMu(5000); }); },
-        function () { return api('/me/player', { method: 'PUT', body: { device_ids: [c.id], play: true } }).catch(function (e) { adim('aktarma: ' + hataMetni(e)); }).then(function () { return b(2000); }).then(function () { return oynatTekrar(c); }).then(function () { return caliyorMu(5000); }); },
-        function () { adim('Spotify öne getiriliyor'); spotifydaAc(uriler[bas]); return b(3500).then(function () { return oynatTekrar(c); }).then(function () { return caliyorMu(6000); }).then(function (ok) { setTimeout(oneDon, 500); return ok; }); }
-      ], adlar = ['doğrudan', 'aktar + gönder', 'öne getir + gönder'];
-      var bas0 = Math.min(Math.max(+D.calYolu || 0, 0), 2);
-      if (bas0) adim('geçen sefer işe yarayan yol ' + (bas0 + 1) + ' ile başlanıyor');
-      function dene(i) {
-        return yollar[i]().then(function (ok) {
-          adim('yol ' + (i + 1) + ' (' + adlar[i] + '): ' + (ok ? 'tablette çalıyor ✓' : 'kabul edildi ama tablette başlamadı'));
-          if (ok) { if (D.calYolu !== i) { D.calYolu = i; kaydet(); } if (i === 2) adim('ipucu: Spotify yalnız öndeyken yeni şarkı başlatabiliyor → Samsung pil ayarından Spotify\'ı "Kısıtlanmamış" yap, arka planda da çalışsın'); return; }
-          if (i < 2) return dene(i + 1);
-          if (bas0) { D.calYolu = 0; kaydet(); }
-          throw Object.assign(new Error('Spotify isteği kabul ediyor ama tablette çalma başlamıyor. En sık sebep Samsung pil kısıtlaması: Ayarlar → Uygulamalar → Spotify → Pil → "Kısıtlanmamış" yap; Ayarlar → Pil → Arka plan kullanım sınırları → "Uyuyan/Derin uyuyan uygulamalar" listesinden Spotify\'ı çıkar. Sonra tekrar dene.'), { bilgi: true });
+    // Kullanıcı (r21 izleme raporu): elle çalınan şarkı sorunsuz çalıyor; Carvis'in art arda gönderdiği "aktar / öne getir /
+    // tekrar çal" komutları zaten çalan şarkıyı bozuyordu. Artık: TEK komut, sağlam doğrulama (yerel + Spotify sunucusu),
+    // şarkı 8 sn'de gerçekten başlamadıysa EN ÇOK bir yeniden deneme. Spotify öne getirilmez.
+    function dogrula(ms, once) {
+      var t0 = Date.now(), i = 0;
+      return (function bak() {
+        return b(1000).then(function () {
+          i++;
+          var d = yDurum() || {};
+          if (d.calisiyor && (eslesir(d.baslik, beklenen) || (d.baslik && d.baslik !== once))) { adim('doğrulama: tablette çalıyor (' + d.baslik + ')'); return true; }
+          var sor = i % 3 === 0 ? api('/me/player').then(function (p) { if (p && p.is_playing && p.item && (!beklenen || eslesir(p.item.name, beklenen))) { adim('doğrulama: Spotify sunucusu çalıyor diyor (' + p.item.name + ')'); return true; } return false; }, function () { return false; }) : Promise.resolve(false);
+          return sor.then(function (ok) { if (ok) return true; return Date.now() - t0 > ms ? false : bak(); });
         });
-      }
-      return dene(bas0);
+      })();
+    }
+    function tabletteCal(c) {
+      var once = (yDurum() || {}).baslik || '';
+      if (!beklenen) return oynatTekrar(c);
+      return oynatTekrar(c).then(function () { return dogrula(8000, once); }).then(function (ok) {
+        if (ok) return;
+        adim('8 sn\'de başlamadı → bir kez: çalmayı tablete aktar + tekrar gönder');
+        return api('/me/player', { method: 'PUT', body: { device_ids: [c.id], play: false } }).catch(function (e) { adim('aktarma: ' + hataMetni(e)); })
+          .then(function () { return b(1500); }).then(function () { return oynatTekrar(c); }).then(function () { return dogrula(8000, once); })
+          .then(function (ok2) { if (!ok2) throw Object.assign(new Error('Spotify isteği kabul etti ama tablette şarkı başlamadı. ▶ Test çalma raporunu gönderirsen bakarım.'), { bilgi: true }); });
+      });
     }
     Adimlar = [];
     return tabletHazirla(no, uriler[bas]).then(function (c) {
@@ -426,7 +441,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r21';
+  var SURUM = '2026.11.03-r22';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -724,7 +739,7 @@
         if (d.var) sat('Desteklenen', ['aramayla çal ' + ((d.eylemler & 2048) ? '✓' : '✗'), 'adresle çal ' + ((d.eylemler & 8192) ? '✓' : '✗'), 'sonraki ' + ((d.eylemler & 32) ? '✓' : '✗')].join(', '));
       }
     }
-    sat('Kayıtlı tablet cihazı', (D.cihaz ? 'var' : 'henüz yok') + ' · işe yarayan çalma yolu: ' + (D.calYolu != null ? D.calYolu + 1 : 'henüz yok'));
+    sat('Kayıtlı tablet cihazı', D.cihaz ? 'var' : 'henüz yok');
     sat('Liste çalma yolu', bagli() ? 'Spotify Web API (Premium)' : 'HESAP BAĞLI DEĞİL → liste çalınamaz, yalnız kontrol');
     sat('Yerel dinleme geçmişi', Dinlenen.length + ' şarkı');
     var sesA = false; try { sesA = localStorage.getItem('hx_ses') === '1'; } catch (e) {} sat('Arayüz sesleri', sesA ? 'açık (müzik çalarken susar)' : 'kapalı');
