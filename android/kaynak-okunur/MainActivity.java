@@ -1,6 +1,6 @@
 package com.dogac.bin1;
 
-/* loaded from: classes3.dex */
+/* loaded from: /tmp/claude-0/-home-user-IHunterX0/90d85fb8-2a42-5d54-b9be-15454082c495/scratchpad/chk/classes3.dex */
 public class MainActivity extends android.app.Activity {
     static final java.lang.String ADRES = "https://appassets.androidplatform.net/assets/www/index.html";
     static final int DOSYA_SEC = 12;
@@ -50,7 +50,11 @@ public class MainActivity extends android.app.Activity {
             @Override // android.webkit.WebViewClient
             public boolean shouldOverrideUrlLoading(android.webkit.WebView v, android.webkit.WebResourceRequest r) {
                 android.net.Uri u = r.getUrl();
-                if (androidx.webkit.WebViewAssetLoader.DEFAULT_DOMAIN.equals(u.getHost())) {
+                java.lang.String host = u.getHost();
+                if ("appassets.androidplatform.net".equals(host)) {
+                    return false;
+                }
+                if (host != null && host.endsWith("spotify.com") && !"open.spotify.com".equals(host)) {
                     return false;
                 }
                 try {
@@ -69,7 +73,7 @@ public class MainActivity extends android.app.Activity {
                 }
                 com.dogac.bin1.MainActivity.this.dosyaGeri = geri;
                 try {
-                    com.dogac.bin1.MainActivity.this.startActivityForResult(p.createIntent(), 12);
+                    com.dogac.bin1.MainActivity.this.startActivityForResult(p.createIntent(), com.dogac.bin1.MainActivity.DOSYA_SEC);
                     return true;
                 } catch (java.lang.Exception e) {
                     com.dogac.bin1.MainActivity.this.dosyaGeri = null;
@@ -258,7 +262,7 @@ public class MainActivity extends android.app.Activity {
 
     @Override // android.app.Activity
     protected void onActivityResult(int k, int sonuc, android.content.Intent veri) {
-        if (k == 12 && this.dosyaGeri != null) {
+        if (k == DOSYA_SEC && this.dosyaGeri != null) {
             android.net.Uri[] l = null;
             if (sonuc == -1 && veri != null) {
                 if (veri.getClipData() != null) {
@@ -279,7 +283,7 @@ public class MainActivity extends android.app.Activity {
 
     @Override // android.app.Activity
     public void onRequestPermissionsResult(int k, java.lang.String[] izinler, int[] sonuclar) {
-        if (k == 11) {
+        if (k == IZIN_MIKROFON) {
             boolean z = false;
             if (sonuclar.length > 0 && sonuclar[0] == 0) {
                 z = true;
@@ -328,7 +332,7 @@ public class MainActivity extends android.app.Activity {
                 b.append(c);
             }
         }
-        return b.append(kotlin.text.Typography.quote).toString();
+        return b.append('\"').toString();
     }
 
     boolean mikrofonVar() {
@@ -362,7 +366,7 @@ public class MainActivity extends android.app.Activity {
 
     void tekCumleDinle() {
         if (!mikrofonVar()) {
-            requestPermissions(new java.lang.String[]{"android.permission.RECORD_AUDIO"}, 11);
+            requestPermissions(new java.lang.String[]{"android.permission.RECORD_AUDIO"}, IZIN_MIKROFON);
             return;
         }
         if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -797,7 +801,7 @@ public class MainActivity extends android.app.Activity {
             if (!acik) {
                 com.dogac.bin1.MainActivity.this.stopService(new android.content.Intent(com.dogac.bin1.MainActivity.this, (java.lang.Class<?>) com.dogac.bin1.CarvisServis.class));
             } else if (!com.dogac.bin1.MainActivity.this.mikrofonVar()) {
-                com.dogac.bin1.MainActivity.this.requestPermissions(new java.lang.String[]{"android.permission.RECORD_AUDIO"}, 11);
+                com.dogac.bin1.MainActivity.this.requestPermissions(new java.lang.String[]{"android.permission.RECORD_AUDIO"}, com.dogac.bin1.MainActivity.IZIN_MIKROFON);
             } else {
                 com.dogac.bin1.MainActivity.this.servisBaslat();
             }
@@ -833,8 +837,8 @@ public class MainActivity extends android.app.Activity {
             try {
                 android.app.usage.UsageStatsManager um = (android.app.usage.UsageStatsManager) com.dogac.bin1.MainActivity.this.getSystemService("usagestats");
                 java.util.Calendar c = java.util.Calendar.getInstance();
-                c.set(11, 0);
-                c.set(12, 0);
+                c.set(com.dogac.bin1.MainActivity.IZIN_MIKROFON, 0);
+                c.set(com.dogac.bin1.MainActivity.DOSYA_SEC, 0);
                 c.set(13, 0);
                 java.util.Map<java.lang.String, android.app.usage.UsageStats> l = um.queryAndAggregateUsageStats(c.getTimeInMillis(), java.lang.System.currentTimeMillis());
                 org.json.JSONArray j = new org.json.JSONArray();

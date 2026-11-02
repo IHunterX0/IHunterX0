@@ -5,6 +5,8 @@
 - `smali-yama/`: APK'ya uygulanan değişiklik (`CarvisServis.smali`, yeni `CarvisServis$Alici.smali`).
   - Rahatsız Etmeyin açıkken mikrofon tamamen kapanır, kapanınca geri açılır.
   - (Ekran kapalıyken de dinler; yalnız DND açıkken susar.)
+- `MainActivity$1.smali`: Spotify giriş sayfaları (`*.spotify.com`, `open.spotify.com` hariç) WebView içinde açılır;
+  böylece PKCE dönüşü uygulamanın kendi adresine gelir.
 
 ## Yeniden derleme
     java -jar apktool.jar d -r orijinal.apk -o dec

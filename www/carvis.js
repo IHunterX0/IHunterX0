@@ -548,6 +548,7 @@
     'Müzik: "patlat", "aç", "koy", "çal" aynı anlamdadır ("şarkı patlat" = şarkı çal); ses tanıma bunları bozabilir ("bir çarpı patlılır" = bir şarkı patlat). Kendi müzik bilgini kullan. Kullanıcı bir ruh hâli, tarz ya da "X gibi bir şey" derse benzer tınıda BELİRLİ bir şarkı seç (ör. "Ode to the Mets gibi bir şey" → Daft Punk - Instant Crush), tek cümleyle nedenini söyle ("O zaman sana Instant Crush açıyorum") ve muzik_cal ile sorgu="Şarkı adı Sanatçı" olarak çal. Ses seviyesi de söylendiyse önce ses_seviyesi çağır. Sohbet ederek öneri isterse 2-3 seçenek sun.\n' +
     'Tablet komutlarında (müzik, ses, uygulama, WhatsApp, kayıt) kitapta arama yapma; doğrudan ilgili aracı kullan ve en fazla bir cümleyle onayla. WhatsApp mesajı/araması ASLA onaysız gönderilmez.\n' +
     '"Zamanım yok", "hızlıca özetle", "sınava az kaldı" denirse zamanim_yok aracını kullan.\n' +
+    'Spotify bağlıysa (spotify_ruh_hali aracı varsa): ruh hâli, his ya da "bana göre bir şey çal / moduma uygun" isteklerinde spotify_ruh_hali; duraklat/sonraki/önceki/ne çalıyor için spotify_kontrol kullan (uygulamadan çıkmaz). Belirli şarkı/sanatçı isteğinde muzik_cal. Karışımı başlatınca adını ve bir cümlelik yorumunu söyle, şarkı listesini okuma.\n' +
     'Kısa konuş: en fazla 90 kelime, madde işareti yerine düz cümleler. "nasıl yani" denirse son anlattığını daha basit ve örnekle anlat; "şöyle mi" diye öğrencinin anlattığını değerlendir.';
   var Carvis = {
     acik: false, gecmis: [], son: '', ctl: null,
@@ -642,10 +643,10 @@
       Carvis.gecmis.push({ role: 'user', content: alt.length ? t + ' [olası: ' + alt.join(' | ') + ']' : t });
       Carvis.ctl = new AbortController();
       if (!Y.sample) { cev.innerHTML = '<p class="hata-metni">Yapay zekâ yok.</p>'; return Promise.resolve(); }
-      var cihazIsi = /spotify|şarkı|müzik|patlat|playlist|çalma listesi|\bçal\b|\baç\b.*(uygulama|youtube|ayarlar|kamera)|whatsapp|mesaj|\bara\b|arayayım|kayıt|ses(i|ini)? |%\s*\d|pomodoro|zamanlayıcı|hatırla|unut/i.test(t) && !/kitap|bölüm|sayfa|anatomi|biyokimya|biyofizik|istatistik|kemik|kas |molekül|enzim/i.test(t);
+      var cihazIsi = /spotify|ruh hal|moduma|şarkı|müzik|patlat|playlist|çalma listesi|\bçal\b|\baç\b.*(uygulama|youtube|ayarlar|kamera)|whatsapp|mesaj|\bara\b|arayayım|kayıt|ses(i|ini)? |%\s*\d|pomodoro|zamanlayıcı|hatırla|unut/i.test(t) && !/kitap|bölüm|sayfa|anatomi|biyokimya|biyofizik|istatistik|kemik|kas |molekül|enzim/i.test(t);
       var gecmis = Carvis.gecmis.slice(-6).map(function (m) { return m.role === 'assistant' && m.content.length > 700 ? { role: m.role, content: m.content.slice(0, 700) + '…' } : m; });
       var tumAraclar = araclar();
-      var CIHAZ_ARAC = /^(ses_seviyesi|muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|plan_oku|ekran_suresi|eksiklerim|pomodoro|calisma_onerisi|hatirla|unut|profil_ayarla)$/;
+      var CIHAZ_ARAC = /^(spotify_ruh_hali|spotify_kontrol|ses_seviyesi|muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|plan_oku|ekran_suresi|eksiklerim|pomodoro|calisma_onerisi|hatirla|unut|profil_ayarla)$/;
       return profilMetni().then(function (pm) { return Y.sample([{ role: 'user', content: KURAL + '\n' + pm + '\n' + baglam + '\nAnladıysan "Tamam" yaz.' }, { role: 'assistant', content: 'Tamam.' }].concat(gecmis),
         { tools: cihazIsi ? tumAraclar.filter(function (a) { return CIHAZ_ARAC.test(a.name); }) : tumAraclar, hafif: cihazIsi, maxTur: cihazIsi ? 3 : 4, groqAtla: cihazIsi ? null : /^(muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|ekran_suresi|ilgi_ekle|unut|profil_ayarla|ses_seviyesi)$/, signal: Carvis.ctl.signal, onText: function (u) { cev.innerHTML = U.mdHtml(u.text); } }); })
         .then(function (r) {

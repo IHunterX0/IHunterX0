@@ -16,7 +16,8 @@
     { id: 'oku', ad: 'OKU', kod: '02', ikon: '❏', sekmeler: ['oku'] },
     { id: 'calis', ad: 'ÇALIŞ', kod: '03', ikon: '◈', sekmeler: ['koc', 'plan', 'kartlar', 'test', 'tahmin', 'saray'] },
     { id: 'lab', ad: 'LAB', kod: '04', ikon: '⬡', sekmeler: ['lab-anatomi', 'lab-molekul', 'lab-hareket', 'zaman'] },
-    { id: 'arsiv', ad: 'ARŞİV', kod: '05', ikon: '▤', sekmeler: [] } // geri kalan her şey
+    { id: 'muzik', ad: 'MÜZİK', kod: '05', ikon: '♫', sekmeler: ['muzik'] },
+    { id: 'arsiv', ad: 'ARŞİV', kod: '06', ikon: '▤', sekmeler: [] } // geri kalan her şey
   ];
   var ACIKLAMA = {
     koc: 'Bugün ne yapayım', plan: 'Haftalık program', kartlar: 'Aralıklı tekrar', test: 'Soru çöz', tahmin: 'Bu yıl ne çıkar',
@@ -54,7 +55,7 @@
     '.hud-pil i::after{content:"";position:absolute;left:1px;top:1px;bottom:1px;width:calc((100% - 2px) * var(--p,1));background:var(--holo);box-shadow:0 0 6px var(--holo)}',
     '.hud-nav{overflow:hidden}.hud-grup{flex-shrink:0}',
     '@media (max-width:1100px){.hud-grup .k{display:none}.hud-tel .uzun{display:none}.logo small{display:none}}',
-    '@media (max-width:900px){.hud-grup{padding:0 10px 0 8px;letter-spacing:.1em}.hud-tel .cv{display:none}.logo > span:last-child{display:none}}',
+    '@media (max-width:900px){.hud-grup{padding:0 9px 0 7px;letter-spacing:.06em;gap:6px;font-size:12px}.hud-nav{gap:4px;margin-left:6px}.hud-tel{gap:8px}.hud-tel .cv,.hud-tel .hud-pil{display:none!important}.logo > span:last-child{display:none}}',
     '@media (max-width:640px){.hud-grup .ad{display:none}.hud-grup{padding:0 11px}.hud-tel{display:none}.logo > span:last-child{display:none}}',
 
     // --- holografik menü (gruba dokununca yansır)
