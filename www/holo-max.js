@@ -115,7 +115,7 @@
     var t = (simdi - t0) / 1000;
     ctx.clearRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
-    if (W >= 700) {
+    if (false) { // DNA sarmalları kaldırıldı (kullanıcı, 2026-11-03: kenar doldurmak için, iyi görünmüyor)
       var R = Math.min(46, W * 0.035), ust = 90 + eg.y * 10, boy = H - 140;
       sarmal(Math.max(48, W * 0.045), ust, boy, t * 0.9, R, 1);
       sarmal(W - Math.max(48, W * 0.045), ust + 30, boy - 30, t * 0.75 + 2, R * 0.85, -1);
