@@ -30,7 +30,7 @@
         }
     .end annotation
 
-    .line 76
+    .line 81
     iput-object p1, p0, Lcom/dogac/bin1/CarvisZv$1;->val$c:Landroid/content/Context;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -43,7 +43,7 @@
 .method public run()V
     .locals 14
 
-    .line 78
+    .line 83
     const/4 v0, 0x0
 
     :try_start_0
@@ -53,7 +53,7 @@
 
     move-result-object v1
 
-    .line 79
+    .line 84
     invoke-virtual {v1}, Ljava/io/File;->length()J
 
     move-result-wide v2
@@ -64,7 +64,7 @@
 
     if-eqz v2, :cond_8
 
-    .line 80
+    .line 85
     new-instance v2, Ljava/io/File;
 
     iget-object v3, p0, Lcom/dogac/bin1/CarvisZv$1;->val$c:Landroid/content/Context;
@@ -77,7 +77,7 @@
 
     invoke-direct {v2, v3, v6}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 81
+    .line 86
     invoke-virtual {v2}, Ljava/io/File;->exists()Z
 
     move-result v3
@@ -95,7 +95,7 @@
     :cond_0
     move-wide v8, v6
 
-    .line 82
+    .line 87
     :goto_0
     new-instance v3, Ljava/net/URL;
 
@@ -109,7 +109,7 @@
 
     check-cast v3, Ljava/net/HttpURLConnection;
 
-    .line 83
+    .line 88
     const/4 v10, 0x1
 
     invoke-virtual {v3, v10}, Ljava/net/HttpURLConnection;->setInstanceFollowRedirects(Z)V
@@ -122,7 +122,7 @@
 
     invoke-virtual {v3, v11}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
 
-    .line 84
+    .line 89
     cmp-long v11, v8, v6
 
     if-lez v11, :cond_1
@@ -155,13 +155,13 @@
 
     invoke-virtual {v3, v11, v12}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
 
-    .line 85
+    .line 90
     :cond_1
     invoke-virtual {v3}, Ljava/net/HttpURLConnection;->getResponseCode()I
 
     move-result v11
 
-    .line 86
+    .line 91
     const/16 v12, 0xc8
 
     if-ne v11, v12, :cond_2
@@ -175,7 +175,7 @@
 
     if-ne v11, v12, :cond_7
 
-    .line 87
+    .line 92
     :goto_1
     invoke-virtual {v3}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
 
@@ -195,12 +195,12 @@
     :goto_2
     invoke-direct {v11, v2, v10}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;Z)V
 
-    .line 88
+    .line 93
     const/high16 v6, 0x10000
 
     new-array v6, v6, [B
 
-    .line 89
+    .line 94
     :goto_3
     invoke-virtual {v3, v6}, Ljava/io/InputStream;->read([B)I
 
@@ -226,13 +226,13 @@
 
     goto :goto_3
 
-    .line 90
+    .line 95
     :cond_4
     invoke-virtual {v11}, Ljava/io/OutputStream;->close()V
 
     invoke-virtual {v3}, Ljava/io/InputStream;->close()V
 
-    .line 91
+    .line 96
     invoke-virtual {v2}, Ljava/io/File;->length()J
 
     move-result-wide v6
@@ -241,7 +241,7 @@
 
     if-nez v3, :cond_6
 
-    .line 92
+    .line 97
     invoke-virtual {v2, v1}, Ljava/io/File;->renameTo(Ljava/io/File;)Z
 
     move-result v1
@@ -259,7 +259,7 @@
 
     throw v1
 
-    .line 91
+    .line 96
     :cond_6
     new-instance v1, Ljava/lang/Exception;
 
@@ -295,7 +295,7 @@
 
     throw v1
 
-    .line 86
+    .line 91
     :cond_7
     new-instance v1, Ljava/lang/Exception;
 
@@ -321,21 +321,21 @@
 
     throw v1
 
-    .line 94
+    .line 99
     :cond_8
     :goto_4
     const/16 v1, 0x64
 
     sput v1, Lcom/dogac/bin1/CarvisZv;->yuzde:I
 
-    .line 95
+    .line 100
     iget-object v1, p0, Lcom/dogac/bin1/CarvisZv$1;->val$c:Landroid/content/Context;
 
     invoke-static {v1}, Lcom/dogac/bin1/CarvisZv;->yukle(Landroid/content/Context;)V
     :try_end_0
     .catchall {:try_start_0 .. :try_end_0} :catchall_0
 
-    .line 96
+    .line 101
     goto :goto_5
 
     :catchall_0
@@ -377,11 +377,11 @@
 
     sput-object v1, Lcom/dogac/bin1/CarvisZv;->hata:Ljava/lang/String;
 
-    .line 97
+    .line 102
     :goto_5
     sput-boolean v0, Lcom/dogac/bin1/CarvisZv;->indiriliyor:Z
 
-    .line 98
+    .line 103
     sget-object v0, Lcom/dogac/bin1/MainActivity;->ornek:Lcom/dogac/bin1/MainActivity;
 
     if-eqz v0, :cond_9
@@ -390,7 +390,7 @@
 
     invoke-virtual {v0, v1}, Lcom/dogac/bin1/MainActivity;->js(Ljava/lang/String;)V
 
-    .line 99
+    .line 104
     :cond_9
     return-void
 .end method

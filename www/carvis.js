@@ -23,9 +23,9 @@
     function ayar(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
     z.durum = function () { try { return JSON.parse(K && K.zvDurum ? K.zvDurum() : '{}'); } catch (e) { return {}; } };
     z.acik = function () { if (!K || !K.zvKonus || ayar('zv_acik') !== '1') return false; var d = z.durum(); return !!d.model && !!d.ornek && !d.cokus; };
-    z.efekt = function () { var v = parseFloat(ayar('zv_efekt')); return isNaN(v) ? 0 : v; };
+    z.efekt = function () { return 0; };
     z.sayi = function (k, vars) { var v = parseFloat(ayar(k)); return isNaN(v) ? vars : v; };
-    z.uygula = function () { try { if (K && K.zvAyar) K.zvAyar(z.sayi('zv_perde', 0), z.sayi('zv_bas', 0), z.sayi('zv_parlak', 0), Math.round(z.sayi('zv_adim', 8))); } catch (e) {} };
+    z.uygula = function () { try { if (K && K.zvAyar) K.zvAyar(0, 0, 0, 8); } catch (e) {} };
     z.ayar = ayar;
     // Türkçe cevabı Carvis'in İngilizcesine çevirir (önbellekli); çeviri olmazsa metni olduğu gibi döndürür
     z.ingilizce = function (m) {
@@ -61,8 +61,14 @@
             var zid = 'z' + (++sayac); bekleyenKonus[zid] = ok;
             Zv.ingilizce(metin).then(function (en) {
               if (!bekleyenKonus[zid]) return; // bu arada susturuldu
-              var zmn = setTimeout(function () { if (!Zv.bekle[zid]) return; var d = Zv.durum(); try { K.zvSus(); } catch (e) {} Zv.bekle[zid]('zaman aşımı (' + (d.asama || '?') + ')'); }, (Zv.durum().hazir ? 25000 : 60000) + 150 * en.length);
-              Zv.bekle[zid] = function (h) { clearTimeout(zmn); if (!h) { delete bekleyenKonus[zid]; return ok(); } Zv.sonHata = h; var id2 = 'k' + (++sayac); bekleyenKonus[id2] = ok; delete bekleyenKonus[zid]; K.konus(metin, id2, String(hiz)); };
+              var izS = '', izT = Date.now();
+              var zmn = setInterval(function () {
+                if (!Zv.bekle[zid]) return clearInterval(zmn);
+                var d = Zv.durum(), im = [d.asama, d.calinan, d.sonUretimMs].join('|');
+                if (im !== izS) { izS = im; izT = Date.now(); return; }
+                if (Date.now() - izT > (d.hazir ? 30000 : 90000)) { clearInterval(zmn); try { K.zvSus(); } catch (e) {} Zv.bekle[zid]('takıldı (' + (d.asama || '?') + ')'); }
+              }, 2000);
+              Zv.bekle[zid] = function (h) { clearInterval(zmn); if (!h) { delete bekleyenKonus[zid]; return ok(); } Zv.sonHata = h; var id2 = 'k' + (++sayac); bekleyenKonus[id2] = ok; delete bekleyenKonus[zid]; K.konus(metin, id2, String(hiz)); };
               Zv.uygula(); K.zvKonus(zid, en, hiz, Zv.efekt());
             });
             return;
@@ -568,9 +574,8 @@
     // Carvis sesi: ZipVoice (kullanıcı, 2026-11-03: "carvisin içine zipvoice kuralım", İngilizce konuşsun + Türkçe altyazı)
     if (K && K.zvDurum) {
       govde.appendChild(el('h4', { text: '🎙 Carvis sesi — ZipVoice (beta, internetsiz)' }));
-      govde.appendChild(el('p', { class: 'var-etiket', text: 'Açıkken Carvis İngilizce konuşur, altyazı Türkçe kalır. Ses telefonda üretilir (internet gerekmez). İlk kullanımda ~125 MB model bir kez indirilir; Wi-Fi önerilir.' }));
+      govde.appendChild(el('p', { class: 'var-etiket', text: 'Açıkken Carvis senin sesinle İngilizce konuşur (cevapları da İngilizce yazar). Ses tablette üretilir, internet gerekmez.' }));
       var zvAc = el('input', { type: 'checkbox', checked: Zv.ayar('zv_acik') === '1' ? true : null });
-      var zvEf = el('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(Zv.efekt()) });
       var zvDurumP = el('p', { class: 'var-etiket', 'aria-live': 'polite' });
       var zvIndir = el('button', { class: 'dugme kucuk', type: 'button', text: '⇣ Ses modelini indir (125 MB)', onclick: function () { K.zvIndir(); Zv.ciz(); } });
       var zvDene = el('button', { class: 'dugme kucuk', type: 'button', text: '▶ Dene', onclick: function () { Ses.konus((hitap() ? 'Merhaba ' + hitap() + '. ' : 'Merhaba. ') + 'Bütün sistemler çevrimiçi. Bugün hangi konuya çalışıyoruz?'); } });
@@ -592,16 +597,7 @@
         clearTimeout(zvZm); if (document.body.contains(zvDurumP)) zvZm = setTimeout(Zv.ciz, 1000);
       };
       zvAc.addEventListener('change', function () { Zv.ayar('zv_acik', zvAc.checked ? '1' : '0'); if (zvAc.checked && !Zv.durum().model) K.zvIndir(); Zv.ciz(); });
-      zvEf.addEventListener('change', function () { Zv.ayar('zv_efekt', zvEf.value); });
       govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [zvAc, 'Carvis bu sesle İngilizce konuşsun (altyazı Türkçe)']));
-      govde.appendChild(satir('Jarvis cilası (netlik + hologram yankısı)', zvEf));
-      [['zv_perde', 'Perde (yarım ton; + daha ince)', -3, 3, 0.5, 0], ['zv_bas', 'Bas (dB; − daha az kalın)', -8, 4, 1, 0], ['zv_parlak', 'Parlaklık (dB)', -4, 6, 0.5, 0], ['zv_adim', 'Kalite (adım; yüksek = daha iyi ama yavaş)', 4, 10, 1, 8]].forEach(function (x) {
-        var r = el('input', { type: 'range', min: String(x[2]), max: String(x[3]), step: String(x[4]), value: String(Zv.sayi(x[0], x[5])) });
-        var et = el('span', { text: x[1] + ': ' + r.value });
-        r.addEventListener('input', function () { et.textContent = x[1] + ': ' + r.value; });
-        r.addEventListener('change', function () { Zv.ayar(x[0], r.value); Zv.uygula(); });
-        govde.appendChild(satir(et, r));
-      });
       govde.appendChild(el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [zvIndir, zvDene, zvTekrar]));
       govde.appendChild(zvDurumP);
       Zv.ciz();
@@ -755,7 +751,7 @@
       durum('Düşünüyor…');
       var cev = mesaj('cv-o', '<div class="yukleniyor">Düşünüyor…</div>');
       var kj = Durum.aktifKitap, bol = Durum.aktifBolum;
-      var baglam = 'Şu an açık: ' + (kj ? kj.baslik + (bol ? ', ' + bol.baslik : '') : (location.hash || 'kütüphane')) + '. Kitap kimlikleri: ' + (Kitaplik.liste || []).map(function (k) { return k.id; }).join(', ') + '.';
+      var baglam = (Zv.acik() ? 'DİL: Sesli yanıtın kullanıcının kendi sesiyle İngilizce okunuyor. Cevabının TAMAMINI doğal, sade, konuşma dilinde İNGİLİZCE yaz (tıbbi terimler İngilizce); Türkçe yazma. Araç parametreleri (kitapta arama terimleri vb.) Türkçe kalabilir.\n' : '') + 'Şu an açık: ' + (kj ? kj.baslik + (bol ? ', ' + bol.baslik : '') : (location.hash || 'kütüphane')) + '. Kitap kimlikleri: ' + (Kitaplik.liste || []).map(function (k) { return k.id; }).join(', ') + '.';
       Carvis._kaynaklar = []; Carvis._internet = false;
       var alt = (Ses.alternatifler || []).filter(function (x) { return x && x !== t; }); Ses.alternatifler = [];
       Carvis.gecmis.push({ role: 'user', content: alt.length ? t + ' [olası: ' + alt.join(' | ') + ']' : t });

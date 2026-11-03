@@ -53,12 +53,17 @@ public final class CarvisZv {
     static Context bag() { MainActivity a = MainActivity.ornek; return a == null ? null : a.getApplicationContext(); }
     static File dizin(Context c) { File d = new File(c.getFilesDir(), "zv"); d.mkdirs(); return d; }
     static File model(Context c) { return new File(dizin(c), "fm_decoder_int8.onnx"); }
+    static Boolean apktaModel = null;
+    static boolean apkta(Context c) {
+        if (apktaModel == null) { boolean v = false; try { for (String s : c.getAssets().list("zv")) if (s.equals("fm_decoder_int8.onnx")) v = true; } catch (Exception e) { } apktaModel = v; }
+        return apktaModel;
+    }
 
     public static String durum() {
         JSONObject o = new JSONObject();
         try {
             Context c = bag();
-            boolean var = c != null && model(c).length() == MODEL_BOYUT;
+            boolean var = c != null && (model(c).length() == MODEL_BOYUT || apkta(c));
             boolean ornek = false;
             if (c != null) try { String[] l = c.getAssets().list("zv"); for (String s : l) if (s.equals("ornek.wav")) ornek = true; } catch (Exception e) { }
             o.put("model", var); o.put("ornek", ornek); o.put("hazir", tts != null); o.put("indiriliyor", indiriliyor); o.put("yuzde", yuzde); o.put("hata", hata);
@@ -112,13 +117,12 @@ public final class CarvisZv {
             if (tts != null) return;
             long t0 = System.currentTimeMillis();
             File d = dizin(c);
-            if (model(c).length() != MODEL_BOYUT) throw new Exception("model indirilmedi");
-            File surum = new File(d, "varliklar.surum"); String sv = "5";
+            File surum = new File(d, "varliklar.surum"); String sv = "6";
             boolean guncel = false; try { FileInputStream f = new FileInputStream(surum); byte[] b = new byte[8]; int n = f.read(b); f.close(); guncel = n > 0 && new String(b, 0, n).equals(sv); } catch (Exception e) { }
             AssetManager am = c.getAssets();
             if (!guncel) {
                 asama = "dosyalar kopyalanıyor";
-                for (String s : am.list("zv")) kopyala(am, "zv/" + s, new File(d, s));
+                for (String s : am.list("zv")) { if (s.equals("fm_decoder_int8.onnx") && model(c).length() == MODEL_BOYUT) continue; kopyala(am, "zv/" + s, new File(d, s)); }
                 FileOutputStream f = new FileOutputStream(surum); f.write(sv.getBytes()); f.close();
             }
             OfflineTtsConfig k = new OfflineTtsConfig();
@@ -133,6 +137,7 @@ public final class CarvisZv {
             ornekSesOku(new File(d, "ornek.wav"));
             FileInputStream f = new FileInputStream(new File(d, "ornek.txt")); byte[] b = new byte[(int) new File(d, "ornek.txt").length()]; int n = f.read(b); f.close();
             ornekMetin = new String(b, 0, Math.max(0, n), "UTF-8").trim();
+            if (model(c).length() != MODEL_BOYUT) throw new Exception("model dosyası eksik");
             iz(c, "model yükleniyor");
             tts = new OfflineTts(null, k);
             iz(c, null);
@@ -155,6 +160,30 @@ public final class CarvisZv {
         ornekSes = s; ornekSr = sr;
     }
 
+    // Söylenen cümlelerin sesi diskte saklanır (en çok ~60 MB); aynı cümle bir daha anında çalar.
+    static File onbellekDosya(String s) {
+        Context c = bag(); if (c == null) return null;
+        File d = new File(dizin(c), "onbellek"); d.mkdirs();
+        String k = s.trim() + "|" + adim + "|" + ornekMetin;
+        return new File(d, Integer.toHexString(k.hashCode()) + "_" + Integer.toHexString(k.length() * 31 + k.charAt(0)) + ".f32");
+    }
+    static float[] onbellekOku(String s) {
+        try {
+            File f = onbellekDosya(s); if (f == null || !f.exists()) return null;
+            java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate((int) f.length()); FileInputStream i = new FileInputStream(f); i.getChannel().read(b); i.close(); b.flip();
+            float[] o = new float[b.remaining() / 4]; b.order(java.nio.ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(o); f.setLastModified(System.currentTimeMillis()); return o;
+        } catch (Throwable e) { return null; }
+    }
+    static void onbellekYaz(String s, float[] o) {
+        try {
+            File f = onbellekDosya(s); if (f == null || o.length > 24000 * 30) return;
+            java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(o.length * 4).order(java.nio.ByteOrder.LITTLE_ENDIAN); b.asFloatBuffer().put(o);
+            FileOutputStream w = new FileOutputStream(f); w.write(b.array()); w.close();
+            File[] l = f.getParentFile().listFiles(); long top = 0; for (File x : l) top += x.length();
+            if (top > 60L * 1024 * 1024) { java.util.Arrays.sort(l, new java.util.Comparator<File>() { public int compare(File a, File b2) { return Long.compare(a.lastModified(), b2.lastModified()); } }); for (File x : l) { if (top <= 45L * 1024 * 1024) break; top -= x.length(); x.delete(); } }
+        } catch (Throwable e) { }
+    }
+
     static ArrayList<String> cumleler(String m) {
         ArrayList<String> l = new ArrayList<String>(); StringBuilder s = new StringBuilder();
         for (int i = 0; i < m.length(); i++) {
@@ -166,6 +195,10 @@ public final class CarvisZv {
         // çok kısa parçaları bir öncekine ekle (ZipVoice tek kelimede tuhaflaşabilir)
         ArrayList<String> o = new ArrayList<String>();
         for (String x : l) { if (!o.isEmpty() && x.length() < 12) o.set(o.size() - 1, o.get(o.size() - 1) + " " + x); else o.add(x); }
+        if (!o.isEmpty() && o.get(0).length() > 70) {
+            String ilk = o.get(0); int v = ilk.indexOf(", ", 25);
+            if (v > 0 && v < ilk.length() - 20) { o.set(0, ilk.substring(v + 2)); o.add(0, ilk.substring(0, v + 1)); }
+        }
         return o;
     }
 
@@ -174,6 +207,7 @@ public final class CarvisZv {
         final int benim = ++nesil;
         durdurCalan();
         new Thread(new Runnable() { public void run() {
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + android.os.Process.THREAD_PRIORITY_MORE_FAVORABLE * 5); } catch (Throwable e) { }
             String hataMetni = null;
             try {
                 Context c = bag(); if (c == null) throw new Exception("uygulama kapalı");
@@ -182,6 +216,7 @@ public final class CarvisZv {
                 final LinkedBlockingQueue<Object> hazir = new LinkedBlockingQueue<Object>();
                 final Object BITTI = new Object();
                 Thread uret = new Thread(new Runnable() { public void run() {
+                    try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + android.os.Process.THREAD_PRIORITY_MORE_FAVORABLE * 5); } catch (Throwable e) { }
                     try {
                         int sira = 0;
                         for (String s : l) {
@@ -192,12 +227,14 @@ public final class CarvisZv {
                             final float oran = (float) Math.pow(2.0, perdeYt / 12.0);
                             g.setSpeed((hiz <= 0 ? 1f : hiz) / oran); g.setNumSteps(adim); g.setReferenceAudio(ornekSes); g.setReferenceSampleRate(ornekSr); g.setReferenceText(ornekMetin);
                             iz(bag(), "üretim " + sira);
+                            float[] hazirSes = onbellekOku(s);
+                            if (hazirSes != null) { iz(bag(), null); hazir.put(new Object[] { hazirSes, 24000 }); continue; }
                             GeneratedAudio a;
                             synchronized (kilit) { a = tts.generateWithConfig(s, g); }
                             iz(bag(), null);
                             sonUretimMs = System.currentTimeMillis() - u0; sonSesMs = a.getSamples().length * 1000L / Math.max(1, a.getSampleRate());
                             if (a.getSamples().length == 0) throw new Exception("motor boş ses üretti");
-                            hazir.put(new Object[] { ton(a.getSamples(), a.getSampleRate(), oran), a.getSampleRate() });
+                            float[] son = ton(a.getSamples(), a.getSampleRate(), oran); if (a.getSampleRate() == 24000) onbellekYaz(s, son); hazir.put(new Object[] { son, a.getSampleRate() });
                         }
                     } catch (Throwable e) { try { hazir.put(e); } catch (Exception x) { } }
                     try { hazir.put(BITTI); } catch (Exception x) { }
