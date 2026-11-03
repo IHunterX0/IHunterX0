@@ -19,10 +19,11 @@
     '.cv-balon.canli.suruklendi{transition:none!important}',
     /* kullanıcı, 2026-11-03: "soldaki yazı şeysini daha müsait yere taşı" → sağ alt köşe (projektör kalktı, orası boş);
        ortadaki büyük küreyle çakışmasın diye dar. Dik ekranda sağ üst. Sürüklenince elle verilen yer geçerli. */
-    '.cv-balon.canli{width:min(460px,40vw)!important;left:auto!important;top:auto!important;right:16px!important;bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;transform:none!important;transform-origin:100% 100%!important}',
+    '.cv-balon.canli{width:min(460px,40vw,calc(100vw - var(--cv-sag,16px) - 16px))!important;left:auto!important;top:auto!important;right:var(--cv-sag,16px)!important;bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;transform:none!important;transform-origin:100% 100%!important}',
     '@media (orientation:portrait){.cv-balon.canli{width:min(420px,calc(100vw - 32px))!important;bottom:auto!important;top:calc(12px + env(safe-area-inset-top,0px))!important;transform-origin:100% 0!important}}',
     '.cv-balon.canli .cv-durum{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.cv-balon.canli .cv-ust{flex-wrap:nowrap!important;gap:6px!important}.cv-balon.canli .cv-ust > *{flex-shrink:0}.cv-balon.canli .cv-ust .cv-durum{flex:1 1 0!important}',
+    'html body.cv-canli-acik .jv-altyazi{bottom:var(--cv-ust,100px)!important;left:var(--cv-x,50%)!important;width:var(--cv-w,min(860px,calc(100vw - 32px)))!important}',
     '.cv-balon.canli.tasindi{right:auto!important;bottom:auto!important;left:var(--tx)!important;top:var(--ty)!important}'
   ].join('\n');
   document.head.appendChild(css);
@@ -53,6 +54,16 @@
     }
     // yazmaya başlayınca ya da uzun cevapta tam sohbete geçmek isteyene kısa yol: girişe çift dokunma → genişlet
     var giris = b.querySelector('.cv-alt input'); if (giris) giris.addEventListener('dblclick', function () { if (canli) { canli = false; uygula(); } });
+    // sağda bir yan panel (ayarlar, Zamanım yok…) açıksa şerit onun soluna kayar, altında kalmaz
+    setInterval(function () {
+      var p = document.querySelector('.yan-panel.acik'), sag = 16;
+      if (p && innerWidth > innerHeight) { var r = p.getBoundingClientRect(); if (r.width && r.right > innerWidth - 40) sag = Math.round(innerWidth - r.left + 12); }
+      if (innerWidth - sag < 320) sag = 16;
+      var v = sag + 'px'; if (b.style.getPropertyValue('--cv-sag') !== v) b.style.setProperty('--cv-sag', v);
+      // altyazı şeridin üstüne çıkar, üst üste binmesin
+      var gorunur = canli && !b.hidden && b.getClientRects().length > 0; document.body.classList.toggle('cv-canli-acik', gorunur);
+      if (gorunur) { var bt = b.getBoundingClientRect(); if (bt.top > innerHeight / 2) { var ds = document.documentElement.style; ds.setProperty('--cv-ust', Math.round(innerHeight - bt.top + 10) + 'px'); ds.setProperty('--cv-x', Math.round(bt.left + bt.width / 2) + 'px'); ds.setProperty('--cv-w', Math.round(Math.max(bt.width, 320)) + 'px'); } else document.body.classList.remove('cv-canli-acik'); }
+    }, 400);
     return true;
   }
   if (!kur()) { var d = setInterval(function () { if (kur()) clearInterval(d); }, 400); setTimeout(function () { clearInterval(d); }, 20000); }
