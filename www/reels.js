@@ -41,7 +41,7 @@
   var bellek = {};
   function icerik(it) {
     if (bellek[it.id]) return bellek[it.id];
-    var anahtar = 'reel6|' + it.id;
+    var anahtar = 'reel7|' + it.id;
     return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
       if (v && v.j && v.j.sahneler) { if (U.Animasyon.onYukle) U.Animasyon.onYukle(v.j); return v.j; }
       return Kitaplik.bolumAc(it.kitap, it.sira).then(function (bolum) {
@@ -54,7 +54,7 @@
           U.Animasyon.SENARYO_KURALI + '\n' +
           'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"saray":{"mekan":"…","duraklar":[{"yer":"…","sembol":"emoji","imge":"abartılı imge","bilgi":"bilgi","anahtar":"1-3 kelime"}]},"ozet":"tek cümle","makaleSorgu":"…","gorselAra":["2-3 İngilizce ders kitabı şema terimi (ör. humerus, brachial plexus)"],"yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]}\n' +
           'makaleSorgu: bu konuyla ilgili YENİ araştırmaları bulmak için İngilizce Europe PMC sorgusu (2-4 terim, OR ile eş anlamlılar; klinik ya da mekanizma odaklı, ilginç olsun).\n' +
-          'saray: 4-5 durak. yorumlar: 6 yorum; 3 tanesi patrick.jane (sınav tuzağı, karıştırılan çift, kestirme), 3 tanesi farklı öğrenci kullanıcı adlarıyla.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
+          'saray: 4-5 durak. yorumlar: 6 yorum; 4 tanesi patrick.jane, 2 tanesi farklı öğrenci kullanıcı adlarıyla (Jane\'e soru soran ya da teşekkür eden). Patrick Jane yorumları HAP BİLGİ olsun: sınav tuzağı, karıştırılan çift, hafıza hilesi (kısaltma/kafiye/imge), kestirme; Jane tonunda, muzip ve kendinden emin, 1-2 cümle.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
           .then(function (j) {
             if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
             return kontrolEt(j, metin, it);
@@ -127,7 +127,7 @@
           (U.Animasyon.dersRehberi ? U.Animasyon.dersRehberi(it.kitap) + '\n' : '') +
           'Akış: 1) KANCA — Jane: "Bunu kimse sana anlatmadı: …" (en çarpıcı bulgu) 2) arka plan: hangi organ/hücre süreci (vucut + kamera zoom ya da lab) 3) ne yaptılar (kısa) 4) ne buldular (özetteki sayılarla grafik/sayaç/zincir) 5) sınav ve klinik için anlamı (bildiğin ders bilgisiyle bağla) 6) bir SORU sahnesi 7) "akılda kalsın".\n' +
           U.Animasyon.SENARYO_KURALI + '\n' +
-          'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]} (yorumlar: 4; 2 tanesi patrick.jane — bulguyu ders bilgisine bağlayan hap bilgi).\n\n' +
+          'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]} (yorumlar: 4; 3 tanesi patrick.jane — bulguyu ders bilgisine bağlayan hap bilgi. Patrick Jane yorumları HAP BİLGİ olsun: sınav tuzağı, karıştırılan çift, hafıza hilesi (kısaltma/kafiye/imge), kestirme; Jane tonunda, muzip ve kendinden emin, 1-2 cümle).\n\n' +
           'MAKALE: ' + m.baslik + ' — ' + (m.dergi || '') + ' ' + (m.yil || '') + '\nÖZET:  + m.ozet.slice(0, 3500) + ', { cache: false })
           .then(function (j) {
             if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
@@ -145,7 +145,37 @@
       });
     }).catch(function (e) { delete bellek[it.id]; throw e; });
   }
-  function icerikHer(it) { return it.tur === 'makale' ? icerikMakale(it) : icerik(it); }
+  /* ---------- keşif hikayesi reels'i (kullanıcı, 2026-11-03: "keşif hikayelerini ve nasıl çalıştıklarını ekle; çok uzun olmasın") ----------
+     Az önceki konunun ardındaki buluş: kim, nasıl (deney/tesadüf), sonra mekanizma nasıl çalışıyor. 5-7 sahne, ~30-40 sn. Tarih bilgisi
+     kontrol turundan da geçer; emin olunmayan isim/yıl yazılmaz. */
+  function icerikKesif(it) {
+    if (bellek[it.id]) return bellek[it.id];
+    var o = it.onceki, anahtar = 'reelk|' + o.id;
+    return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
+      if (v && v.j && v.j.sahneler) { if (U.Animasyon.onYukle) U.Animasyon.onYukle(v.j); return v.j; }
+      return Kitaplik.bolumAc(o.kitap, o.sira).then(function (bolum) {
+        var a = (bolum.altlar || []).filter(function (x) { return x.id === o.alt; })[0];
+        var metin = a && U.altMetin ? U.altMetin(a, 2500) : (U.bolumOzu ? U.bolumOzu(bolum, 2500) : '');
+        return Y.sample.json('Bir tıp öğrencisi için KISA bir "KEŞİF HİKAYESİ" reels\'i yaz (~30-40 saniye, 5-7 sahne, her sahne 4-5.5 sn). Konu: ' + o.kitapAd + ' · ' + o.konu + '.\n' +
+          'Bu konudaki en önemli buluşlardan birini seç (kavram, yapı, test, yasa ya da ilaç). Akış: 1) KANCA — Jane: "Bu bilgi bir … sayesinde bulundu." (merak uyandıran an) 2) KİM/NE ZAMAN/NASIL — deney, tesadüf ya da hata (arka "arsiv": eski film havası; ikon + kısa yazı) 3) DÖNÜM NOKTASI — gözlemi gösteren animasyon/grafik 4-5) NASIL ÇALIŞIR — mekanizmayı derse uygun araçlarla (vucut/lab/molekul/grafik/formul/karar) 6) bugün klinikte/sınavda nerede karşına çıkar 7) tek soru sahnesi.\n' +
+          'DOĞRULUK: yalnız iyi bilinen, doğrulanabilir tarih bilgisi kullan; emin olmadığın isim, yıl ya da ayrıntıyı YAZMA (genel ifade kullan). Mekanizma kitap metniyle uyumlu olsun.\n' +
+          (U.Animasyon.dersRehberi ? U.Animasyon.dersRehberi(o.kitap) + '\n' : '') + U.Animasyon.SENARYO_KURALI + '\n' +
+          'YALNIZ JSON: {"baslik":"kısa","kesif":{"kim":"…","yil":"…ya da boş","ne":"tek cümle"},"sahneler":[...],"ozet":"tek cümle","gorselAra":["…"],"yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]} (yorumlar: 4; 3 tanesi patrick.jane. ' + "Patrick Jane yorumları HAP BİLGİ olsun: sınav tuzağı, karıştırılan çift, hafıza hilesi, kestirme; Jane tonunda, 1-2 cümle" + ')\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
+          .then(function (j) {
+            if (!j || !j.sahneler || !j.sahneler.length) throw new Error('keşif reel\'i üretilemedi');
+            j.sahneler = j.sahneler.slice(0, 8);
+            return kontrolEt(j, metin + '\n(KEŞİF HİKAYESİ: tarih bilgisini de kontrol et; şüpheli isim/yılı çıkar. Kısa kalsın: en çok 8 sahne.)', o);
+          }).then(function (j) {
+            j.ders = o.kitap; j.sahneler = j.sahneler.slice(0, 8); U.Animasyon.duzelt(j); j.duraklar = [];
+            j.soru = j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0] || null;
+            U.depoGuncelle(anahtar, function (d) { d.j = j; d.t = Date.now(); }, 200);
+            if (U.Animasyon.onYukle) U.Animasyon.onYukle(j);
+            return j;
+          });
+      });
+    }).catch(function (e) { delete bellek[it.id]; throw e; });
+  }
+  function icerikHer(it) { return it.tur === 'makale' ? icerikMakale(it) : it.tur === 'kesif' ? icerikKesif(it) : icerik(it); }
 
   /* ---------- stil ---------- */
   var st = document.createElement('style');
@@ -153,6 +183,11 @@
     'body.rl-acik{overflow:hidden}body.rl-acik .ak-kapsul,body.rl-acik header,body.rl-acik .serit,body.rl-acik .jv-altyazi,body.rl-acik .jv-buyuk,body.rl-acik .mn-nokta{display:none!important}',
     '.rl-reel .rl-ilerleme{display:none}',
     '.rl-etiket{position:absolute;left:14px;top:62px;z-index:4;max-width:calc(100% - 100px);font:600 11px var(--f-kod,monospace);letter-spacing:.14em;color:#9ff3e6;text-transform:uppercase;text-shadow:0 0 10px rgba(94,240,220,.6);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.rl-jane{position:absolute;left:12px;bottom:17%;z-index:6;max-width:min(78%,440px);display:flex;gap:10px;align-items:flex-start;text-align:left;padding:10px 12px;border:0;border-radius:16px;background:rgba(10,8,2,.78);box-shadow:0 0 0 1px rgba(255,211,138,.55),0 0 24px rgba(255,200,100,.25);color:#fff;animation:rlJane .45s cubic-bezier(.2,.9,.2,1.2) both}',
+    '.rl-jane .av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:linear-gradient(135deg,#ffd38a,#c08a3a);color:#1b1206}',
+    '.rl-jane b{display:block;font:700 11px var(--f-kod,monospace);color:#ffd38a;letter-spacing:.04em}.rl-jane i{display:block;font-style:normal;font-size:14.5px;line-height:1.4;margin-top:2px}',
+    '.rl-jane.git{transition:all .45s;opacity:0;transform:translateX(-30px)}',
+    '@keyframes rlJane{from{opacity:0;transform:translateX(-30px) scale(.95)}to{opacity:1;transform:none}}',
     '.rl-etiket.mk{color:#ffd38a;text-shadow:0 0 10px rgba(255,200,100,.6)}',
     '.rl{position:fixed;inset:0;z-index:300;background:radial-gradient(ellipse at 50% 40%,#06222a,#01070a 70%);overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}',
     '.rl::-webkit-scrollbar{display:none}',
@@ -256,6 +291,7 @@
     function sonrakiOge() {
       R.n++;
       if (R.n % 4 === 0 && R.sonKonu) return { tur: 'makale', id: 'mk|' + R.n, slot: R.n, onceki: R.sonKonu, kitap: R.sonKonu.kitap, kitapAd: '📰 Yeni araştırma', konu: 'Yeni araştırma', bolum: '', sira: R.sonKonu.sira };
+      if (R.n % 7 === 6 && R.sonKonu) return { tur: 'kesif', id: 'ks|' + R.n, slot: R.n, onceki: R.sonKonu, kitap: R.sonKonu.kitap, kitapAd: R.sonKonu.kitapAd, konu: R.sonKonu.konu, bolum: R.sonKonu.bolum, sira: R.sonKonu.sira, alt: R.sonKonu.alt };
       if (!R.liste.length) return null;
       if (R.imlec >= R.liste.length - 6) digerKitap();
       if (R.imlec >= R.liste.length) R.imlec = 0;
@@ -284,8 +320,9 @@
     var kok = el('section', { class: 'rl-reel', 'data-i': String(i), 'aria-label': it.konu }, [cv, ic, sag, el('div', { class: 'rl-ilerleme' }, [ilerI])]);
     var r = { el: kok, it: it, j: null, t0: 0, durak: -1, bitti: false };
     var mk = it.tur === 'makale';
-    var etiketMetni = mk ? '📰 Yeni araştırma · ' + (it.onceki ? it.onceki.konu : '') : String(it.kitapAd).replace(/^1001\s*/, '') + ' · ' + it.konu + (it.ol != null ? ' · sınavda %' + Math.round(it.ol * 100) : '');
-    var etiket = el('div', { class: 'rl-etiket' + (mk ? ' mk' : ''), text: etiketMetni }); kok.appendChild(etiket);
+    var ks = it.tur === 'kesif';
+    var etiketMetni = mk ? '📰 Yeni araştırma · ' + (it.onceki ? it.onceki.konu : '') : ks ? '🔭 Keşif hikayesi · ' + it.konu : String(it.kitapAd).replace(/^1001\s*/, '') + ' · ' + it.konu + (it.ol != null ? ' · sınavda %' + Math.round(it.ol * 100) : '');
+    var etiket = el('div', { class: 'rl-etiket' + (mk || ks ? ' mk' : ''), text: etiketMetni }); kok.appendChild(etiket);
     ic.appendChild(el('div', { class: 'rl-konu', text: etiketMetni }));
     ic.appendChild(el('div', { class: 'rl-yukleniyor', text: 'Hazırlanıyor…' }));
     var ap = null, begen = el('button', { type: 'button', 'aria-label': 'Beğen', 'aria-pressed': 'false' }, ['♥', el('small', { text: '' })]);
@@ -305,15 +342,17 @@
       r.bitti = false; ilerI.style.width = '0';
       icerikHer(it).then(function (j) {
         r.j = j; if (!R || R.reels[R.aktif] !== r) return;
+        if (ks && j.kesif && j.kesif.kim) etiket.textContent = '🔭 Keşif · ' + j.kesif.kim + (j.kesif.yil ? ' · ' + j.kesif.yil : '') + ' · ' + it.konu;
         if (mk && j.makale) etiket.textContent = '📰 ' + (j.makale.dergi || 'Yeni araştırma') + ' ' + (j.makale.yil || '') + ' · ' + (j.makale.neden || '');
         ic.style.display = 'none'; if (r.oy) r.oy.yoket();
         r.oy = new U.Animasyon.Oynatici(sahneKap, j, {
           konus: function (m) { if (R && R.sesAcik && window.Carvis && window.Carvis.soyle) return window.Carvis.soyle(m); },
           sus: function () { if (window.Carvis && window.Carvis.sus) window.Carvis.sus(); },
-          cevap: function (ok, q) { izlendi(it.id + '|soru|' + String(q.soru).slice(0, 20), ok ? 20 : 5).then(function () { R && R.istatCiz(); }); if (!ok && !mk && U.eksikEkle) U.eksikEkle({ kitap: it.kitap, bolum: it.bolum, sira: it.sira, konu: it.konu, soru: String(q.soru).slice(0, 160), bilmiyor: false, kaynak: 'reels' }); },
+          cevap: function (ok, q) { izlendi(it.id + '|soru|' + String(q.soru).slice(0, 20), ok ? 20 : 5).then(function () { R && R.istatCiz(); }); if (!ok && !mk && !ks && U.eksikEkle) U.eksikEkle({ kitap: it.kitap, bolum: it.bolum, sira: it.sira, konu: it.konu, soru: String(q.soru).slice(0, 160), bilmiyor: false, kaynak: 'reels' }); },
           bitti: function () { if (r.bitti) return; r.bitti = true; ilerI.style.width = '100%'; izlendi(it.id, 10).then(function () { R && R.istatCiz(); }); var sonraki = R && R.reels[i + 1]; if (sonraki && !document.querySelector('.rl-sayfa')) setTimeout(function () { R.kok.scrollTo({ top: sonraki.el.offsetTop, behavior: 'smooth' }); }, 1200); }
         });
         r.oy.basla();
+        janeBalonu(r, j);
         onHazirla(i);
       }, function (e) {
         ic.style.display = ''; ic.lastChild.textContent = (mk ? 'Makale reel\'i hazırlanamadı: ' : 'Bu reel hazırlanamadı: ') + (U.AI && U.AI.hataMetni ? U.AI.hataMetni(e) : e.message || e) + ' — sonrakine geçiliyor…';
@@ -322,7 +361,7 @@
       });
     };
     r.ciz = null;
-    r.dur = function () { if (r.oy) { r.oy.yoket(); r.oy = null; } };
+    r.dur = function () { if (r.oy) { r.oy.yoket(); r.oy = null; } (r.janeZ || []).forEach(clearTimeout); r.janeZ = []; var jb = kok.querySelector('.rl-jane'); if (jb) jb.remove(); };
     return r;
   }
   function basla(i) {
@@ -330,6 +369,21 @@
     var s = document.querySelector('.rl-sayfa'); if (s) s.remove();
     R.reels[i].basla();
     if (i >= R.reels.length - 3 && R.ekle) R.ekle(5);
+  }
+
+  /* Patrick Jane'in hap bilgisi videonun içinde "sabitlenmiş yorum" gibi belirir (videonun ~%35'inde ve ~%70'inde, birer kez);
+     dokununca yorumlar açılır. */
+  function janeBalonu(r, j) {
+    var jl = (j.yorumlar || []).filter(function (y) { return /jane/i.test(y.ad || '') && y.metin; }); if (!jl.length || !r.oy) return;
+    var top = (r.oy.toplamSure ? r.oy.toplamSure() : 50) * 1000; r.janeZ = [];
+    [0.35, 0.7].slice(0, jl.length).forEach(function (f, k) {
+      r.janeZ.push(setTimeout(function () {
+        if (!R || R.reels[R.aktif] !== r) return; var es = r.el.querySelector('.rl-jane'); if (es) es.remove();
+        var b = el('button', { type: 'button', class: 'rl-jane', 'aria-label': 'Patrick Jane yorumu' }, [el('span', { class: 'av', text: 'PJ' }), el('span', {}, [el('b', { text: 'patrick.jane ✓ · sabitlendi' }), el('i', { text: jl[k].metin })])]);
+        b.addEventListener('click', function (e) { e.stopPropagation(); b.remove(); yorumlar(r); });
+        r.el.appendChild(b); r.janeZ.push(setTimeout(function () { b.classList.add('git'); setTimeout(function () { b.remove(); }, 500); }, 7000));
+      }, top * f));
+    });
   }
 
   /* ---------- 🏛 sarayı kaydet ---------- */

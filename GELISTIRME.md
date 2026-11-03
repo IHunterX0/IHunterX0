@@ -45,7 +45,9 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 ## Reels senaryosu
 - Üretim iki tur: taslak (kitap metni + derse özel rehber `U.Animasyon.dersRehberi`) → **kontrol turu** (`kontrolEt`, reels.js): editör kontrol
   listesiyle düzeltilmiş tam JSON; başarısız/bozuksa taslak kullanılır. Ardından `U.Animasyon.duzelt` (taşma, çakışma, görselsiz sahneye şema).
-- Derse özel öğeler: `dagilim` (yüzde sayısal integralle hesaplanır), `tablo`, `formul`, `molekul` (3Dmol + Molekül Lab kataloğu; sahne bitince WebGL bağlamı bırakılır).
+- Akış: konu reel'leri; her 4. sırada makale reel'i, her 7.'de (makale değilse) **keşif hikayesi** (`icerikKesif`, 5-8 sahne, arka `arsiv`). Jane yorumu videonun ~%35/%70'inde sabitlenmiş yorum balonu olarak belirir.
+- Biyoistatistik: her reel'de `karar` (hangi test, neden) sahnesi zorunlu.
+- Derse özel öğeler: `karar`, `dagilim` (yüzde sayısal integralle hesaplanır), `tablo`, `formul`, `molekul` (3Dmol + Molekül Lab kataloğu; sahne bitince WebGL bağlamı bırakılır).
 
 ## Carvis sesi — ZipVoice (r36, internetsiz)
 - Motor: sherpa-onnx **v1.13.8 resmî AAR** (JitPack `com/github/k2-fsa/sherpa-onnx/sherpa-onnx/v1.13.8/sherpa-onnx-v1.13.8.aar`): `jni/arm64-v8a/*.so` + `classes.jar` içindeki Kotlin TTS sınıfları (d8 → smali). HF csukuangfj2 "1.13.8" paketi daha yeni bir derlemeydi, JNI alanları uymadı ve uygulamayı çökertti (r37–r39).

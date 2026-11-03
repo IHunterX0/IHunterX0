@@ -63,6 +63,14 @@
     '.an-gorsel::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(94,240,220,.06) 0 1px,transparent 1px 4px),radial-gradient(ellipse at center,transparent 60%,rgba(2,12,16,.55))}',
     '.an-gorsel small{position:absolute;left:8px;bottom:6px;z-index:2;font:500 9.5px var(--f-kod,monospace);color:#fff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.an-gbaslik{position:absolute;left:0;right:0;top:0;z-index:2;padding:6px 12px;font:700 12px var(--f-kod,monospace);letter-spacing:.06em;color:#e9fffb;background:linear-gradient(180deg,rgba(2,14,18,.85),transparent);text-shadow:0 0 8px rgba(94,240,220,.6)}',
+    '.an-karar{position:absolute;left:50%;transform:translateX(-50%);width:min(90%,600px);display:flex;flex-direction:column;align-items:stretch;gap:3px;z-index:3}',
+    '.an-ksat{display:flex;flex-direction:column;gap:6px;padding:8px 12px;border-radius:14px;background:rgba(94,240,220,.06);box-shadow:0 0 0 1px rgba(110,255,235,.25)}',
+    '.an-ksoru{font:700 clamp(13px,2.2vw,17px) var(--f-kod,monospace);color:#7fe8da;letter-spacing:.03em}',
+    '.an-ksec{display:flex;flex-wrap:wrap;gap:6px}.an-ksec span{padding:5px 11px;border-radius:999px;font:600 clamp(13px,2.2vw,17px) var(--f-baslik,system-ui);color:#e9fffb;box-shadow:0 0 0 1px rgba(255,255,255,.25);transition:all .3s}',
+    '.an-ksec span.on{color:#0b1a12;background:#8cffa0;box-shadow:0 0 18px rgba(140,255,160,.7)}',
+    '.an-karar .an-zok{text-align:center}',
+    '.an-ksonuc{padding:12px 16px;border-radius:18px;text-align:center;box-shadow:0 0 0 2px var(--r),0 0 30px var(--r);background:linear-gradient(135deg,rgba(255,211,138,.15),rgba(0,0,0,.3))}',
+    '.an-ksonuc b{display:block;font:900 clamp(19px,3.6vw,30px) var(--f-baslik,system-ui);color:#fff;text-shadow:0 0 14px var(--r)}.an-ksonuc small{display:block;margin-top:4px;color:#ffe9c2;font-size:clamp(13px,2.2vw,16px);line-height:1.35}',
     '.an-tablo{position:absolute;left:50%;transform:translateX(-50%);width:min(88%,560px);display:grid;gap:6px;z-index:3}',
     '.an-thucre{padding:12px 8px;border-radius:12px;text-align:center;font:700 clamp(15px,2.8vw,22px) var(--f-kod,monospace);color:#f2fffd;background:rgba(94,240,220,.07);box-shadow:0 0 0 1px rgba(110,255,235,.3)}',
     '.an-thucre.bas{background:transparent;box-shadow:none;color:#7fe8da;font-size:clamp(12px,2.1vw,16px);letter-spacing:.06em}',
@@ -140,13 +148,18 @@
   /* ---------- arka planlar ---------- */
   function arka(cv, tur) {
     var ctx = cv.getContext('2d'), w = 0, h = 0, P = [];
-    var cfg = { hucre: ['120,255,235', 'kabarcik'], kan: ['255,120,130', 'disk'], beyin: ['200,140,255', 'ag'], kalp: ['255,120,130', 'nabiz'], uzay: ['160,200,255', 'yildiz'], koridor: ['94,240,220', 'izgara'], laboratuvar: ['94,240,220', 'izgara'], vucut: ['94,240,220', 'yildiz'], bos: ['94,240,220', 'yildiz'] }[tur] || ['94,240,220', 'izgara'];
+    var cfg = { hucre: ['120,255,235', 'kabarcik'], kan: ['255,120,130', 'disk'], beyin: ['200,140,255', 'ag'], kalp: ['255,120,130', 'nabiz'], uzay: ['160,200,255', 'yildiz'], koridor: ['94,240,220', 'izgara'], laboratuvar: ['94,240,220', 'izgara'], vucut: ['94,240,220', 'yildiz'], arsiv: ['255,214,160', 'arsiv'], bos: ['94,240,220', 'yildiz'] }[tur] || ['94,240,220', 'izgara'];
     function boyut() { var r = cv.getBoundingClientRect(); w = cv.width = Math.max(1, r.width); h = cv.height = Math.max(1, r.height); P = []; for (var i = 0; i < 50; i++) P.push({ x: Math.random() * w, y: Math.random() * h, r: 2 + Math.random() * (cfg[1] === 'kabarcik' || cfg[1] === 'disk' ? 18 : 2), v: 0.15 + Math.random() * 0.5, a: Math.random() * 6 }); }
     return function (t) {
       if (!w || cv.width !== Math.round(cv.getBoundingClientRect().width)) boyut();
       ctx.clearRect(0, 0, w, h); ctx.globalCompositeOperation = 'lighter';
       var c = cfg[0];
       if (cfg[1] === 'izgara') { ctx.strokeStyle = 'rgba(' + c + ',.07)'; var uf = h * 0.62; for (var i = -12; i <= 12; i++) { ctx.beginPath(); ctx.moveTo(w / 2 + i * 18, uf); ctx.lineTo(w / 2 + i * w * 0.18, h); ctx.stroke(); } for (var j = 0; j < 9; j++) { var y = uf + Math.pow((j + (t * 0.0004) % 1) / 9, 2) * (h - uf); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); } }
+      if (cfg[1] === 'arsiv') {
+        var gv = ctx.createRadialGradient(w / 2, h / 2, w * 0.2, w / 2, h / 2, Math.max(w, h) * 0.7); gv.addColorStop(0, 'rgba(255,214,160,.07)'); gv.addColorStop(1, 'rgba(0,0,0,.35)'); ctx.fillStyle = gv; ctx.fillRect(0, 0, w, h);
+        for (var gi = 0; gi < 90; gi++) { ctx.fillStyle = 'rgba(255,230,190,' + (Math.random() * 0.12) + ')'; ctx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); }
+        if (Math.random() < 0.25) { ctx.fillStyle = 'rgba(255,230,190,.08)'; ctx.fillRect(Math.random() * w, 0, 1, h); }
+      }
       if (cfg[1] === 'nabiz') { var n = Math.pow(Math.max(0, Math.sin(t * 0.004)), 12); var g0 = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.5); g0.addColorStop(0, 'rgba(' + c + ',' + (0.05 + 0.12 * n) + ')'); g0.addColorStop(1, 'rgba(' + c + ',0)'); ctx.fillStyle = g0; ctx.fillRect(0, 0, w, h); }
       P.forEach(function (q) {
         q.y -= q.v; q.x += Math.sin(t * 0.001 + q.a) * 0.3; if (q.y < -20) { q.y = h + 20; q.x = Math.random() * w; }
@@ -418,6 +431,21 @@
         tl.fromTo(gk, { opacity: 0, scale: 0.9, filter: 'blur(8px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'power2.out' }, t0);
         if (g.etiket) { var ge = el('div', { class: 'an-o an-etiket', style: 'left:' + px(g.x) + ';top:calc(' + px(sayi(g.y, 0.5) - gh / 2) + ' - 14px)' }, [g.etiket]); katman.appendChild(ge); G.set(ge, { opacity: 0 }); tl.to(ge, { opacity: 1, duration: 0.4 }, t0 + 0.4); }
         return;
+      }
+      if (g.tip === 'karar') {
+        // "hangi test, neden?" — her adımda soru, seçenekler; seçilen yol yanar, sonunda test + gerekçe
+        var ad = (g.adimlar || []).filter(function (x) { return x && x.soru; }).slice(0, 5); if (!ad.length) return;
+        var kk = el('div', { class: 'an-karar', style: 'top:' + px(sayi(g.y, 0.08)) }), kara = Math.max(0.5, Math.min(1.3, (sure - t0 - 1.6) / (ad.length + 1)));
+        ad.forEach(function (a, k) {
+          var sat = el('div', { class: 'an-ksat' }, [el('div', { class: 'an-ksoru', text: String(a.soru) })]), sec = el('div', { class: 'an-ksec' }), tk = t0 + k * kara;
+          (a.secenekler || []).slice(0, 4).forEach(function (o2, j) { var c = el('span', { text: String(o2) }); sec.appendChild(c); if (j === (+a.secilen || 0)) tl.call(function () { c.classList.add('on'); }, null, tk + kara * 0.55); else tl.to(c, { opacity: 0.35, duration: 0.3 }, tk + kara * 0.55); });
+          sat.appendChild(sec); kk.appendChild(sat); G.set(sat, { opacity: 0 });
+          tl.fromTo(sat, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.35, ease: 'power3.out' }, tk);
+          if (k < ad.length - 1 || g.sonuc) { var ok2 = el('div', { class: 'an-zok', style: 'color:' + r }, ['↓']); kk.appendChild(ok2); G.set(ok2, { opacity: 0 }); tl.to(ok2, { opacity: 1, duration: 0.2 }, tk + kara * 0.8); }
+        });
+        if (g.sonuc) { var sn = el('div', { class: 'an-ksonuc', style: '--r:' + r }, [el('b', { text: String(g.sonuc) }), g.neden ? el('small', { text: 'Neden: ' + g.neden }) : '']); kk.appendChild(sn); G.set(sn, { opacity: 0 });
+          tl.fromTo(sn, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)' }, t0 + ad.length * kara); }
+        katman.appendChild(kk); return;
       }
       if (g.tip === 'dagilim') { dagilimKur(g, t0, r, katman, sure); return; }
       if (g.tip === 'tablo') {
@@ -709,7 +737,7 @@
   var DERS_REHBER = {
     anatomi: 'ANATOMİ: vucut + kamera zoom ve gorsel (ders kitabı şeması) ağırlıklı; kas/sinir/damar seyri için akis ve ok; klinik: hangi yaralanmada ne olur.',
     biyokimya: 'BİYOKİMYA: molekul (dönen 3B yapı) + zincir (yolak adımları, enzim adları, ATP/NADH sayıları) + lab (glikoliz, krebs, hemoglobin-o2, dna-replikasyonu, transkripsiyon, ribozom) + grafik (Michaelis-Menten: [S]→v, Km, Vmax; O₂ dissosiyasyon eğrisi); formul ile Km/Vmax/ΔG; klinik: enzim eksikliği hastalıkları.',
-    biyoistatistik: 'BİYOİSTATİSTİK: her kavramı bir KLİNİK ÇALIŞMA örneğiyle anlat (ör. yeni tanı testi, ilaç denemesi). dagilim (normal eğri, ±σ, p değeri / güven aralığı alanı gölgeli), tablo (2×2: DP/YP/YN/DN, vurgu ile hücreleri yak), formul (duyarlılık, özgüllük, PPV, NNT, OR/RR adım adım sayıyla), grafik (ROC, saçılım-regresyon). gorsel: istatistik ders kitabı şeması. Sayılar tutarlı olsun (formuldeki hesap tablodaki sayılarla birebir).',
+    biyoistatistik: 'BİYOİSTATİSTİK: her kavramı bir KLİNİK ÇALIŞMA örneğiyle anlat (ör. yeni tanı testi, ilaç denemesi). HER REEL\'DE "HANGİ TEST/YÖNTEM, NEDEN?" sahnesi ZORUNLU: karar öğesiyle (veri türü → dağılım → grup sayısı → bağımsız/eşleştirilmiş …) o örnekte hangi testin neden seçildiğini göster; bir sahnede de "şu olsaydı hangi test?" diye koşulu değiştirip alternatif testi (ör. normal değilse Mann-Whitney U, 3+ grup ANOVA/Kruskal-Wallis, kategorik ki-kare/Fisher, eşleştirilmiş t/Wilcoxon, korelasyon Pearson/Spearman, sağkalım log-rank/Cox) anlat. Soru sahnelerinden biri mutlaka "bu durumda hangi test?" olsun. dagilim (normal eğri, ±σ, p değeri / güven aralığı alanı gölgeli), tablo (2×2: DP/YP/YN/DN, vurgu ile hücreleri yak), formul (duyarlılık, özgüllük, PPV, NNT, OR/RR adım adım sayıyla), grafik (ROC, saçılım-regresyon). gorsel: istatistik ders kitabı şeması. Sayılar tutarlı olsun (formuldeki hesap tablodaki sayılarla birebir).',
     biyofizik: 'BİYOFİZİK: formul (Nernst, Goldman, Ohm V=IR, Poiseuille, Fick, Laplace) sayılarla adım adım + grafik (gerçek eğri: akım-voltaj, basınç-hacim, logaritmik bozunma) + lab (aksiyon-potansiyeli, na-k-pompasi, saltatorik) + vucut (fizik ilkesinin vücuttaki yeri: damar, kulak, göz, akciğer); gorsel: fizik ders kitabı şeması (ör. "ultrasound", "MRI", "eye lens", "Poiseuille flow").'
   };
   U.Animasyon.dersRehberi = function (ders) { return DERS_REHBER[ders] || ''; };
@@ -725,6 +753,7 @@
       ' {"tip":"lab","surec":"…","x":0.5,"y":0.4,"g":0.9,"y2":0.5,"etiket":"kısa"} — hücre düzeyi CANLI simülasyon. Süreçler: ' + lab,
       ' {"tip":"gorsel","ara":"2-4 İngilizce anatomi/fizyoloji ders kitabı terimi (ör. \'nephron\', \'cardiac muscle action potential\', \'brachial plexus\', \'humerus\', \'synapse\')","x":0.5,"y":0.46,"g":0.92,"y2":0.56,"etiket":"kısa"} — GERÇEK ders kitabı şeması (gömülü OpenStax kütüphanesi), yavaşça yakınlaşır. HER REEL\'DE EN AZ 2 SAHNEDE kullan (anatomide 3); terimleri ders kitabı figür başlığı gibi yaz.',
       ' {"tip":"grafik","noktalar":[[0,-70],[1,-70],[1.5,30],[3,-80],[5,-70]],"birim":"mV","xEtiket":"ms","esik":{"deger":-55,"metin":"eşik"},"isaretler":[{"x":1.5,"metin":"tepe +30"}],"x":0.12,"y":0.2,"g":0.8,"y2":0.44,"renk":"sari","sure":2.6} — gerçek veri noktaları (x gerçek birim, y gerçek değer); eksenler, eşik çizgisi ve anlık değer otomatik çizilir.',
+      ' {"tip":"karar","adimlar":[{"soru":"Veri türü?","secenekler":["Sürekli","Kategorik"],"secilen":0},{"soru":"Normal dağılıyor mu?","secenekler":["Evet","Hayır"],"secilen":0},{"soru":"Kaç grup?","secenekler":["2","3+"],"secilen":0},{"soru":"Gruplar?","secenekler":["Bağımsız","Eşleştirilmiş"],"secilen":0}],"sonuc":"Bağımsız örneklem t-testi","neden":"iki bağımsız grubun ortalaması, normal dağılım","y":0.06,"renk":"sari"} — karar ağacı: hangi yöntem/test NEDEN seçilir; seçilen yol adım adım yanar.',
       ' {"tip":"dagilim","ort":120,"ss":15,"carpiklik":0,"birim":"mmHg","golge":[{"bas":150,"son":null,"metin":"hipertansif","renk":"kirmizi"}],"cizgiler":[{"x":150,"metin":"sınır"}],"y":0.2,"y2":0.4,"etiket":".."} — dağılım eğrisi; gölgeli alanın yüzdesi otomatik hesaplanır (sen yüzde yazma).',
       ' {"tip":"tablo","satirlar":[["","Hasta","Sağlam"],["Test +","90","30"],["Test −","10","170"]],"vurgu":[[1,1,"yesil"],[2,1,"kirmizi"]],"y":0.12} — küçük tablo (2×2 vb.), hücreler sırayla belirir, vurgu hücreleri yanar.',
       ' {"tip":"formul","metin":"Duyarlılık = DP / (DP + YN)","adimlar":["= 90 / (90 + 10)","= %90"],"y":0.5,"renk":"sari"} — formül ve sayılarla adım adım çözüm.',
