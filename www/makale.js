@@ -27,12 +27,37 @@
   function ilgiler() { return Depo.oku('makale').then(function (v) { v.ilgiler = v.ilgiler || []; v.sonuc = v.sonuc || {}; v.gorulen = v.gorulen || {}; return v; }); }
   function kaydet(fn) { return U.depoGuncelle('makale', fn, 200); }
   // Türkçe konu → İngilizce arama terimi (hafif model, bir kez; başarısızsa konunun kendisi)
-  function terimCevir(konu) {
-    if (/^[\x00-\x7F]+$/.test(konu)) return Promise.resolve(konu);
+  /* İlgi netleştirme (kullanıcı, 2026-11-03: "nöronların cross talk yapması ilgimi çekiyor ama cross talk yazınca hiçbir makale
+     gelmiyor; yz araştırsın ne eklemeye çalıştığımı netleştirsin"). Dil fark etmeksizin yapay zekâ konuyu yorumlar, Europe PMC
+     sorgusu (eş anlamlılar OR ile, MeSH/serbest terim) ve 2-3 alternatif yorum üretir. Az sonuç gelirse tarih filtresi kalkar,
+     sonra alternatifler denenir. */
+  function ilgiNetlestir(konu) {
     var Y = U.Y;
-    if (!Y || !Y.sample || !Y.sample.json) return Promise.resolve(konu);
-    return Y.sample.json('Tıbbi literatür araması için şu Türkçe konuyu PubMed/Europe PMC\'de iyi sonuç verecek kısa İngilizce arama ifadesine çevir (2-6 kelime, MeSH terimleri tercih). Yalnız JSON: {"sorgu":"..."}\nKONU: ' + konu, { hafif: true })
-      .then(function (j) { return (j && j.sorgu) ? String(j.sorgu) : konu; }, function () { return konu; });
+    var duz = { sorgu: konu, anlam: '', alternatifler: [] };
+    if (!Y || !Y.sample || !Y.sample.json) return Promise.resolve(duz);
+    return Y.sample.json('Bir tıp öğrencisi bilimsel makale takibi için ilgi alanı ekliyor: "' + konu + '". Ne kastettiğini netleştir (kısa, gündelik ya da yarım bir ifade olabilir; ör. "nöronların cross talk yapması" → ephaptic coupling, nöronal crosstalk, gap junction ile elektriksel eşleşme). ' +
+      'Europe PMC\'de iyi sonuç verecek bir İngilizce sorgu yaz: 3-6 eş anlamlı/yakın terimi tırnak içinde OR ile bağla, gerekirse AND ile bağlam ekle; çok dar olmasın. Konu birden çok anlama gelebiliyorsa 2-3 alternatif yorum da ver.\n' +
+      'YALNIZ JSON: {"anlam":"Türkçe, en fazla 14 kelime: ne aradığımız","sorgu":"...","alternatifler":[{"anlam":"...","sorgu":"..."}]}')
+      .then(function (j) {
+        if (!j || !j.sorgu) return duz;
+        return { sorgu: String(j.sorgu).slice(0, 400), anlam: String(j.anlam || '').slice(0, 160), alternatifler: (j.alternatifler || []).filter(function (x) { return x && x.sorgu; }).slice(0, 3).map(function (x) { return { anlam: String(x.anlam || '').slice(0, 160), sorgu: String(x.sorgu).slice(0, 400) }; }) };
+      }, function () { return duz; });
+  }
+  // Az sonuç gelirse genişlet: önce son 3 yıl, sonra tüm yıllar, sonra alternatif yorumlar
+  function genisAra(i, adet) {
+    var denenen = [{ q: i.sorgu || i.konu, yeni: true, not: '' }, { q: i.sorgu || i.konu, yeni: false, not: 'tüm yıllar' }];
+    (i.alternatifler || []).forEach(function (a) { denenen.push({ q: a.sorgu, yeni: false, not: 'yakın yorum: ' + a.anlam }); });
+    var en = { l: [], not: '' };
+    return denenen.reduce(function (z, d) {
+      return z.then(function (bitti) { if (bitti) return true; return ara(d.q, { adet: adet, yeni: d.yeni, sirala: 'RELEVANCE' }).then(function (l) { if (l.length > en.l.length) en = { l: l, not: d.not }; return l.length >= 3; }, function () { return false; }); });
+    }, Promise.resolve(false)).then(function () { return en; });
+  }
+  // Açık erişim olmayan makalenin yasal ücretsiz sürümü (yazar kopyası, kurum arşivi, PMC) — OpenAlex
+  function ucretsizBul(doi) {
+    return fetch('https://api.openalex.org/works/doi:' + encodeURIComponent(doi)).then(function (r) { if (!r.ok) throw new Error('OpenAlex ' + r.status); return r.json(); }).then(function (w) {
+      var oa = w && w.open_access, yer = (w && w.best_oa_location) || {};
+      return (oa && oa.is_oa && (yer.pdf_url || yer.landing_page_url || oa.oa_url)) || null;
+    });
   }
   // Europe PMC geçici olarak kapalıysa PubMed (NCBI E-utilities) yedeği
   function pubmedAra(sorgu, o) {
@@ -76,14 +101,16 @@
   function tara(zorla) {
     return ilgiler().then(function (v) {
       var simdi = Date.now();
-      var l = v.ilgiler.filter(function (i) { return zorla || !v.sonuc[i.konu] || simdi - (v.sonuc[i.konu].t || 0) > 20 * 3600e3; });
+      var l = v.ilgiler.filter(function (i) { return zorla || i.anlam === undefined || !v.sonuc[i.konu] || simdi - (v.sonuc[i.konu].t || 0) > 20 * 3600e3; });
       return l.reduce(function (p, i) {
         return p.then(function () {
-          return ara(i.sorgu || i.konu, { adet: 8, yeni: true, sirala: 'RELEVANCE' }).then(function (sonuc) {
+          var hazir = i.anlam === undefined ? ilgiNetlestir(i.konu).then(function (n) { i.sorgu = n.sorgu; i.anlam = n.anlam; i.alternatifler = n.alternatifler; return kaydet(function (d) { d.ilgiler.forEach(function (x) { if (x.konu === i.konu) { x.sorgu = n.sorgu; x.anlam = n.anlam; x.alternatifler = n.alternatifler; } }); }); }) : Promise.resolve();
+          return hazir.then(function () { return genisAra(i, 8); }).then(function (gs) {
+            var sonuc = gs.l;
             return kaydet(function (d) { d.sonuc = d.sonuc || {}; d.gorulen = d.gorulen || {};
               var eski = (d.sonuc[i.konu] && d.sonuc[i.konu].l || []).map(function (x) { return x.id; });
               sonuc.forEach(function (x) { x.yeni = eski.length > 0 && eski.indexOf(x.id) < 0; });
-              d.sonuc[i.konu] = { t: Date.now(), l: sonuc.map(function (x) { var y = Object.assign({}, x); y.ozet = y.ozet.slice(0, 2500); return y; }) }; });
+              d.sonuc[i.konu] = { t: Date.now(), not: gs.not, l: sonuc.map(function (x) { var y = Object.assign({}, x); y.ozet = y.ozet.slice(0, 2500); return y; }) }; });
           }).catch(function (e) { console.warn('makale taraması', i.konu, e); });
         });
       }, Promise.resolve()).then(function () { return l.length; });
@@ -91,11 +118,12 @@
   }
   function ilgiEkle(konu) {
     konu = String(konu || '').trim(); if (!konu) return Promise.resolve('Konu boş.');
-    return terimCevir(konu).then(function (sorgu) {
-      return kaydet(function (d) { d.ilgiler = d.ilgiler || []; if (!d.ilgiler.some(function (x) { return x.konu.toLowerCase() === konu.toLowerCase(); })) d.ilgiler.push({ konu: konu, sorgu: sorgu, t: Date.now() }); })
+    return ilgiNetlestir(konu).then(function (n) {
+      var sorgu = n.sorgu;
+      return kaydet(function (d) { d.ilgiler = d.ilgiler || []; if (!d.ilgiler.some(function (x) { return x.konu.toLowerCase() === konu.toLowerCase(); })) d.ilgiler.push({ konu: konu, sorgu: sorgu, anlam: n.anlam, alternatifler: n.alternatifler, t: Date.now() }); })
         .then(function () { return tara(false); })
         .then(function () { return ilgiler(); })
-        .then(function (v) { var s = (v.sonuc[konu] && v.sonuc[konu].l) || []; return { eklendi: konu, arama: sorgu, bulunan: s.length, ilk: s.slice(0, 3).map(function (x) { return x.baslik + ' (' + x.dergi + ' ' + x.yil + ')'; }) }; });
+        .then(function (v) { var s = (v.sonuc[konu] && v.sonuc[konu].l) || []; return { eklendi: konu, anladigim: n.anlam, arama: sorgu, bulunan: s.length, ilk: s.slice(0, 3).map(function (x) { return x.baslik + ' (' + x.dergi + ' ' + x.yil + ')'; }) }; });
     });
   }
 
@@ -116,6 +144,8 @@
       el('div', { class: 'mk-dugmeler' }, [
         el('button', { class: 'dugme kucuk ana', type: 'button', onclick: function () { ozetKutu.hidden = false; zamanimYok(m, ozetKutu); } }, ['⚡ Zamanım yok']),
         el('a', { class: 'dugme kucuk', href: m.link, target: '_blank', rel: 'noopener' }, [m.acik ? '📄 Tam metin' : '↗ Makaleyi aç']),
+        !m.acik && m.doi ? el('button', { class: 'dugme kucuk', type: 'button', onclick: function () { var b = this; b.disabled = true; b.textContent = 'Aranıyor…';
+          ucretsizBul(m.doi).then(function (u) { if (u) { b.textContent = '📄 Ücretsiz sürüm açılıyor'; window.open(u, '_blank', 'noopener'); } else b.textContent = 'Yasal ücretsiz sürüm yok'; }, function () { b.textContent = 'Bulunamadı (bağlantı)'; b.disabled = false; }); } }, ['🔓 Ücretsiz tam metin bul']) : '',
         m.ozet ? el('button', { class: 'dugme kucuk', type: 'button', onclick: function () { ozetKutu.hidden = false; ozetKutu.innerHTML = ''; ozetKutu.appendChild(el('p', { text: m.ozet })); } }, ['Özgün özet']) : ''
       ]),
       ozetKutu]);
@@ -124,7 +154,7 @@
     var ana = $('#ana'); ana.innerHTML = '';
     var sayfa = el('div', { class: 'sayfa' }); ana.appendChild(sayfa);
     sayfa.appendChild(el('div', { class: 'kahraman' }, [el('div', { class: 'ust-etiket', text: 'İlgi alanların' }), el('h1', { text: '📰 Makaleler' }),
-      el('p', { text: 'İlgilendiğin konuları ekle (ya da Carvis\'e "şu konuyla ilgileniyorum" de). Carvis Europe PMC\'den (PubMed dahil) son 3 yılın ilgili makalelerini kendiliğinden bulur, günde bir yeniler. ⚡ Zamanım yok: 1 dakikalık Türkçe özet.' })]));
+      el('p', { text: 'İlgilendiğin konuları ekle (ya da Carvis\'e "şu konuyla ilgileniyorum" de). Yazdığını yapay zekâ netleştirir (Türkçe, İngilizce, yarım ifade olur), Europe PMC/PubMed\'den ilgili makaleleri kendiliğinden bulur, günde bir yeniler; açık erişim değilse 🔓 yasal ücretsiz sürümü arar. ⚡ Zamanım yok: 1 dakikalık Türkçe özet.' })]));
     var girdi = el('input', { type: 'text', placeholder: 'Konu: rotator manşet yırtığı, SGLT2 inhibitörleri…', 'aria-label': 'İlgi alanı' });
     var ilgiKap = el('div', { class: 'mk-ilgiler' }), liste = el('div'), durum = el('p', { class: 'var-etiket', 'aria-live': 'polite' });
     sayfa.appendChild(el('form', { class: 'yp-form', onsubmit: function (e) { e.preventDefault(); var k = girdi.value.trim(); if (!k) return; girdi.value = ''; durum.textContent = 'Ekleniyor ve aranıyor…'; ilgiEkle(k).then(function () { durum.textContent = ''; ciz(); }, function (e) { durum.textContent = 'Arama başarısız: ' + (e.message || e); }); } },
@@ -137,7 +167,16 @@
         v.ilgiler.forEach(function (i) {
           ilgiKap.appendChild(el('span', { class: 'mk-cip' }, [i.konu, el('button', { type: 'button', 'aria-label': i.konu + ' kaldır', text: '✕', onclick: function () { kaydet(function (d) { d.ilgiler = d.ilgiler.filter(function (x) { return x.konu !== i.konu; }); }).then(ciz); } })]));
           var s = v.sonuc[i.konu];
-          liste.appendChild(el('h2', { class: 'mk-baslik-konu', text: i.konu + (i.sorgu && i.sorgu !== i.konu ? ' · ' + i.sorgu : '') }));
+          liste.appendChild(el('h2', { class: 'mk-baslik-konu', text: i.konu }));
+          if (i.anlam || (s && s.not)) liste.appendChild(el('p', { class: 'var-etiket', text: (i.anlam ? 'Anladığım: ' + i.anlam : '') + (s && s.not ? ' · az sonuç çıktı, genişlettim (' + s.not + ')' : '') }));
+          if (i.alternatifler && i.alternatifler.length) {
+            var alt = el('div', { class: 'mk-ilgiler' }, [el('span', { class: 'var-etiket', text: 'Bunu mu kastettin?' })]);
+            i.alternatifler.forEach(function (a) { alt.appendChild(el('button', { class: 'cip', type: 'button', text: a.anlam || a.sorgu, onclick: function () {
+              durum.textContent = 'Yeni yoruma göre aranıyor…';
+              kaydet(function (d) { d.ilgiler.forEach(function (x) { if (x.konu === i.konu) { var eski = { anlam: x.anlam, sorgu: x.sorgu }; x.anlam = a.anlam; x.sorgu = a.sorgu; x.alternatifler = x.alternatifler.filter(function (y) { return y.sorgu !== a.sorgu; }).concat(eski.sorgu ? [eski] : []); } }); delete d.sonuc[i.konu]; })
+                .then(function () { return tara(false); }).then(function () { durum.textContent = ''; ciz(); }); } })); });
+            liste.appendChild(alt);
+          }
           var l = el('div', { class: 'mk-liste' });
           ((s && s.l) || []).forEach(function (m) { l.appendChild(kartCiz(m)); });
           if (!s || !s.l.length) l.appendChild(el('p', { class: 'var-etiket', text: s ? 'Sonuç yok.' : 'Aranıyor…' }));
