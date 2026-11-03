@@ -844,14 +844,15 @@
       U.zamanimYok();
       return bekle(function () {
         var k = document.querySelector('.yp-cevap'); if (!k) return null;
+        var zd = k.querySelector('.zy-durum'); if (zd) return /✓/.test(zd.textContent) || k.querySelector('.hata-metni') ? k : null; // her başlık hazır olsun
         if (k.querySelector('.yp-cevap-alt .etiket-kucuk.ai, .hata-metni') || k.querySelector(':scope > ul')) return k;
         return null;
       }, 150000).then(function (k) {
         if (!k) return 'Özet zamanında üretilemedi (' + ad + '). Kullanıcıya ekranda açık olduğunu, birazdan hazır olacağını söyle.';
         var hata = k.querySelector('.hata-metni');
-        var metin = ((k.querySelector('.ai-metin') || k).innerText || '').trim();
+        var am = k.querySelectorAll('.ai-metin'), metin = (am.length ? Array.prototype.map.call(am, function (x) { return x.innerText; }).join('\n') : (k.innerText || '')).trim();
         if (hata && !metin.replace(hata.innerText, '').trim()) return 'Özet üretilemedi: ' + hata.innerText;
-        return 'Ekranda açıldı: "Zamanım yok — ' + ad + '". ÖZET:\n' + metin.slice(0, 4000);
+        return 'Ekranda açıldı: "Zamanım yok — ' + ad + '" (her alt başlık ayrı). ÖZET:\n' + metin.slice(0, 6000);
       });
     });
   };

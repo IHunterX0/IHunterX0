@@ -18,7 +18,8 @@
     '.holo .h-kapat,.holo .h-kart,.holo .h-detay,.holo .h-bolum{pointer-events:auto}',
     '.holo:not(.dolu) .h-ust,.holo:not(.dolu) .h-soru,.holo:not(.dolu) .h-altyazi{display:none}',
     '.holo:not(.dolu) .h-durum{font-size:10px;letter-spacing:.32em}',
-    '.holo:not(.dolu) .h-kapat{width:30px;height:30px;font-size:13px;background:rgba(2,12,18,.6)}',
+    // köşedeki küçük ✕, kenardaki pencere sekmelerine yakın düşüp yanlışlıkla Carvis'i kapatıyordu (cevap "Durduruldu"); kapatma balondan
+    '.holo:not(.dolu) .h-kapat{display:none}',
     '@keyframes holoGir{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}',
     '.holo canvas.kure{position:absolute;inset:0;width:100%;height:100%}',
     '.holo svg.oklar{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}',

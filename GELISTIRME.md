@@ -30,6 +30,14 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Zamanım yok v2 + okuma araç çubuğu (r64)
+- `app10.js` zamanimYok: sekmeler Hızlı tekrar / İlk kez öğreniyorum / Patrick Jane / Hafıza sarayı. Hızlı tekrar ve İlk kez,
+  bölümün HER alt başlığını ~7000 karakterlik partilerle sırayla üretir (`partiliOzet`, önbellek anahtarı `zy2|tur|kitap|bolum|j/n`),
+  üstte başlık çipleri ve "n/n parça hazır". Jane: kart görünümü, bitince "Şimdi kendini sına" → ayırt testi.
+  Carvis `zamanim_yok` aracı tüm parçalar bitene kadar bekler ve hepsini okur.
+- `arac2.js`: .arac-cubugu ortada süzülen kapsül; seviye seçimi, A−/A+, Kutular, Okuma modu, Ara "⋯" paneline taşınır;
+  aşağı kaydırınca gizlenir. Projektör modunda holo ✕ gizli (kenar sekmelerine yakın düşüp Carvis'i iptal ediyordu → "Durduruldu").
+
 ## Program (Pratik Pusulası), ikonlar, Hareket arşivi (r60)
 - `www/pusula.js`: https://cerrahpasa-turkce-tip.vercel.app/data/{veri,liste}.json (CORS açık) → #pusula: gün şeridi, dersler,
   pratikler (öğrenci no → grup; liste.json'daki tuzlu SHA-256 özetle kesin oturumlar; numara yalnız cihazda), komite geri sayımı,

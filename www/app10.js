@@ -70,12 +70,29 @@
     if (!kj || !bolum) return;
     var govde = U.panelAc('⚡ Zamanım yok: ' + (bolum.kisa || bolum.baslik), kj.baslik);
     var kutu = el('div', { class: 'yp-cevap' });
-    govde.appendChild(el('p', { class: 'var-etiket', text: 'Bölümün sınav odaklı 5 dakikalık özeti. Yapay zekâ kitabın bu bölümünden çıkarır; bir kez üretilir ve saklanır.' }));
-    govde.appendChild(kutu);
+    /* kullanıcı, 2026-11-03: "bölüm başına Zamanım yok, bütün başlıkların özetini çıkarsın"; "konuyu ilk defa öğreniyorsam bazı şeyleri
+       değişik anlatsın; Patrick Jane + test çok güzel, biraz daha güzelleştirelim" → sekmeler: Hızlı tekrar (her alt başlık) ·
+       İlk kez öğreniyorum (sezgi → terimler → adım adım → kendine sor) · Patrick Jane (takılacağın yer → ayırt testi) · Hafıza sarayı */
+    var sekmeler = el('div', { class: 'zy-sekmeler', role: 'tablist' }), alanlar = {};
+    var sHizli = el('div', { class: 'zy-alan', 'data-s': 'hizli' }), sIlk = el('div', { class: 'zy-alan', 'data-s': 'ilk', hidden: true }), sJane = el('div', { class: 'zy-alan', 'data-s': 'jane', hidden: true }), sSaray = el('div', { class: 'zy-alan', 'data-s': 'saray', hidden: true });
+    var ilkKutu = el('div', { class: 'yp-cevap' }), ilkBasladi = false;
+    [['hizli', '⚡', 'Hızlı tekrar', 'sınav için, her başlık'], ['ilk', '🌱', 'İlk kez öğreniyorum', 'sezgi + adım adım'], ['jane', '🎩', 'Patrick Jane', 'takılacağın yer + test'], ['saray', '🏛', 'Hafıza sarayı', 'mekânda ezber']].forEach(function (x) {
+      var b = el('button', { type: 'button', role: 'tab', class: 'zy-sekme' + (x[0] === 'hizli' ? ' on' : ''), 'aria-selected': String(x[0] === 'hizli') }, [el('span', { class: 'ik', text: x[1] }), el('b', { text: x[2] }), el('small', { text: x[3] })]);
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(sekmeler.children, function (c) { c.classList.toggle('on', c === b); c.setAttribute('aria-selected', String(c === b)); });
+        [sHizli, sIlk, sJane, sSaray].forEach(function (a) { a.hidden = a.getAttribute('data-s') !== x[0]; });
+        if (x[0] === 'ilk' && !ilkBasladi) { ilkBasladi = true; partiliOzet(ilkKutu, kj, bolum, 'ilk'); }
+        if (x[0] === 'saray' && !sarayKutu.dataset.b) { sarayKutu.dataset.b = 1; sarayKutu.hidden = false; if (U.sarayKurPaneli) U.sarayKurPaneli(sarayKutu, kj, bolum); }
+      });
+      sekmeler.appendChild(b);
+    });
+    govde.appendChild(sekmeler);
+    sHizli.appendChild(kutu); sIlk.appendChild(el('p', { class: 'var-etiket', text: 'Konuyu ilk kez görüyorsan: her başlık önce günlük hayattan bir sezgiyle, sonra yeni terimler, adım adım mantık ve kendini kontrol sorusuyla anlatılır. Bilgi yalnız kitabın bu bölümünden.' })); sIlk.appendChild(ilkKutu);
+    govde.appendChild(sHizli); govde.appendChild(sIlk); govde.appendChild(sJane); govde.appendChild(sSaray);
     // 🎩 Patrick Jane gibi anlat — kullanıcı (2026-11-02): ilk sürüm "çok kısa ve anlamsız". İstenen: metni okurken nerede
     // karıştıracağımı (ör. B-48 / B-100) önceden bilsin, "asıl takıldığın nokta şu, göründüğü gibi değil, aslında böyle; bu yüzden
     // hocalar ısrarla soruyor" desin. Dayanak: bölüm metni + bu bölümün çıkmış soruları (kaç yıl soruldu) + öğrencinin bu bölümdeki yanlışları.
-    var janeKutu = el('div', { class: 'yp-cevap', hidden: true });
+    var janeKutu = el('div', { class: 'yp-cevap jane-kart', hidden: true });
     function janeVerisi() {
       var cikmis = Kitaplik.sorular(kj.id).then(function (l) {
         return l.filter(function (q) { return q.bolum === bolum.id && !q.deneme; }).map(function (q) {
@@ -89,8 +106,9 @@
       }).catch(function () { return ''; });
       return Promise.all([cikmis, eksik]);
     }
-    govde.appendChild(el('div', { class: 'yp-dugmeler' }, [el('button', { class: 'dugme kucuk', type: 'button', onclick: function () {
-      var d = this; d.disabled = true; janeKutu.hidden = false;
+    sJane.appendChild(el('div', { class: 'jane-giris' }, [el('div', { class: 'jane-av', text: 'PJ' }), el('div', {}, [el('b', { text: 'Patrick Jane' }), el('p', { text: '"Bu bölümü okurken aklından geçeni söyleyeyim…" — çıkmış sorulara ve senin yanlışlarına bakıp nerede karıştıracağını önceden çözer; sonunda o karışıklıklardan ayırt etme testi.' })])]));
+    sJane.appendChild(el('div', { class: 'yp-dugmeler' }, [el('button', { class: 'dugme ana jane-dug', type: 'button', onclick: function () {
+      var d = this; d.disabled = true; d.style.display = 'none'; janeKutu.hidden = false;
       janeKutu.innerHTML = '<div class="yukleniyor">Çıkmışlar ve yanlışların inceleniyor…</div>';
       janeVerisi().then(function (r) {
         var cikmis = r[0], eksik = r[1];
@@ -110,21 +128,21 @@
             'ÖĞRENCİNİN BU BÖLÜMDEKİ YANLIŞLARI / BİLMİYORUMLARI:\n' + (eksik ? eksik + '\n(toplam ' + eksik.split('\n').length + ' kayıt)' : '(kayıt yok)');
         }, { kj: kj, eylem: 'jane', sonra: function (metin, alt) {
           if (window.Carvis && window.Carvis.soyle && window.AndroidKopru) alt.appendChild(el('button', { class: 'dugme kucuk', type: 'button', onclick: function () { window.Carvis.soyle(metin); } }, ['🔊 Carvis sesiyle dinle']));
-          if (U.ayirtTesti) { var tk = el('div'); alt.after(tk); alt.appendChild(el('button', { class: 'dugme kucuk ana', type: 'button', onclick: function () { this.disabled = true; U.ayirtTesti(tk, metin, kj, bolum); } }, ['🎯 Ayırt etme testi'])); }
+          if (U.ayirtTesti) { var tk = el('div', { class: 'jane-test' }); alt.after(tk);
+            var cta = el('button', { class: 'jane-cta', type: 'button' }, [el('span', { class: 'ik', text: '🎯' }), el('span', {}, [el('b', { text: 'Şimdi kendini sına' }), el('small', { text: 'Yukarıdaki karışıklıklardan ayırt etme testi · yanlışlar Eksikler\'e' })])]);
+            cta.addEventListener('click', function () { cta.remove(); U.ayirtTesti(tk, metin, kj, bolum); setTimeout(function () { tk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300); });
+            tk.before(cta); }
         } });
       });
-    } }, ['🎩 Patrick Jane: nerede takılacağını çöz'])]));
-    govde.appendChild(janeKutu);
+    } }, ['🎩 Nerede takılacağımı çöz'])]));
+    sJane.appendChild(janeKutu);
     // 🏛 Hafıza sarayı (app17.js): bölümün kritik bilgileri bir mekânın odalarına
     var sarayKutu = el('div', { class: 'yp-cevap', hidden: true });
-    govde.appendChild(el('div', { class: 'yp-dugmeler' }, [el('button', { class: 'dugme kucuk', type: 'button', onclick: function () { sarayKutu.hidden = false; if (U.sarayKurPaneli) U.sarayKurPaneli(sarayKutu, kj, bolum); } }, ['🏛 Hafıza sarayı kur'])]));
-    govde.appendChild(sarayKutu);
+    sSaray.appendChild(sarayKutu);
     // AI yoksa: kitabın kendi sınav odaklı parçaları
     U.AI.hazir().then(function (ok) {
       if (!ok) { yedek(); return; }
-      U.cevapCalistir(kutu, fnv('zamanimyok|' + kj.id + '|' + bolum.id), function () {
-        return 'Bir tıp öğrencisinin sınava çok az zamanı var. Aşağıdaki çalışma kitabı bölümünü 5 dakikada okunacak biçimde özetle. YALNIZ bu metne dayan, uydurma. Türkçe.\nBiçim:\n**Özün özü** (2 cümle)\n**Mutlaka bil** (8-12 kısa madde; sınavda çıkan/★/🔥 olanlara öncelik ver)\n**Tuzaklar** (en çok 4 madde)\n**Son 30 saniye** (3 maddelik ezber listesi)\nEn fazla 300 kelime.\n\nKİTAP: ' + kj.baslik + '\nBÖLÜM: ' + bolum.baslik + '\n"""\n' + bolumOzu(bolum, 15000) + '\n"""';
-      }, { kj: kj, eylem: 'zamanimyok' });
+      partiliOzet(kutu, kj, bolum, 'hizli');
     });
     function yedek() {
       kutu.innerHTML = '';
@@ -134,6 +152,71 @@
       kutu.appendChild(l);
     }
   }
+  /* Bölümün HER alt başlığı: metin ~7000 karakterlik partilere bölünür, partiler sırayla üretilir (önbellekli). Üstte başlık çipleri. */
+  function partiliOzet(kutu, kj, bolum, tur) {
+    kutu.innerHTML = '';
+    var altlar = (bolum.altlar || []).filter(function (a) { return a.baslik || (a.bloklar && a.bloklar.length); });
+    var partiler = [], p = [], boy = 0;
+    altlar.forEach(function (a, i) { var m = U.altMetin ? U.altMetin(a, 3500) : ''; if (p.length && boy + m.length > 7000) { partiler.push(p); p = []; boy = 0; } p.push({ a: a, i: i, m: m }); boy += m.length; });
+    if (p.length) partiler.push(p);
+    var toc = el('div', { class: 'zy-toc' }), durum = el('div', { class: 'zy-durum' });
+    var kaplar = partiler.map(function () { return el('div', { class: 'zy-parti' }); });
+    altlar.forEach(function (a, i) {
+      var pj = 0; partiler.forEach(function (pp, j) { if (pp.some(function (x) { return x.i === i; })) pj = j; });
+      toc.appendChild(el('button', { type: 'button', class: 'zy-cip', onclick: function () {
+        var hedef = null, ad = String(a.baslik || '').replace(/^\d+(\.\d+)*\s*/, '').slice(0, 18).toLocaleLowerCase('tr');
+        Array.prototype.some.call(kaplar[pj].querySelectorAll('h1,h2,h3,h4,strong'), function (h) { if (h.textContent.toLocaleLowerCase('tr').indexOf(ad) >= 0) { hedef = h; return true; } });
+        (hedef || kaplar[pj]).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } }, [basAd(a, i)]));
+    });
+    kutu.appendChild(toc); kutu.appendChild(durum); kaplar.forEach(function (k) { kutu.appendChild(k); });
+    var sira = 0, hazir = 0;
+    function ilerle() { durum.textContent = hazir >= partiler.length ? '✓ ' + altlar.length + ' başlığın hepsi hazır' : hazir + '/' + partiler.length + ' parça hazır · ' + altlar.length + ' başlık'; }
+    ilerle();
+    function sonraki() {
+      if (sira >= partiler.length) return; var j = sira++, pp = partiler[j], c = el('div'); kaplar[j].appendChild(c);
+      var yedek = setTimeout(sonraki, 50000), cagrildi = false;
+      U.cevapCalistir(c, fnv('zy2|' + tur + '|' + kj.id + '|' + bolum.id + '|' + j + '/' + partiler.length), function () { return istem(tur, kj, bolum, pp); },
+        { kj: kj, eylem: tur === 'ilk' ? 'zamanimyok-ilk' : 'zamanimyok', sonra: function () { clearTimeout(yedek); hazir++; ilerle(); if (!cagrildi) { cagrildi = true; sonraki(); } } });
+    }
+    sonraki();
+  }
+  // başlık adı: numara iki kez yazılmasın ("11.1 11.1 …"); adsız giriş bloğu "Giriş"
+  function basAd(a, i) { var b = String(a.baslik || '').trim(), no = String(a.no || '').trim(); if (!b) return i === 0 ? 'Giriş' : 'Kısım ' + (i + 1); return no && b.indexOf(no) !== 0 ? no + ' ' + b : b; }
+  function istem(tur, kj, bolum, pp) {
+    var metin = pp.map(function (x) { return '=== BAŞLIK: ' + basAd(x.a, x.i) + ' ===\n' + x.m; }).join('\n\n');
+    if (tur === 'ilk') return 'Bu konuyu İLK KEZ öğrenen bir tıp öğrencisine anlat — ezber için değil, ANLAMAK için. Aşağıdaki HER alt başlığı ayrı ayrı ve sırayla anlat; hiçbirini atlama. ' +
+      'Bilgiyi YALNIZ bu metinden al; benzetmeler gerçeği çarpıtmasın, metinde olmayan sayı/ad uydurma. Sade, sıcak, "sen" diliyle; Latince/İngilizce terimleri koru.\nHer başlık için TAM bu biçim:\n' +
+      '### <başlık numarası ve adı>\n**Önce sezgi:** günlük hayattan bir benzetme ya da somut bir sahne (2-3 cümle)\n**Yeni terimler:** başlıktaki 2-5 yeni terim; her biri "terim (İngilizce/Latince) — sade tanım"\n' +
+      '**Adım adım:** mantığı/mekanizmayı 3-6 numaralı adımda, her adımda "çünkü" ile\n**Neden önemli:** vücutta ya da klinikte nerede karşına çıkar (1-2 cümle)\n**Kendine sor:** tek kısa soru; hemen altına "> Cevap: …"\n\n' +
+      'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\n"""\n' + metin + '\n"""';
+    return 'Bir tıp öğrencisinin komite sınavına çok az zamanı var. Aşağıdaki bölümün HER alt başlığını ayrı ayrı, sırayla özetle; hiçbir başlığı atlama, başlık sırasını koru. YALNIZ bu metne dayan, uydurma. Türkçe; Latince/İngilizce terimleri koru.\n' +
+      'Her başlık için TAM bu biçim:\n### <başlık numarası ve adı>\n**Özü:** 1-2 cümle\n- 3-7 kısa madde: tanımlar, sayılar, sıralamalar, ayırt edici özellikler — sınavda sorulabilecek her şey\n**Tuzak:** karıştırılan nokta (yalnız metinde varsa)\n\n' +
+      'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\n"""\n' + metin + '\n"""';
+  }
+  var zyCss = document.createElement('style');
+  zyCss.textContent = [
+    '.zy-sekmeler{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:4px 0 14px}',
+    '.zy-sekme{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:16px;border:1px solid rgba(110,255,235,.22);background:rgba(94,240,220,.04);color:#cfeee9;text-align:left;cursor:pointer;min-width:0}',
+    '.zy-sekme .ik{font-size:18px}.zy-sekme b{font-size:14px;color:#effffc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.zy-sekme small{font-size:11.5px;color:#8fc7bf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}',
+    '.zy-sekme.on{border-color:#9ffff0;background:linear-gradient(135deg,rgba(94,240,220,.18),rgba(70,200,255,.05));box-shadow:0 0 18px rgba(94,240,220,.3)}',
+    '.zy-sekme[data-x]{}',
+    '@media (max-width:640px){.zy-sekmeler{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+    '.zy-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.zy-cip{padding:5px 10px;border-radius:999px;border:1px solid rgba(110,255,235,.28);background:transparent;color:#bfeee8;font-size:12.5px;cursor:pointer}',
+    '.zy-durum{font:600 11.5px var(--f-kod,monospace);letter-spacing:.06em;color:#7fe8da;margin:2px 0 10px}',
+    '.zy-parti .ai-metin h4{margin:18px 0 6px;padding:6px 12px;border-radius:12px;background:linear-gradient(90deg,rgba(94,240,220,.14),transparent);color:#effffc;font-size:16px;scroll-margin-top:90px}',
+    '.zy-alan[data-s="ilk"] .ai-metin h4{background:linear-gradient(90deg,rgba(140,255,160,.16),transparent)}',
+    '.zy-alan .ai-metin blockquote{margin:6px 0;padding:6px 12px;border-left:3px solid #8cffa0;background:rgba(140,255,160,.06);border-radius:0 10px 10px 0}',
+    '.jane-giris{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:18px;margin-bottom:10px;background:linear-gradient(135deg,rgba(255,211,138,.12),rgba(0,0,0,0));box-shadow:0 0 0 1px rgba(255,211,138,.4)}',
+    '.jane-av{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font:800 18px var(--f-baslik,system-ui);color:#1b1206;background:linear-gradient(135deg,#ffe2a8,#c08a3a);box-shadow:0 0 18px rgba(255,200,100,.5)}',
+    '.jane-giris b{color:#ffd38a;font-size:16px}.jane-giris p{margin:3px 0 0;color:#f3e6cf;font-size:13.5px;line-height:1.45;font-style:italic}',
+    '.jane-dug{width:100%;justify-content:center}',
+    '.jane-kart .ai-metin p strong:first-child{color:#ffd38a}.jane-kart .ai-metin p:has(> strong:first-child){padding:10px 14px;border-radius:14px;background:rgba(255,211,138,.05);box-shadow:inset 3px 0 0 #ffd38a}',
+    '.jane-cta{display:flex;align-items:center;gap:14px;width:100%;margin:14px 0;padding:16px 18px;border-radius:20px;border:0;cursor:pointer;text-align:left;color:#fff;background:linear-gradient(135deg,rgba(94,240,220,.25),rgba(255,211,138,.15));box-shadow:0 0 0 1px rgba(160,255,240,.6),0 0 30px rgba(94,240,220,.3);animation:janeNefes 2.4s ease-in-out infinite}',
+    '.jane-cta .ik{font-size:26px}.jane-cta b{display:block;font-size:17px}.jane-cta small{display:block;color:#d5f5ef;font-size:12.5px}',
+    '@keyframes janeNefes{50%{box-shadow:0 0 0 1px rgba(160,255,240,.9),0 0 46px rgba(94,240,220,.5)}}'
+  ].join('\n');
+  document.head.appendChild(zyCss);
   U.zamanimYok = zamanimYok;
   U.bolumOzu = bolumOzu;
   var onceki = U.sonIsle;
