@@ -17,13 +17,17 @@
     '.cv-balon.canli .cv-alt{padding:6px 10px!important}',
     '.cv-balon .cv-boyut{font-size:15px}',
     '.cv-balon.canli.suruklendi{transition:none!important}',
-    /* kullanıcı, 2026-11-03: "soldaki yazı şeysini daha müsait yere taşı" → sağ alt köşe (projektör kalktı, orası boş);
-       ortadaki büyük küreyle çakışmasın diye dar. Dik ekranda sağ üst. Sürüklenince elle verilen yer geçerli. */
-    '.cv-balon.canli{width:min(460px,40vw,calc(100vw - var(--cv-sag,16px) - 16px))!important;left:auto!important;top:auto!important;right:var(--cv-sag,16px)!important;bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;transform:none!important;transform-origin:100% 100%!important}',
-    '@media (orientation:portrait){.cv-balon.canli{width:min(420px,calc(100vw - 32px))!important;bottom:auto!important;top:calc(12px + env(safe-area-inset-top,0px))!important;transform-origin:100% 0!important}}',
+    /* kullanıcı, 2026-11-03: "yazı şeyi olmasın, altyazıya tıklayınca oradan açılsın" → şerit normalde gizli; Carvis açıkken
+       altyazı hep görünür kalır (son cümle ya da durum) ve dokunulabilir: dokununca yazma şeridi altyazının hemen üstünde açılır,
+       tekrar dokununca kapanır. Sağda yan panel açıksa ikisi de panelin solunda ortalanır. */
+    '.cv-balon.canli{width:min(560px,calc(var(--cv-alan,100vw) - 32px))!important;left:var(--cv-x,50%)!important;right:auto!important;top:auto!important;bottom:var(--cv-alt,170px)!important;transform:translateX(-50%)!important;transform-origin:50% 100%!important}',
+    'body.cv-yazi-kapali .cv-balon.canli:not(.tasindi){display:none!important}',
     '.cv-balon.canli .cv-durum{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.cv-balon.canli .cv-ust{flex-wrap:nowrap!important;gap:6px!important}.cv-balon.canli .cv-ust > *{flex-shrink:0}.cv-balon.canli .cv-ust .cv-durum{flex:1 1 0!important}',
-    'html body.cv-canli-acik .jv-altyazi{bottom:var(--cv-ust,100px)!important;left:var(--cv-x,50%)!important;width:var(--cv-w,min(860px,calc(100vw - 32px)))!important}',
+    'html body .jv-altyazi.cv-tik{pointer-events:auto;cursor:pointer;left:var(--cv-x,50%)!important;width:min(860px,calc(var(--cv-alan,100vw) - 32px))!important}',
+    '.jv-altyazi.cv-kalici{opacity:.9;transform:translate(-50%,0)}',
+    '.jv-altyazi.cv-tik .jv-ay-ic{transition:box-shadow .2s}.jv-altyazi.cv-tik:active .jv-ay-ic{box-shadow:0 0 0 1px rgba(140,255,240,.7),0 0 26px rgba(94,240,220,.45)}',
+    'body:not(.cv-yazi-kapali) .jv-altyazi.cv-tik .jv-ay-ic{box-shadow:0 0 0 1px rgba(140,255,240,.45)}',
     '.cv-balon.canli.tasindi{right:auto!important;bottom:auto!important;left:var(--tx)!important;top:var(--ty)!important}'
   ].join('\n');
   document.head.appendChild(css);
@@ -54,16 +58,29 @@
     }
     // yazmaya başlayınca ya da uzun cevapta tam sohbete geçmek isteyene kısa yol: girişe çift dokunma → genişlet
     var giris = b.querySelector('.cv-alt input'); if (giris) giris.addEventListener('dblclick', function () { if (canli) { canli = false; uygula(); } });
-    // sağda bir yan panel (ayarlar, Zamanım yok…) açıksa şerit onun soluna kayar, altında kalmaz
+    // yazma şeridi altyazıya bağlı: normalde kapalı, altyazıya dokununca açılır/kapanır
+    document.body.classList.add('cv-yazi-kapali');
+    function yaziAc(ac) {
+      document.body.classList.toggle('cv-yazi-kapali', !ac); b.classList.remove('tasindi');
+      if (ac) setTimeout(function () { var g = b.querySelector('.cv-alt input, .cv-alt textarea'); if (g) try { g.focus(); } catch (e) {} }, 60);
+    }
+    var bagli = null;
     setInterval(function () {
-      var p = document.querySelector('.yan-panel.acik'), sag = 16;
-      if (p && innerWidth > innerHeight) { var r = p.getBoundingClientRect(); if (r.width && r.right > innerWidth - 40) sag = Math.round(innerWidth - r.left + 12); }
-      if (innerWidth - sag < 320) sag = 16;
-      var v = sag + 'px'; if (b.style.getPropertyValue('--cv-sag') !== v) b.style.setProperty('--cv-sag', v);
-      // altyazı şeridin üstüne çıkar, üst üste binmesin
-      var gorunur = canli && !b.hidden && b.getClientRects().length > 0; document.body.classList.toggle('cv-canli-acik', gorunur);
-      if (gorunur) { var bt = b.getBoundingClientRect(); if (bt.top > innerHeight / 2) { var ds = document.documentElement.style; ds.setProperty('--cv-ust', Math.round(innerHeight - bt.top + 10) + 'px'); ds.setProperty('--cv-x', Math.round(bt.left + bt.width / 2) + 'px'); ds.setProperty('--cv-w', Math.round(Math.max(bt.width, 320)) + 'px'); } else document.body.classList.remove('cv-canli-acik'); }
-    }, 400);
+      var kap = document.querySelector('.jv-altyazi') || (window.Carvis && window.Carvis.acik && window.jvAltyaziKur ? window.jvAltyaziKur() : null), acik = !!(window.Carvis && window.Carvis.acik) && !b.hidden;
+      // sağda yan panel açıksa kullanılabilir alan panelin solu
+      var p = document.querySelector('.yan-panel.acik'), alan = innerWidth;
+      if (p && innerWidth > innerHeight) { var r = p.getBoundingClientRect(); if (r.width && r.right > innerWidth - 40 && r.left > 340) alan = Math.round(r.left); }
+      var ds = document.documentElement.style; ds.setProperty('--cv-alan', alan + 'px'); ds.setProperty('--cv-x', Math.round(alan / 2) + 'px');
+      if (!acik) { if (!document.body.classList.contains('cv-yazi-kapali')) yaziAc(false); }
+      if (!kap) return;
+      if (bagli !== kap) { bagli = kap; kap.addEventListener('click', function () { if (window.Carvis && window.Carvis.acik) yaziAc(document.body.classList.contains('cv-yazi-kapali')); }); }
+      kap.classList.toggle('cv-tik', acik && canli);
+      // Carvis açıkken altyazı sönmesin: konuşma yoksa son cümle ya da durum kalır
+      var ic = kap.firstChild, kalici = acik && canli && !kap.classList.contains('acik');
+      if (kalici && ic && !ic.textContent.trim()) { var du = b.querySelector('.cv-durum'); ic.textContent = (du && du.textContent.trim()) || 'C.A.R.V.I.S.'; ic.dataset.p = ''; }
+      kap.classList.toggle('cv-kalici', kalici);
+      if (acik) { var kt = kap.getBoundingClientRect(); if (kt.height) ds.setProperty('--cv-alt', Math.round(innerHeight - kt.top + 10) + 'px'); }
+    }, 300);
     return true;
   }
   if (!kur()) { var d = setInterval(function () { if (kur()) clearInterval(d); }, 400); setTimeout(function () { clearInterval(d); }, 20000); }

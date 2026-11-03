@@ -291,6 +291,7 @@
     AYZ.kap = el('div', { class: 'jv-altyazi', 'aria-hidden': 'true' }, [el('div', { class: 'jv-ay-ic' })]);
     document.body.appendChild(AYZ.kap);
   }
+  window.jvAltyaziKur = function () { altyaziKur(); return AYZ.kap; };
   function altyaziYaz(kelimeIdx) {
     var ic = AYZ.kap.firstChild, l = AYZ.kelimeler; if (!l.length) return;
     // içinde bulunulan cümle penceresi (en çok ~26 kelime)
