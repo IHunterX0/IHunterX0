@@ -17,6 +17,29 @@
   var el = U.el, $ = U.$, Y = U.Y, Durum = U.Durum, Kitaplik = U.Kitaplik, katla = A.katla;
   var K = window.AndroidKopru || null;
 
+  /* ---------------- Carvis sesi: ZipVoice (internetsiz, İngilizce) + Türkçe altyazı ---------------- */
+  var Zv = (function () {
+    var onbellek = {}, z = { bekle: {}, sonHata: '' };
+    function ayar(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+    z.durum = function () { try { return JSON.parse(K && K.zvDurum ? K.zvDurum() : '{}'); } catch (e) { return {}; } };
+    z.acik = function () { if (!K || !K.zvKonus || ayar('zv_acik') !== '1') return false; var d = z.durum(); return !!d.model && !!d.ornek; };
+    z.efekt = function () { var v = parseFloat(ayar('zv_efekt')); return isNaN(v) ? 0.5 : v; };
+    z.ayar = ayar;
+    // Türkçe cevabı Carvis'in İngilizcesine çevirir (önbellekli); çeviri olmazsa metni olduğu gibi döndürür
+    z.ingilizce = function (m) {
+      m = String(m || '').trim();
+      if (!m) return Promise.resolve(m);
+      if (!/[çğıöşüÇĞİÖŞÜ]/.test(m) && /\b(the|and|is|are|you|of|to)\b/i.test(m)) return Promise.resolve(m);
+      if (onbellek[m]) return Promise.resolve(onbellek[m]);
+      var is = Y.sample('Translate the following Turkish text into natural SPOKEN English, as C.A.R.V.I.S., a calm, witty British AI assistant talking to a medical student. Keep every fact, number and medical term exact (use standard English medical terminology). Keep it about the same length. Output ONLY the English text, no quotes, no notes.\n\nTEXT:\n' + m.slice(0, 3000), { hafif: true })
+        .then(function (r) { var t = String(r && r.text || '').trim().replace(/^["“]|["”]$/g, ''); if (t) { onbellek[m] = t; return t; } return m; });
+      return Promise.race([is, new Promise(function (ok) { setTimeout(function () { ok(null); }, 12000); })]).then(function (t) { return t || m; }, function () { return m; });
+    };
+    window.zvBitti = function (id, h) { var f = z.bekle[id]; delete z.bekle[id]; if (f) f(h || null); };
+    window.zvDurum = function () { if (z.ciz) try { z.ciz(); } catch (e) {} };
+    return z;
+  })();
+
   /* ---------------- ses katmanı ---------------- */
   var Ses = (function () {
     var bekleyenKonus = {}, sayac = 0, dinleSoz = null, hiz = 1;
@@ -32,11 +55,20 @@
         if (window.__carvisSahteSes) return window.__carvisSahteSes.konus(metin).then(function (x) { bitir(); return x; }); // yalnız testler
         return new Promise(function (ok0) { var ok = function () { bitir(); ok0(); };
           if (!metin) return ok();
+          if (K && Zv.acik()) {
+            var zid = 'z' + (++sayac); bekleyenKonus[zid] = ok;
+            Zv.ingilizce(metin).then(function (en) {
+              if (!bekleyenKonus[zid]) return; // bu arada susturuldu
+              Zv.bekle[zid] = function (h) { if (!h) { delete bekleyenKonus[zid]; return ok(); } Zv.sonHata = h; var id2 = 'k' + (++sayac); bekleyenKonus[id2] = ok; delete bekleyenKonus[zid]; K.konus(metin, id2, String(hiz)); };
+              K.zvKonus(zid, en, hiz, Zv.efekt());
+            });
+            return;
+          }
           if (K) { var id = 'k' + (++sayac); bekleyenKonus[id] = ok; K.konus(metin, id, String(hiz)); return; }
           try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(metin); u.lang = 'tr-TR'; u.rate = hiz; u.onend = u.onerror = function () { ok(); }; u.onboundary = function (e) { if (window.Holo) window.Holo.kelime(e.charIndex, e.charIndex + (e.charLength || 1)); }; speechSynthesis.speak(u); } catch (e) { ok(); }
         });
       },
-      sus: function () { if (K) K.sus(); else try { speechSynthesis.cancel(); } catch (e) {} Object.keys(bekleyenKonus).forEach(function (k) { bekleyenKonus[k](); delete bekleyenKonus[k]; }); },
+      sus: function () { if (K && K.zvSus) try { K.zvSus(); } catch (e) {} if (K) K.sus(); else try { speechSynthesis.cancel(); } catch (e) {} Object.keys(bekleyenKonus).forEach(function (k) { bekleyenKonus[k](); delete bekleyenKonus[k]; }); },
       // Tek cümle dinler: metin ya da '' (sessizlik/anlaşılmadı) döner
       dinle: function () {
         if (window.__carvisSahteSes) return window.__carvisSahteSes.dinle();
@@ -529,6 +561,35 @@
       var dene = el('button', { class: 'dugme kucuk', type: 'button', text: '▶ Dene', onclick: function () { K.sesAyarla(sesSec.value, +perde.value); setTimeout(function () { Ses.konus((hitap() ? 'Merhaba ' + hitap() + '. ' : 'Merhaba. ') + 'Bugün hangi konuya çalışıyoruz?'); }, 400); } });
       [sesSec, perde].forEach(function (x) { x.addEventListener('change', function () { K.sesAyarla(sesSec.value, +perde.value); }); });
       govde.appendChild(satir('Ses', sesSec)); govde.appendChild(satir('Perde (tını)', perde)); govde.appendChild(dene);
+    }
+    // Carvis sesi: ZipVoice (kullanıcı, 2026-11-03: "carvisin içine zipvoice kuralım", İngilizce konuşsun + Türkçe altyazı)
+    if (K && K.zvDurum) {
+      govde.appendChild(el('h4', { text: '🎙 Carvis sesi — ZipVoice (beta, internetsiz)' }));
+      govde.appendChild(el('p', { class: 'var-etiket', text: 'Açıkken Carvis İngilizce konuşur, altyazı Türkçe kalır. Ses telefonda üretilir (internet gerekmez). İlk kullanımda ~125 MB model bir kez indirilir; Wi-Fi önerilir.' }));
+      var zvAc = el('input', { type: 'checkbox', checked: Zv.ayar('zv_acik') === '1' ? true : null });
+      var zvEf = el('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(Zv.efekt()) });
+      var zvDurumP = el('p', { class: 'var-etiket', 'aria-live': 'polite' });
+      var zvIndir = el('button', { class: 'dugme kucuk', type: 'button', text: '⇣ Ses modelini indir (125 MB)', onclick: function () { K.zvIndir(); Zv.ciz(); } });
+      var zvDene = el('button', { class: 'dugme kucuk', type: 'button', text: '▶ Dene', onclick: function () { Ses.konus((hitap() ? 'Merhaba ' + hitap() + '. ' : 'Merhaba. ') + 'Bütün sistemler çevrimiçi. Bugün hangi konuya çalışıyoruz?'); } });
+      var zvZm = null;
+      Zv.ciz = function () {
+        var d = Zv.durum();
+        zvIndir.hidden = !!d.model || !!d.indiriliyor;
+        zvDene.hidden = !d.model;
+        zvDurumP.textContent = d.abi && !/arm64/.test(d.abi) ? 'Bu cihaz desteklenmiyor (' + d.abi + ').' :
+          !d.ornek ? 'Ses örneği yok.' :
+          d.indiriliyor ? 'İndiriliyor… %' + (d.yuzde || 0) :
+          d.model ? (d.hazir ? 'Hazır ✓' : 'Model indirildi ✓ (ilk konuşmada birkaç saniye yüklenir)') + (Zv.sonHata ? ' · Son hata: ' + Zv.sonHata : '') :
+          (d.hata ? 'İndirme hatası: ' + d.hata + ' — tekrar dene.' : 'Model henüz indirilmedi.');
+        clearTimeout(zvZm); if (d.indiriliyor && document.body.contains(zvDurumP)) zvZm = setTimeout(Zv.ciz, 1000);
+      };
+      zvAc.addEventListener('change', function () { Zv.ayar('zv_acik', zvAc.checked ? '1' : '0'); if (zvAc.checked && !Zv.durum().model) K.zvIndir(); Zv.ciz(); });
+      zvEf.addEventListener('change', function () { Zv.ayar('zv_efekt', zvEf.value); });
+      govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [zvAc, 'Carvis bu sesle İngilizce konuşsun (altyazı Türkçe)']));
+      govde.appendChild(satir('Jarvis cilası (netlik + hologram yankısı)', zvEf));
+      govde.appendChild(el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [zvIndir, zvDene]));
+      govde.appendChild(zvDurumP);
+      Zv.ciz();
     }
     // Sağlayıcı zinciri (kullanıcı, 2026-11-03: "omniroute'u termux'suz sen hallet", "ücret ödemeyeceğim")
     var SG = window.yerelAyar && window.yerelAyar.saglayici;

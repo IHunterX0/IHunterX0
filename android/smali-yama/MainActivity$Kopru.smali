@@ -1456,3 +1456,45 @@
 
     return-void
 .end method
+
+.method public zvDurum()Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->durum()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
+.method public zvIndir()V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->indir()V
+
+    return-void
+.end method
+
+.method public zvKonus(Ljava/lang/String;Ljava/lang/String;FF)V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {p1, p2, p3, p4}, Lcom/dogac/bin1/CarvisZv;->konus(Ljava/lang/String;Ljava/lang/String;FF)V
+
+    return-void
+.end method
+
+.method public zvSus()V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->sus()V
+
+    return-void
+.end method
