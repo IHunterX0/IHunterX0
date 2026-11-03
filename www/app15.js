@@ -47,6 +47,7 @@
         d.addEventListener('click', function () {
           if (bitti) return; bitti = true; cevaplanan++;
           var ok = j === q.dogru; if (ok) dogru++; else yanlislar.push(q);
+          if (o.cevap) try { o.cevap(q, ok); } catch (e) {}
           d.classList.add(ok ? 'dogru' : 'yanlis');
           if (!ok && blok.querySelectorAll('.sik')[q.dogru]) blok.querySelectorAll('.sik')[q.dogru].classList.add('dogru');
           if (q.aciklama || q.aciklamaHtml) blok.appendChild(el('div', { class: 'tt-aciklama', html: q.aciklamaHtml || esc(q.aciklama) }));

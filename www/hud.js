@@ -14,13 +14,13 @@
   var GRUPLAR = [
     { id: 'merkez', ad: 'MERKEZ', kod: '01', ikon: '◉', sekmeler: ['kutuphane'] },
     { id: 'oku', ad: 'OKU', kod: '02', ikon: '❏', sekmeler: ['oku'] },
-    { id: 'calis', ad: 'ÇALIŞ', kod: '03', ikon: '◈', sekmeler: ['koc', 'plan', 'kartlar', 'test', 'tahmin', 'saray'] },
+    { id: 'calis', ad: 'ÇALIŞ', kod: '03', ikon: '◈', sekmeler: ['ders', 'koc', 'plan', 'kartlar', 'test', 'tahmin', 'saray'] },
     { id: 'lab', ad: 'LAB', kod: '04', ikon: '⬡', sekmeler: ['lab-anatomi', 'lab-molekul', 'lab-hareket', 'zaman'] },
     { id: 'muzik', ad: 'MÜZİK', kod: '05', ikon: '♫', sekmeler: ['muzik'] },
     { id: 'arsiv', ad: 'ARŞİV', kod: '06', ikon: '▤', sekmeler: [] } // geri kalan her şey
   ];
   var ACIKLAMA = {
-    koc: 'Bugün ne yapayım', plan: 'Haftalık program', kartlar: 'Aralıklı tekrar', test: 'Soru çöz', tahmin: 'Bu yıl ne çıkar',
+    ders: 'Tüm ders: özet, tuzak, test, program', koc: 'Bugün ne yapayım', plan: 'Haftalık program', kartlar: 'Aralıklı tekrar', test: 'Soru çöz', tahmin: 'Bu yıl ne çıkar',
     saray: 'Hafıza sarayları', 'lab-anatomi': 'İskelet ve kaslar', 'lab-molekul': '3B moleküller', 'lab-hareket': 'Hareket ve solunum',
     zaman: 'Zaman çizelgesi', notlar: 'Notlarım', defter: 'Araştırma defteri', makaleler: 'Literatür takibi', calisma: 'Çalışma analizi',
     sohbet: 'Yazılı sohbet', ekle: 'Yeni kitap ekle'
