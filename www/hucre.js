@@ -664,5 +664,7 @@
   };
   U.SEKMELER.push({ id: 'lab-hucre', ad: 'Hücre lab', ikon: '◉' });
   if (U.sekmeleriCiz) try { U.sekmeleriCiz(); } catch (e) {}
-  U.hucreSurecleri = function () { return SUREC.map(function (x) { return { id: x.id, ad: x.ad }; }); };
+  U.hucreSurecleri = function () { return SUREC.map(function (x) { return { id: x.id, ad: x.ad, ozet: x.ozet }; }); };
+  // Reels/animasyon içine gömme: verilen canvas'ta süreci oynatır (durdurucu döndürür)
+  U.hucreOynat = function (cv, id) { var s = SUREC.filter(function (x) { return x.id === id; })[0]; if (!s) return null; return oynatici(cv, s, { kucuk: false }); };
 })();

@@ -41,7 +41,7 @@
   var bellek = {};
   function icerik(it) {
     if (bellek[it.id]) return bellek[it.id];
-    var anahtar = 'reel2|' + it.id;
+    var anahtar = 'reel3|' + it.id;
     return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
       if (v && v.j && v.j.sahneler) return v.j;
       return Kitaplik.bolumAc(it.kitap, it.sira).then(function (bolum) {
@@ -50,7 +50,7 @@
         var ornek = (it.aile || []).slice(0, 2).map(function (f) { var vv = (f.q.varyantlar || [])[0]; return vv ? vv.govde : ''; }).filter(Boolean).join(' | ');
         return Y.sample.json('Bir tıp öğrencisi için ~60-80 saniyelik, KAYDIRARAK izlenen, ANİMASYONLU ve ETKİLEŞİMLİ bir "reels" dersi yaz. Konu: ' + it.kitapAd + ' · ' + it.bolum + ' · ' + it.konu + '.\n' +
           'YALNIZ aşağıdaki kitap metnine dayan; sayılar ve terimler doğru olsun. Türkçe, kısa cümleler.' + (ornek ? ' Bu konudan çıkmış sorular: ' + ornek.slice(0, 600) : '') + '\n' +
-          'Akış: 1) kanca sahnesi (merak uyandıran soru/şaşırtıcı bilgi) 2) mekanizmayı ANİMASYONLA gösteren sahneler 3) HAFIZA SARAYI: tanıdık bir mekânda 2-3 durak (arka "koridor"; büyük ikon = abartılı imge, yazı = bilgi) 4) soru sahneleri 5) "akılda kalsın" kapanışı.\n' +
+          'Akış (GERÇEK REELS, flashcard DEĞİL): 1) KANCA — Patrick Jane izleyicinin yanlış bildiğini yakalar ("Herkes … sanır."), büyük yazı + ikon 2) VÜCUDA DAL — holografik vücutta ilgili organa kamera ile zoom, organ ne iş yapıyor 3) HÜCREYE İN — lab simülasyonu ile mekanizma canlı oynar 4) GRAFİK/SAYAÇ — sayıları büyük grafikle göster 5) orta soru 6) HAFIZA SARAYI 1-2 sahne (arka "koridor"; abartılı imge ikonu) 7) klinik bağlantı (bu bozulursa hastada ne olur — vücutta organa geri zoom) 8) final soru + "akılda kalsın" tek cümle.\n' +
           U.Animasyon.SENARYO_KURALI + '\n' +
           'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"saray":{"mekan":"…","duraklar":[{"yer":"…","sembol":"emoji","imge":"abartılı imge","bilgi":"bilgi","anahtar":"1-3 kelime"}]},"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]}\n' +
           'saray: 4-5 durak. yorumlar: 6 yorum; 3 tanesi patrick.jane (sınav tuzağı, karıştırılan çift, kestirme), 3 tanesi farklı öğrenci kullanıcı adlarıyla.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
