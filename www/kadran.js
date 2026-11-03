@@ -23,7 +23,7 @@
     '.kd-kadran svg{width:100%;height:100%;overflow:visible}',
     '.kd-cark .bant{pointer-events:stroke;cursor:grab;touch-action:none}',
     '.kd-tutamak{pointer-events:auto;cursor:grab;touch-action:none}',
-    '.kd-ipucu{position:absolute;top:3%;font:700 10.5px var(--f-kod,monospace);letter-spacing:.2em;color:rgba(140,255,240,.55);white-space:nowrap;transition:color .2s,text-shadow .2s;pointer-events:none}',
+    '.kd-ipucu{display:none!important;position:absolute;top:3%;font:700 10.5px var(--f-kod,monospace);letter-spacing:.2em;color:rgba(140,255,240,.55);white-space:nowrap;transition:color .2s,text-shadow .2s;pointer-events:none}',
     '.kd-ipucu.sol{right:60%}.kd-ipucu.sag{left:60%}',
     '.kd-ipucu.on{color:#fff;text-shadow:0 0 12px #5ef0dc}',
     /* küçük çark (silah çarkı) */
@@ -133,7 +133,7 @@
     var r = durbun.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     cx = Math.max(innerWidth * 0.3, Math.min(innerWidth * 0.7, cx)); cy = Math.max(innerHeight * 0.38, Math.min(innerHeight * 0.62, cy));
     var perde = el('div', { class: 'kd-perde', style: '--x:' + cx + 'px;--y:' + cy + 'px' }), tek = el('div', { class: 'kd-tekerlek', role: 'menu', 'aria-label': 'Kısa yol çarkı', style: 'left:' + cx + 'px;top:' + cy + 'px' });
-    var orta = el('div', { class: 'kd-orta' }, [el('b', { text: 'KISA YOL' }), el('small', { text: 'bir dilime dokun' })]);
+    var orta = el('div', { class: 'kd-orta' }, [el('b', { text: 'KISA YOL' }), el('small', { text: '' })]);
     document.body.appendChild(perde); document.body.appendChild(tek);
     function kapat() { perde.remove(); tek.remove(); document.removeEventListener('keydown', tus); }
     function tus(e) { if (e.key === 'Escape') kapat(); }

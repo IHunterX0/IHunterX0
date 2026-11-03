@@ -184,7 +184,7 @@
         });
         sahne.appendChild(d); dugumler.push(d);
       });
-      halka = el('div', { class: 'ae-halka', role: 'dialog', 'aria-label': 'Uygulamalar' }, [el('div', { class: 'ae-ipucu', text: 'UYGULAMA SEÇ · DIŞARI DOKUN: KAPAT' }), sahne]);
+      halka = el('div', { class: 'ae-halka', role: 'dialog', 'aria-label': 'Uygulamalar' }, [sahne]);
       halka.addEventListener('click', function (e) { if (e.target === halka || e.target === sahne) halkaKapat(); });
       document.body.appendChild(halka);
       if (window.JarvisKure) new window.JarvisKure(orta.querySelector('canvas'), { kucuk: true, serit: 2, iplik: 4, nokta: 90, kosul: function () { return !!halka; } });

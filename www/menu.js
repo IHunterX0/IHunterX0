@@ -103,7 +103,7 @@
     var arama = el('div', { class: 'mn-alt-sayfa' }, [
       el('button', { type: 'button', text: '⌕ ARA', onclick: function () { kapat(); var a = document.getElementById('aramaAc'); if (a) a.click(); } }),
       el('button', { type: 'button', text: '⚙ AYARLAR', onclick: function () { kapat(); var b = document.querySelector('.cv-balon button[aria-label="Carvis ayarları"]'); if (b) b.click(); } })]);
-    acik = el('div', { class: 'mn', role: 'dialog', 'aria-label': 'Menü' }, [el('div', { class: 'mn-ipucu', text: 'BÖLÜM SEÇ · DIŞARI DOKUN: KAPAT' }), sahne, arama]);
+    acik = el('div', { class: 'mn', role: 'dialog', 'aria-label': 'Menü' }, [sahne, arama]);
     acik.addEventListener('click', function (e) { if (e.target === acik) kapat(); });
     document.body.appendChild(acik);
     if (window.JarvisKure) new window.JarvisKure(cv, { kucuk: true, serit: 2, iplik: 4, nokta: 100, kosul: function () { return !!acik; } });
