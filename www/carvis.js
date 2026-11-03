@@ -889,7 +889,7 @@
     }).catch(function (e) { Carvis.dersAktif = false; durum('Ders modu açılamadı: ' + (e.message || e)); });
   };
   Carvis._durum = durum;
-  Carvis.gorselAc = gorselAc; Carvis.sahneIsaretle = sahneIsaretle;
+  Carvis.gorselAc = gorselAc; Carvis.sahneIsaretle = sahneIsaretle; Carvis.sus = function () { Ses.sus(); };
   window.Carvis = Carvis;
   window.Carvis._test = { gorselAc: gorselAc, sahneIsaretle: sahneIsaretle, sayfaAc: sayfaAc, UYANDIRMA: UYANDIRMA, KAPAT: KAPAT, yankiMi: yankiMi, profilMetni: profilMetni, selamMetni: selamMetni, araclar: araclar, Profil: function () { return Profil; }, ayarPaneli: ayarPaneli };
   if (uyandirmaAcik) setTimeout(uyandirmaUygula, 1500);

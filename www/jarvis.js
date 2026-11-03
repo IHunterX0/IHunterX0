@@ -415,7 +415,7 @@
     var pano = el('section', { class: 'jv-pano', 'aria-label': 'Carvis panosu' }, [
       el('div', { class: 'jv-ust' }, [el('div', { class: 'jv-baslik', text: 'C.A.R.V.I.S.' })]),
       sol, orta, sag,
-      el('div', { class: 'jv-yuva' }, [yuva('❏', 'OKU', '#oku'), yuva('◎', 'DERS', '#ders'), yuva('◈', 'BUGÜN', '#koc'), yuva('▦', 'PLAN', '#plan'), yuva('⧉', 'KARTLAR', '#kartlar'), yuva('⬡', 'LAB', '#lab-molekul'), yuva('♫', 'MÜZİK', '#muzik')])
+      el('div', { class: 'jv-yuva' }, [yuva('❏', 'OKU', '#oku'), yuva('▶', 'REELS', '#reels'), yuva('◎', 'DERS', '#ders'), yuva('◈', 'BUGÜN', '#koc'), yuva('▦', 'PLAN', '#plan'), yuva('⧉', 'KARTLAR', '#kartlar'), yuva('⬡', 'LAB', '#lab-molekul'), yuva('♫', 'MÜZİK', '#muzik')])
     ]);
     var kahraman = sayfa.querySelector('.kahraman');
     if (kahraman) kahraman.after(pano); else sayfa.prepend(pano);
