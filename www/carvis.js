@@ -61,7 +61,8 @@
             var zid = 'z' + (++sayac); bekleyenKonus[zid] = ok;
             Zv.ingilizce(metin).then(function (en) {
               if (!bekleyenKonus[zid]) return; // bu arada susturuldu
-              Zv.bekle[zid] = function (h) { if (!h) { delete bekleyenKonus[zid]; return ok(); } Zv.sonHata = h; var id2 = 'k' + (++sayac); bekleyenKonus[id2] = ok; delete bekleyenKonus[zid]; K.konus(metin, id2, String(hiz)); };
+              var zmn = setTimeout(function () { if (!Zv.bekle[zid]) return; var d = Zv.durum(); try { K.zvSus(); } catch (e) {} Zv.bekle[zid]('zaman aşımı (' + (d.asama || '?') + ')'); }, (Zv.durum().hazir ? 25000 : 60000) + 150 * en.length);
+              Zv.bekle[zid] = function (h) { clearTimeout(zmn); if (!h) { delete bekleyenKonus[zid]; return ok(); } Zv.sonHata = h; var id2 = 'k' + (++sayac); bekleyenKonus[id2] = ok; delete bekleyenKonus[zid]; K.konus(metin, id2, String(hiz)); };
               Zv.uygula(); K.zvKonus(zid, en, hiz, Zv.efekt());
             });
             return;
@@ -578,12 +579,14 @@
         var d = Zv.durum();
         zvIndir.hidden = !!d.model || !!d.indiriliyor;
         zvDene.hidden = !d.model;
+        var ayr = d.model ? ' · Aşama: ' + (d.asama || '?') + (d.yuklemeMs > 0 ? ' · yükleme ' + (d.yuklemeMs / 1000).toFixed(1) + ' sn' : '') + (d.sonUretimMs > 0 ? ' · son cümle ' + (d.sonSesMs / 1000).toFixed(1) + ' sn sesi ' + (d.sonUretimMs / 1000).toFixed(1) + ' sn\'de üretildi' : '') + ' · çalınan: ' + (d.calinan || 0) + (d.medyaSes ? ' · medya sesi ' + d.medyaSes : '') : '';
         zvDurumP.textContent = d.abi && !/arm64/.test(d.abi) ? 'Bu cihaz desteklenmiyor (' + d.abi + ').' :
           !d.ornek ? 'Ses örneği yok.' :
           d.indiriliyor ? 'İndiriliyor… %' + (d.yuzde || 0) :
-          d.model ? (d.hazir ? 'Hazır ✓' : 'Model indirildi ✓ (ilk konuşmada birkaç saniye yüklenir)') + (Zv.sonHata ? ' · Son hata: ' + Zv.sonHata : '') :
+          d.model ? (d.hazir ? 'Hazır ✓' : 'Model indirildi ✓ (ilk konuşmada birkaç saniye yüklenir)') + (Zv.sonHata ? ' · Son hata: ' + Zv.sonHata : '') + (d.hata && d.hata !== Zv.sonHata ? ' · Motor: ' + d.hata : '') :
           (d.hata ? 'İndirme hatası: ' + d.hata + ' — tekrar dene.' : 'Model henüz indirilmedi.');
-        clearTimeout(zvZm); if (d.indiriliyor && document.body.contains(zvDurumP)) zvZm = setTimeout(Zv.ciz, 1000);
+        zvDurumP.textContent += ayr;
+        clearTimeout(zvZm); if (document.body.contains(zvDurumP)) zvZm = setTimeout(Zv.ciz, 1000);
       };
       zvAc.addEventListener('change', function () { Zv.ayar('zv_acik', zvAc.checked ? '1' : '0'); if (zvAc.checked && !Zv.durum().model) K.zvIndir(); Zv.ciz(); });
       zvEf.addEventListener('change', function () { Zv.ayar('zv_efekt', zvEf.value); });

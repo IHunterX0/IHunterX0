@@ -10,9 +10,13 @@
 
 .field static volatile adim:I
 
+.field static volatile asama:Ljava/lang/String;
+
 .field static volatile basDb:F
 
 .field static volatile calan:Landroid/media/AudioTrack;
+
+.field static volatile calinan:I
 
 .field static volatile hata:Ljava/lang/String;
 
@@ -45,16 +49,24 @@
 
 .field static volatile perdeYt:F
 
+.field static volatile sonCalmaBas:J
+
+.field static volatile sonSesMs:J
+
+.field static volatile sonUretimMs:J
+
 .field static tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
 
 .field static final yaziKilit:Ljava/lang/Object;
+
+.field static volatile yuklemeMs:J
 
 .field static volatile yuzde:I
 
 
 # direct methods
 .method static constructor <clinit>()V
-    .locals 1
+    .locals 2
 
     .line 29
     new-instance v0, Ljava/lang/Object;
@@ -81,14 +93,35 @@
 
     sput v0, Lcom/dogac/bin1/CarvisZv;->adim:I
 
-    .line 37
+    .line 36
+    const-string v0, "bo\u015fta"
+
+    sput-object v0, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
+
+    const-wide/16 v0, -0x1
+
+    sput-wide v0, Lcom/dogac/bin1/CarvisZv;->yuklemeMs:J
+
+    sput-wide v0, Lcom/dogac/bin1/CarvisZv;->sonUretimMs:J
+
+    sput-wide v0, Lcom/dogac/bin1/CarvisZv;->sonSesMs:J
+
+    const-wide/16 v0, 0x0
+
+    sput-wide v0, Lcom/dogac/bin1/CarvisZv;->sonCalmaBas:J
+
+    const/4 v0, 0x0
+
+    sput v0, Lcom/dogac/bin1/CarvisZv;->calinan:I
+
+    .line 38
     new-instance v0, Ljava/lang/Object;
 
     invoke-direct {v0}, Ljava/lang/Object;-><init>()V
 
     sput-object v0, Lcom/dogac/bin1/CarvisZv;->yaziKilit:Ljava/lang/Object;
 
-    .line 38
+    .line 39
     new-instance v0, Ljava/util/concurrent/LinkedBlockingQueue;
 
     invoke-direct {v0}, Ljava/util/concurrent/LinkedBlockingQueue;-><init>()V
@@ -137,7 +170,7 @@
 .method static bag()Landroid/content/Context;
     .locals 1
 
-    .line 40
+    .line 41
     sget-object v0, Lcom/dogac/bin1/MainActivity;->ornek:Lcom/dogac/bin1/MainActivity;
 
     if-nez v0, :cond_0
@@ -163,14 +196,14 @@
         }
     .end annotation
 
-    .line 234
+    .line 248
     const/4 v0, 0x4
 
     invoke-static {p2, v0, v0}, Landroid/media/AudioTrack;->getMinBufferSize(III)I
 
     move-result v1
 
-    .line 235
+    .line 249
     new-instance v2, Landroid/media/AudioTrack$Builder;
 
     invoke-direct {v2}, Landroid/media/AudioTrack$Builder;-><init>()V
@@ -179,14 +212,12 @@
 
     invoke-direct {v3}, Landroid/media/AudioAttributes$Builder;-><init>()V
 
-    .line 236
-    const/16 v4, 0x10
+    .line 250
+    const/4 v4, 0x1
 
     invoke-virtual {v3, v4}, Landroid/media/AudioAttributes$Builder;->setUsage(I)Landroid/media/AudioAttributes$Builder;
 
     move-result-object v3
-
-    const/4 v4, 0x1
 
     invoke-virtual {v3, v4}, Landroid/media/AudioAttributes$Builder;->setContentType(I)Landroid/media/AudioAttributes$Builder;
 
@@ -204,7 +235,7 @@
 
     invoke-direct {v3}, Landroid/media/AudioFormat$Builder;-><init>()V
 
-    .line 237
+    .line 251
     invoke-virtual {v3, p2}, Landroid/media/AudioFormat$Builder;->setSampleRate(I)Landroid/media/AudioFormat$Builder;
 
     move-result-object v3
@@ -225,7 +256,7 @@
 
     move-result-object v0
 
-    .line 238
+    .line 252
     invoke-static {v1, p2}, Ljava/lang/Math;->max(II)I
 
     move-result v1
@@ -242,7 +273,7 @@
 
     move-result-object v0
 
-    .line 239
+    .line 253
     sget-object v1, Lcom/dogac/bin1/CarvisZv;->yaziKilit:Ljava/lang/Object;
 
     monitor-enter v1
@@ -254,20 +285,31 @@
     :try_end_0
     .catchall {:try_start_0 .. :try_end_0} :catchall_3
 
-    .line 241
+    .line 255
     const/4 v1, 0x0
 
     :try_start_1
+    const-string v2, "\u00e7al\u0131yor"
+
+    sput-object v2, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
+
+    sget v2, Lcom/dogac/bin1/CarvisZv;->calinan:I
+
+    add-int/2addr v2, v4
+
+    sput v2, Lcom/dogac/bin1/CarvisZv;->calinan:I
+
+    .line 256
     invoke-virtual {v0}, Landroid/media/AudioTrack;->play()V
 
-    .line 242
+    .line 257
     div-int/lit8 p2, p2, 0xa
 
     const/4 v2, 0x0
 
     move v3, v2
 
-    .line 243
+    .line 258
     :goto_0
     array-length v4, p1
 
@@ -298,14 +340,14 @@
 
     goto :goto_0
 
-    .line 244
+    .line 259
     :cond_1
     :goto_1
     sget p2, Lcom/dogac/bin1/CarvisZv;->nesil:I
 
     if-ne p0, p2, :cond_2
 
-    .line 246
+    .line 261
     invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
 
     move-result-wide v2
@@ -314,7 +356,7 @@
 
     add-long/2addr v2, v4
 
-    .line 247
+    .line 262
     :goto_2
     sget p2, Lcom/dogac/bin1/CarvisZv;->nesil:I
 
@@ -344,7 +386,7 @@
 
     goto :goto_2
 
-    .line 250
+    .line 265
     :cond_2
     sget-object p0, Lcom/dogac/bin1/CarvisZv;->yaziKilit:Ljava/lang/Object;
 
@@ -362,7 +404,7 @@
     :try_end_2
     .catchall {:try_start_2 .. :try_end_2} :catchall_0
 
-    .line 251
+    .line 266
     :try_start_3
     invoke-virtual {v0}, Landroid/media/AudioTrack;->stop()V
     :try_end_3
@@ -376,13 +418,13 @@
     :goto_3
     invoke-virtual {v0}, Landroid/media/AudioTrack;->release()V
 
-    .line 252
+    .line 267
     nop
 
-    .line 253
+    .line 268
     return-void
 
-    .line 250
+    .line 265
     :catchall_0
     move-exception p1
 
@@ -412,7 +454,7 @@
     :try_end_5
     .catchall {:try_start_5 .. :try_end_5} :catchall_2
 
-    .line 251
+    .line 266
     :try_start_6
     invoke-virtual {v0}, Landroid/media/AudioTrack;->stop()V
     :try_end_6
@@ -426,10 +468,10 @@
     :goto_4
     invoke-virtual {v0}, Landroid/media/AudioTrack;->release()V
 
-    .line 252
+    .line 267
     throw p0
 
-    .line 250
+    .line 265
     :catchall_2
     move-exception p0
 
@@ -440,7 +482,7 @@
 
     throw p0
 
-    .line 239
+    .line 253
     :catchall_3
     move-exception p0
 
@@ -455,7 +497,7 @@
 .method static cila([FIF)[F
     .locals 10
 
-    .line 216
+    .line 230
     const v0, 0x3c23d70a    # 0.01f
 
     cmpg-float v0, p2, v0
@@ -464,7 +506,7 @@
 
     return-object p0
 
-    .line 217
+    .line 231
     :cond_0
     const/high16 v0, 0x3f800000    # 1.0f
 
@@ -472,7 +514,7 @@
 
     move-result p2
 
-    .line 218
+    .line 232
     array-length v1, p0
 
     int-to-float p1, p1
@@ -487,7 +529,7 @@
 
     new-array v2, v1, [F
 
-    .line 220
+    .line 234
     div-float v3, v0, p1
 
     const v4, 0x38b96dd0
@@ -496,7 +538,7 @@
 
     div-float/2addr v4, v3
 
-    .line 221
+    .line 235
     const/4 v3, 0x0
 
     const/4 v5, 0x0
@@ -536,7 +578,7 @@
 
     goto :goto_0
 
-    .line 223
+    .line 237
     :cond_1
     const p0, 0x3cbc6a7f    # 0.023f
 
@@ -550,10 +592,10 @@
 
     float-to-int p1, p1
 
-    .line 224
+    .line 238
     new-array v3, v1, [F
 
-    .line 225
+    .line 239
     move v4, v5
 
     :goto_1
@@ -597,7 +639,7 @@
 
     goto :goto_1
 
-    .line 227
+    .line 241
     :cond_4
     const p0, 0x38d1b717    # 1.0E-4f
 
@@ -620,13 +662,13 @@
 
     goto :goto_2
 
-    .line 228
+    .line 242
     :cond_5
     const p1, 0x3f733333    # 0.95f
 
     div-float/2addr p1, p0
 
-    .line 229
+    .line 243
     nop
 
     :goto_3
@@ -668,7 +710,7 @@
 
     goto :goto_3
 
-    .line 230
+    .line 244
     :cond_6
     return-object v3
 .end method
@@ -686,7 +728,7 @@
         }
     .end annotation
 
-    .line 138
+    .line 145
     new-instance v0, Ljava/util/ArrayList;
 
     invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
@@ -695,7 +737,7 @@
 
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
 
-    .line 139
+    .line 146
     const/4 v2, 0x0
 
     move v3, v2
@@ -709,14 +751,14 @@
 
     if-ge v3, v4, :cond_7
 
-    .line 140
+    .line 147
     invoke-virtual {p0, v3}, Ljava/lang/String;->charAt(I)C
 
     move-result v4
 
     invoke-virtual {v1, v4}, Ljava/lang/StringBuilder;->append(C)Ljava/lang/StringBuilder;
 
-    .line 141
+    .line 148
     const/16 v6, 0x2e
 
     if-eq v4, v6, :cond_0
@@ -761,7 +803,7 @@
     :cond_1
     move v5, v2
 
-    .line 142
+    .line 149
     :cond_2
     :goto_1
     if-eqz v5, :cond_3
@@ -813,13 +855,13 @@
     :cond_5
     invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->setLength(I)V
 
-    .line 139
+    .line 146
     :cond_6
     add-int/lit8 v3, v3, 0x1
 
     goto :goto_0
 
-    .line 144
+    .line 151
     :cond_7
     invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
@@ -837,13 +879,13 @@
 
     invoke-virtual {v0, p0}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
-    .line 146
+    .line 153
     :cond_8
     new-instance p0, Ljava/util/ArrayList;
 
     invoke-direct {p0}, Ljava/util/ArrayList;-><init>()V
 
-    .line 147
+    .line 154
     invoke-virtual {v0}, Ljava/util/ArrayList;->iterator()Ljava/util/Iterator;
 
     move-result-object v0
@@ -924,7 +966,7 @@
 
     goto :goto_2
 
-    .line 148
+    .line 155
     :cond_a
     return-object p0
 .end method
@@ -932,7 +974,7 @@
 .method static dizin(Landroid/content/Context;)Ljava/io/File;
     .locals 2
 
-    .line 41
+    .line 42
     new-instance v0, Ljava/io/File;
 
     invoke-virtual {p0}, Landroid/content/Context;->getFilesDir()Ljava/io/File;
@@ -951,7 +993,7 @@
 .method static durdurCalan()V
     .locals 2
 
-    .line 255
+    .line 270
     sget-object v0, Lcom/dogac/bin1/CarvisZv;->yaziKilit:Ljava/lang/Object;
 
     monitor-enter v0
@@ -994,20 +1036,20 @@
 .end method
 
 .method public static durum()Ljava/lang/String;
-    .locals 10
+    .locals 11
 
-    .line 45
+    .line 46
     new-instance v0, Lorg/json/JSONObject;
 
     invoke-direct {v0}, Lorg/json/JSONObject;-><init>()V
 
-    .line 47
+    .line 48
     :try_start_0
     invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
 
     move-result-object v1
 
-    .line 48
+    .line 49
     const/4 v2, 0x1
 
     const/4 v3, 0x0
@@ -1022,7 +1064,7 @@
 
     move-result-wide v4
     :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_2
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_3
 
     const-wide/32 v6, 0x76e1dcc
 
@@ -1037,87 +1079,87 @@
     :cond_0
     move v4, v3
 
-    .line 49
+    .line 50
     :goto_0
     nop
 
-    .line 50
+    .line 51
     if-eqz v1, :cond_2
 
     :try_start_1
     invoke-virtual {v1}, Landroid/content/Context;->getAssets()Landroid/content/res/AssetManager;
 
-    move-result-object v1
+    move-result-object v5
 
-    const-string v5, "zv"
+    const-string v6, "zv"
 
-    invoke-virtual {v1, v5}, Landroid/content/res/AssetManager;->list(Ljava/lang/String;)[Ljava/lang/String;
+    invoke-virtual {v5, v6}, Landroid/content/res/AssetManager;->list(Ljava/lang/String;)[Ljava/lang/String;
 
-    move-result-object v1
+    move-result-object v5
 
-    array-length v5, v1
+    array-length v6, v5
     :try_end_1
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_1
 
-    move v6, v3
+    move v7, v3
 
-    move v7, v6
+    move v8, v7
 
     :goto_1
-    if-ge v6, v5, :cond_3
+    if-ge v7, v6, :cond_3
 
     :try_start_2
-    aget-object v8, v1, v6
+    aget-object v9, v5, v7
 
-    const-string v9, "ornek.wav"
+    const-string v10, "ornek.wav"
 
-    invoke-virtual {v8, v9}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    invoke-virtual {v9, v10}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
-    move-result v8
+    move-result v9
     :try_end_2
     .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_0
 
-    if-eqz v8, :cond_1
+    if-eqz v9, :cond_1
 
-    move v7, v2
+    move v8, v2
 
     :cond_1
-    add-int/lit8 v6, v6, 0x1
+    add-int/lit8 v7, v7, 0x1
 
     goto :goto_1
 
     :catch_0
-    move-exception v1
+    move-exception v5
 
     goto :goto_2
 
     :catch_1
-    move-exception v1
+    move-exception v5
 
-    move v7, v3
+    move v8, v3
 
     goto :goto_2
 
     :cond_2
-    move v7, v3
+    move v8, v3
 
-    .line 51
+    .line 52
     :cond_3
     :goto_2
     :try_start_3
-    const-string v1, "model"
+    const-string v5, "model"
 
-    invoke-virtual {v0, v1, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
+    invoke-virtual {v0, v5, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
 
-    const-string v1, "ornek"
+    const-string v4, "ornek"
 
-    invoke-virtual {v0, v1, v7}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
+    invoke-virtual {v0, v4, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
 
-    const-string v1, "hazir"
+    const-string v4, "hazir"
 
-    sget-object v4, Lcom/dogac/bin1/CarvisZv;->tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
+    sget-object v5, Lcom/dogac/bin1/CarvisZv;->tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
 
-    if-eqz v4, :cond_4
+    if-eqz v5, :cond_4
 
     goto :goto_3
 
@@ -1125,27 +1167,115 @@
     move v2, v3
 
     :goto_3
-    invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
+    invoke-virtual {v0, v4, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
 
-    const-string v1, "indiriliyor"
+    const-string v2, "indiriliyor"
 
-    sget-boolean v2, Lcom/dogac/bin1/CarvisZv;->indiriliyor:Z
+    sget-boolean v4, Lcom/dogac/bin1/CarvisZv;->indiriliyor:Z
 
-    invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
+    invoke-virtual {v0, v2, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
 
-    const-string v1, "yuzde"
+    const-string v2, "yuzde"
 
-    sget v2, Lcom/dogac/bin1/CarvisZv;->yuzde:I
+    sget v4, Lcom/dogac/bin1/CarvisZv;->yuzde:I
 
-    invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+    invoke-virtual {v0, v2, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
 
-    const-string v1, "hata"
+    const-string v2, "hata"
 
-    sget-object v2, Lcom/dogac/bin1/CarvisZv;->hata:Ljava/lang/String;
+    sget-object v4, Lcom/dogac/bin1/CarvisZv;->hata:Ljava/lang/String;
 
-    invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+    invoke-virtual {v0, v2, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
 
-    .line 52
+    .line 53
+    const-string v2, "asama"
+
+    sget-object v4, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
+
+    invoke-virtual {v0, v2, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    const-string v2, "yuklemeMs"
+
+    sget-wide v4, Lcom/dogac/bin1/CarvisZv;->yuklemeMs:J
+
+    invoke-virtual {v0, v2, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
+
+    const-string v2, "sonUretimMs"
+
+    sget-wide v4, Lcom/dogac/bin1/CarvisZv;->sonUretimMs:J
+
+    invoke-virtual {v0, v2, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
+
+    const-string v2, "sonSesMs"
+
+    sget-wide v4, Lcom/dogac/bin1/CarvisZv;->sonSesMs:J
+
+    invoke-virtual {v0, v2, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
+
+    const-string v2, "calinan"
+
+    sget v4, Lcom/dogac/bin1/CarvisZv;->calinan:I
+
+    invoke-virtual {v0, v2, v4}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+    :try_end_3
+    .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_3
+
+    .line 54
+    :try_start_4
+    const-string v2, "audio"
+
+    invoke-virtual {v1, v2}, Landroid/content/Context;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/media/AudioManager;
+
+    const-string v2, "medyaSes"
+
+    new-instance v4, Ljava/lang/StringBuilder;
+
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+
+    const/4 v5, 0x3
+
+    invoke-virtual {v1, v5}, Landroid/media/AudioManager;->getStreamVolume(I)I
+
+    move-result v6
+
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v4
+
+    const-string v6, "/"
+
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v4
+
+    invoke-virtual {v1, v5}, Landroid/media/AudioManager;->getStreamMaxVolume(I)I
+
+    move-result v1
+
+    invoke-virtual {v4, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v2, v1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+    :try_end_4
+    .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_2
+
+    goto :goto_4
+
+    :catch_2
+    move-exception v1
+
+    .line 55
+    :goto_4
+    :try_start_5
     const-string v1, "abi"
 
     sget-object v2, Landroid/os/Build;->SUPPORTED_ABIS:[Ljava/lang/String;
@@ -1158,26 +1288,26 @@
 
     aget-object v2, v2, v3
 
-    goto :goto_4
+    goto :goto_5
 
     :cond_5
     const-string v2, ""
 
-    :goto_4
+    :goto_5
     invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
-    :try_end_3
-    .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_2
+    :try_end_5
+    .catch Ljava/lang/Exception; {:try_start_5 .. :try_end_5} :catch_3
 
-    goto :goto_5
+    goto :goto_6
 
-    .line 53
-    :catch_2
+    .line 56
+    :catch_3
     move-exception v1
 
-    :goto_5
+    :goto_6
     nop
 
-    .line 54
+    .line 57
     invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
 
     move-result-object v0
@@ -1188,14 +1318,14 @@
 .method public static indir()V
     .locals 3
 
-    .line 58
+    .line 61
     sget-boolean v0, Lcom/dogac/bin1/CarvisZv;->indiriliyor:Z
 
     if-eqz v0, :cond_0
 
     return-void
 
-    .line 59
+    .line 62
     :cond_0
     invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
 
@@ -1205,7 +1335,7 @@
 
     return-void
 
-    .line 60
+    .line 63
     :cond_1
     const/4 v1, 0x1
 
@@ -1219,7 +1349,7 @@
 
     sput v1, Lcom/dogac/bin1/CarvisZv;->yuzde:I
 
-    .line 61
+    .line 64
     new-instance v1, Ljava/lang/Thread;
 
     new-instance v2, Lcom/dogac/bin1/CarvisZv$1;
@@ -1228,27 +1358,27 @@
 
     invoke-direct {v1, v2}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
-    .line 84
+    .line 87
     invoke-virtual {v1}, Ljava/lang/Thread;->start()V
 
-    .line 85
+    .line 88
     return-void
 .end method
 
 .method public static konus(Ljava/lang/String;Ljava/lang/String;FF)V
     .locals 8
 
-    .line 153
+    .line 160
     sget v0, Lcom/dogac/bin1/CarvisZv;->nesil:I
 
     add-int/lit8 v3, v0, 0x1
 
     sput v3, Lcom/dogac/bin1/CarvisZv;->nesil:I
 
-    .line 154
+    .line 161
     invoke-static {}, Lcom/dogac/bin1/CarvisZv;->durdurCalan()V
 
-    .line 155
+    .line 162
     new-instance v0, Ljava/lang/Thread;
 
     new-instance v7, Lcom/dogac/bin1/CarvisZv$2;
@@ -1267,10 +1397,10 @@
 
     invoke-direct {v0, v7}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
-    .line 189
+    .line 203
     invoke-virtual {v0}, Ljava/lang/Thread;->start()V
 
-    .line 190
+    .line 204
     return-void
 .end method
 
@@ -1282,12 +1412,12 @@
         }
     .end annotation
 
-    .line 88
+    .line 91
     invoke-virtual {p0, p1}, Landroid/content/res/AssetManager;->list(Ljava/lang/String;)[Ljava/lang/String;
 
     move-result-object v0
 
-    .line 89
+    .line 92
     const/4 v1, 0x0
 
     if-eqz v0, :cond_1
@@ -1340,7 +1470,7 @@
     :cond_0
     return-void
 
-    .line 90
+    .line 93
     :cond_1
     invoke-virtual {p0, p1}, Landroid/content/res/AssetManager;->open(Ljava/lang/String;)Ljava/io/InputStream;
 
@@ -1350,7 +1480,7 @@
 
     invoke-direct {p1, p2}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
 
-    .line 91
+    .line 94
     const/high16 p2, 0x10000
 
     new-array p2, p2, [B
@@ -1366,20 +1496,20 @@
 
     goto :goto_1
 
-    .line 92
+    .line 95
     :cond_2
     invoke-virtual {p1}, Ljava/io/OutputStream;->close()V
 
     invoke-virtual {p0}, Ljava/io/InputStream;->close()V
 
-    .line 93
+    .line 96
     return-void
 .end method
 
 .method static model(Landroid/content/Context;)Ljava/io/File;
     .locals 2
 
-    .line 42
+    .line 43
     new-instance v0, Ljava/io/File;
 
     invoke-static {p0}, Lcom/dogac/bin1/CarvisZv;->dizin(Landroid/content/Context;)Ljava/io/File;
@@ -1401,7 +1531,7 @@
         }
     .end annotation
 
-    .line 123
+    .line 130
     invoke-virtual {p0}, Ljava/io/File;->length()J
 
     move-result-wide v0
@@ -1436,7 +1566,7 @@
     :cond_0
     invoke-virtual {v2}, Ljava/io/FileInputStream;->close()V
 
-    .line 124
+    .line 131
     const/16 v2, 0xc
 
     const/16 v3, 0x10
@@ -1449,13 +1579,13 @@
 
     move v5, v4
 
-    .line 125
+    .line 132
     :goto_1
     add-int/lit8 v8, v2, 0x8
 
     if-gt v8, v0, :cond_3
 
-    .line 126
+    .line 133
     new-instance v9, Ljava/lang/String;
 
     const-string v10, "ISO-8859-1"
@@ -1500,7 +1630,7 @@
 
     or-int/2addr v10, v11
 
-    .line 127
+    .line 134
     const-string v11, "fmt "
 
     invoke-virtual {v9, v11}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
@@ -1577,7 +1707,7 @@
 
     or-int/2addr v6, v11
 
-    .line 128
+    .line 135
     :cond_1
     const-string v11, "data"
 
@@ -1595,7 +1725,7 @@
 
     goto :goto_2
 
-    .line 129
+    .line 136
     :cond_2
     add-int/lit8 v8, v10, 0x8
 
@@ -1605,16 +1735,16 @@
 
     add-int/2addr v2, v8
 
-    .line 130
+    .line 137
     goto/16 :goto_1
 
-    .line 125
+    .line 132
     :cond_3
     const/4 v8, -0x1
 
     move v0, p0
 
-    .line 131
+    .line 138
     :goto_2
     if-ltz v8, :cond_5
 
@@ -1622,12 +1752,12 @@
 
     if-ne v5, v4, :cond_5
 
-    .line 132
+    .line 139
     div-int/lit8 v0, v0, 0x2
 
     new-array v2, v0, [F
 
-    .line 133
+    .line 140
     nop
 
     :goto_3
@@ -1663,16 +1793,16 @@
 
     goto :goto_3
 
-    .line 134
+    .line 141
     :cond_4
     sput-object v2, Lcom/dogac/bin1/CarvisZv;->ornekSes:[F
 
     sput v7, Lcom/dogac/bin1/CarvisZv;->ornekSr:I
 
-    .line 135
+    .line 142
     return-void
 
-    .line 131
+    .line 138
     :cond_5
     new-instance p0, Ljava/lang/Exception;
 
@@ -1686,7 +1816,7 @@
 .method public static sus()V
     .locals 1
 
-    .line 257
+    .line 272
     sget v0, Lcom/dogac/bin1/CarvisZv;->nesil:I
 
     add-int/lit8 v0, v0, 0x1
@@ -1701,7 +1831,7 @@
 .method static tepe([FIDDD)[F
     .locals 23
 
-    .line 206
+    .line 220
     move-object/from16 v0, p0
 
     const-wide/high16 v1, 0x4044000000000000L    # 40.0
@@ -1738,7 +1868,7 @@
 
     move-result-wide v3
 
-    .line 207
+    .line 221
     mul-double v7, v5, v1
 
     const-wide/high16 v9, 0x3ff0000000000000L    # 1.0
@@ -1757,7 +1887,7 @@
 
     sub-double/2addr v9, v5
 
-    .line 208
+    .line 222
     div-double/2addr v11, v1
 
     div-double/2addr v3, v1
@@ -1766,12 +1896,12 @@
 
     div-double/2addr v9, v1
 
-    .line 209
+    .line 223
     array-length v1, v0
 
     new-array v1, v1, [F
 
-    .line 210
+    .line 224
     const-wide/16 v5, 0x0
 
     const/4 v2, 0x0
@@ -1841,7 +1971,7 @@
 
     goto :goto_0
 
-    .line 211
+    .line 225
     :cond_0
     return-object p1
 .end method
@@ -1849,10 +1979,10 @@
 .method static ton([FIF)[F
     .locals 13
 
-    .line 194
+    .line 208
     nop
 
-    .line 195
+    .line 209
     const/high16 v0, 0x3f800000    # 1.0f
 
     sub-float v0, p2, v0
@@ -1869,7 +1999,7 @@
 
     if-lez v0, :cond_1
 
-    .line 196
+    .line 210
     array-length v0, p0
 
     int-to-float v0, v0
@@ -1880,7 +2010,7 @@
 
     new-array v2, v0, [F
 
-    .line 197
+    .line 211
     move v3, v1
 
     :goto_0
@@ -1943,11 +2073,11 @@
 
     goto :goto_1
 
-    .line 195
+    .line 209
     :cond_1
     move-object v4, p0
 
-    .line 199
+    .line 213
     :goto_1
     sget p0, Lcom/dogac/bin1/CarvisZv;->basDb:F
 
@@ -1978,7 +2108,7 @@
     :cond_2
     move-object v5, v4
 
-    .line 200
+    .line 214
     sget p0, Lcom/dogac/bin1/CarvisZv;->parlakDb:F
 
     invoke-static {p0}, Ljava/lang/Math;->abs(F)F
@@ -2003,7 +2133,7 @@
 
     move-result-object v5
 
-    .line 201
+    .line 215
     :cond_3
     array-length p0, v5
 
@@ -2028,7 +2158,7 @@
 
     goto :goto_2
 
-    .line 202
+    .line 216
     :cond_4
     const p0, 0x3f7ae148    # 0.98f
 
@@ -2053,25 +2183,25 @@
 
     goto :goto_3
 
-    .line 203
+    .line 217
     :cond_5
     return-object v5
 .end method
 
 .method static yukle(Landroid/content/Context;)V
-    .locals 12
+    .locals 14
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/lang/Exception;
         }
     .end annotation
 
-    .line 96
+    .line 99
     sget-object v0, Lcom/dogac/bin1/CarvisZv;->kilit:Ljava/lang/Object;
 
     monitor-enter v0
 
-    .line 97
+    .line 100
     :try_start_0
     sget-object v1, Lcom/dogac/bin1/CarvisZv;->tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
 
@@ -2081,197 +2211,207 @@
 
     return-void
 
-    .line 98
+    .line 101
     :cond_0
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v1
+
+    .line 102
     invoke-static {p0}, Lcom/dogac/bin1/CarvisZv;->dizin(Landroid/content/Context;)Ljava/io/File;
 
-    move-result-object v1
+    move-result-object v3
 
-    .line 99
+    .line 103
     invoke-static {p0}, Lcom/dogac/bin1/CarvisZv;->model(Landroid/content/Context;)Ljava/io/File;
 
-    move-result-object v2
+    move-result-object v4
 
-    invoke-virtual {v2}, Ljava/io/File;->length()J
+    invoke-virtual {v4}, Ljava/io/File;->length()J
 
-    move-result-wide v2
+    move-result-wide v4
 
-    const-wide/32 v4, 0x76e1dcc
+    const-wide/32 v6, 0x76e1dcc
 
-    cmp-long v2, v2, v4
+    cmp-long v4, v4, v6
 
-    if-nez v2, :cond_4
+    if-nez v4, :cond_4
 
-    .line 100
-    new-instance v2, Ljava/io/File;
+    .line 104
+    new-instance v4, Ljava/io/File;
 
-    const-string v3, "varliklar.surum"
+    const-string v5, "varliklar.surum"
 
-    invoke-direct {v2, v1, v3}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v4, v3, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    const-string v3, "5"
+    const-string v5, "5"
     :try_end_0
     .catchall {:try_start_0 .. :try_end_0} :catchall_0
 
-    .line 101
-    const/4 v4, 0x0
+    .line 105
+    const/4 v6, 0x0
 
     :try_start_1
-    new-instance v5, Ljava/io/FileInputStream;
+    new-instance v7, Ljava/io/FileInputStream;
 
-    invoke-direct {v5, v2}, Ljava/io/FileInputStream;-><init>(Ljava/io/File;)V
+    invoke-direct {v7, v4}, Ljava/io/FileInputStream;-><init>(Ljava/io/File;)V
 
-    const/16 v6, 0x8
+    const/16 v8, 0x8
 
-    new-array v6, v6, [B
+    new-array v8, v8, [B
 
-    invoke-virtual {v5, v6}, Ljava/io/FileInputStream;->read([B)I
+    invoke-virtual {v7, v8}, Ljava/io/FileInputStream;->read([B)I
+
+    move-result v9
+
+    invoke-virtual {v7}, Ljava/io/FileInputStream;->close()V
+
+    if-lez v9, :cond_1
+
+    new-instance v7, Ljava/lang/String;
+
+    invoke-direct {v7, v8, v6, v9}, Ljava/lang/String;-><init>([BII)V
+
+    invoke-virtual {v7, v5}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v7
-
-    invoke-virtual {v5}, Ljava/io/FileInputStream;->close()V
-
-    if-lez v7, :cond_1
-
-    new-instance v5, Ljava/lang/String;
-
-    invoke-direct {v5, v6, v4, v7}, Ljava/lang/String;-><init>([BII)V
-
-    invoke-virtual {v5, v3}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v5
     :try_end_1
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
     .catchall {:try_start_1 .. :try_end_1} :catchall_0
 
-    if-eqz v5, :cond_1
+    if-eqz v7, :cond_1
 
-    const/4 v5, 0x1
+    const/4 v7, 0x1
 
     goto :goto_0
 
     :cond_1
-    move v5, v4
+    move v7, v6
 
     goto :goto_0
 
     :catch_0
-    move-exception v5
+    move-exception v7
 
-    move v5, v4
+    move v7, v6
 
-    .line 102
+    .line 106
     :goto_0
     :try_start_2
     invoke-virtual {p0}, Landroid/content/Context;->getAssets()Landroid/content/res/AssetManager;
 
-    move-result-object v6
+    move-result-object v8
 
-    .line 103
-    if-nez v5, :cond_3
+    .line 107
+    if-nez v7, :cond_3
 
-    .line 104
-    const-string v5, "zv"
+    .line 108
+    const-string v7, "dosyalar kopyalan\u0131yor"
 
-    invoke-virtual {v6, v5}, Landroid/content/res/AssetManager;->list(Ljava/lang/String;)[Ljava/lang/String;
+    sput-object v7, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
 
-    move-result-object v5
+    .line 109
+    const-string v7, "zv"
 
-    array-length v7, v5
+    invoke-virtual {v8, v7}, Landroid/content/res/AssetManager;->list(Ljava/lang/String;)[Ljava/lang/String;
 
-    move v8, v4
+    move-result-object v7
+
+    array-length v9, v7
+
+    move v10, v6
 
     :goto_1
-    if-ge v8, v7, :cond_2
+    if-ge v10, v9, :cond_2
 
-    aget-object v9, v5, v8
+    aget-object v11, v7, v10
 
-    new-instance v10, Ljava/lang/StringBuilder;
+    new-instance v12, Ljava/lang/StringBuilder;
 
-    invoke-direct {v10}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-direct {v12}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v11, "zv/"
+    const-string v13, "zv/"
 
-    invoke-virtual {v10, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v12, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    move-result-object v10
+    move-result-object v12
 
-    invoke-virtual {v10, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v12, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    move-result-object v10
+    move-result-object v12
 
-    invoke-virtual {v10}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    invoke-virtual {v12}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    move-result-object v10
+    move-result-object v12
 
-    new-instance v11, Ljava/io/File;
+    new-instance v13, Ljava/io/File;
 
-    invoke-direct {v11, v1, v9}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v13, v3, v11}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    invoke-static {v6, v10, v11}, Lcom/dogac/bin1/CarvisZv;->kopyala(Landroid/content/res/AssetManager;Ljava/lang/String;Ljava/io/File;)V
+    invoke-static {v8, v12, v13}, Lcom/dogac/bin1/CarvisZv;->kopyala(Landroid/content/res/AssetManager;Ljava/lang/String;Ljava/io/File;)V
 
-    add-int/lit8 v8, v8, 0x1
+    add-int/lit8 v10, v10, 0x1
 
     goto :goto_1
 
-    .line 105
-    :cond_2
-    new-instance v5, Ljava/io/FileOutputStream;
-
-    invoke-direct {v5, v2}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
-
-    invoke-virtual {v3}, Ljava/lang/String;->getBytes()[B
-
-    move-result-object v2
-
-    invoke-virtual {v5, v2}, Ljava/io/FileOutputStream;->write([B)V
-
-    invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V
-
-    .line 107
-    :cond_3
-    new-instance v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;
-
-    invoke-direct {v2}, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;-><init>()V
-
-    .line 108
-    iget-object v3, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
-
-    iget-object v3, v3, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
-
-    new-instance v5, Ljava/io/File;
-
-    const-string v6, "tokens.txt"
-
-    invoke-direct {v5, v1, v6}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
-
-    invoke-virtual {v5}, Ljava/io/File;->getPath()Ljava/lang/String;
-
-    move-result-object v5
-
-    iput-object v5, v3, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->tokens:Ljava/lang/String;
-
-    .line 109
-    iget-object v3, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
-
-    iget-object v3, v3, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
-
-    new-instance v5, Ljava/io/File;
-
-    const-string v6, "text_encoder_int8.onnx"
-
-    invoke-direct {v5, v1, v6}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
-
-    invoke-virtual {v5}, Ljava/io/File;->getPath()Ljava/lang/String;
-
-    move-result-object v5
-
-    iput-object v5, v3, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->encoder:Ljava/lang/String;
-
     .line 110
-    iget-object v3, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+    :cond_2
+    new-instance v7, Ljava/io/FileOutputStream;
 
-    iget-object v3, v3, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
+    invoke-direct {v7, v4}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
+
+    invoke-virtual {v5}, Ljava/lang/String;->getBytes()[B
+
+    move-result-object v4
+
+    invoke-virtual {v7, v4}, Ljava/io/FileOutputStream;->write([B)V
+
+    invoke-virtual {v7}, Ljava/io/FileOutputStream;->close()V
+
+    .line 112
+    :cond_3
+    new-instance v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;
+
+    invoke-direct {v4}, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;-><init>()V
+
+    .line 113
+    iget-object v5, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+
+    iget-object v5, v5, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
+
+    new-instance v7, Ljava/io/File;
+
+    const-string v8, "tokens.txt"
+
+    invoke-direct {v7, v3, v8}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+
+    invoke-virtual {v7}, Ljava/io/File;->getPath()Ljava/lang/String;
+
+    move-result-object v7
+
+    iput-object v7, v5, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->tokens:Ljava/lang/String;
+
+    .line 114
+    iget-object v5, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+
+    iget-object v5, v5, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
+
+    new-instance v7, Ljava/io/File;
+
+    const-string v8, "text_encoder_int8.onnx"
+
+    invoke-direct {v7, v3, v8}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+
+    invoke-virtual {v7}, Ljava/io/File;->getPath()Ljava/lang/String;
+
+    move-result-object v7
+
+    iput-object v7, v5, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->encoder:Ljava/lang/String;
+
+    .line 115
+    iget-object v5, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+
+    iget-object v5, v5, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
 
     invoke-static {p0}, Lcom/dogac/bin1/CarvisZv;->model(Landroid/content/Context;)Ljava/io/File;
 
@@ -2281,136 +2421,136 @@
 
     move-result-object p0
 
-    iput-object p0, v3, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->decoder:Ljava/lang/String;
+    iput-object p0, v5, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->decoder:Ljava/lang/String;
 
-    .line 111
-    iget-object p0, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
-
-    iget-object p0, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
-
-    new-instance v3, Ljava/io/File;
-
-    const-string v5, "vocos_24khz.onnx"
-
-    invoke-direct {v3, v1, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
-
-    invoke-virtual {v3}, Ljava/io/File;->getPath()Ljava/lang/String;
-
-    move-result-object v3
-
-    iput-object v3, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->vocoder:Ljava/lang/String;
-
-    .line 112
-    iget-object p0, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+    .line 116
+    iget-object p0, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
 
     iget-object p0, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
 
-    new-instance v3, Ljava/io/File;
+    new-instance v5, Ljava/io/File;
 
-    const-string v5, "espeak-ng-data"
+    const-string v7, "vocos_24khz.onnx"
 
-    invoke-direct {v3, v1, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v5, v3, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    invoke-virtual {v3}, Ljava/io/File;->getPath()Ljava/lang/String;
+    invoke-virtual {v5}, Ljava/io/File;->getPath()Ljava/lang/String;
 
-    move-result-object v3
+    move-result-object v5
 
-    iput-object v3, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->dataDir:Ljava/lang/String;
+    iput-object v5, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->vocoder:Ljava/lang/String;
 
-    .line 113
-    iget-object p0, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+    .line 117
+    iget-object p0, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
 
     iget-object p0, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
 
-    new-instance v3, Ljava/io/File;
+    new-instance v5, Ljava/io/File;
 
-    const-string v5, "lexicon.txt"
+    const-string v7, "espeak-ng-data"
 
-    invoke-direct {v3, v1, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v5, v3, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    invoke-virtual {v3}, Ljava/io/File;->getPath()Ljava/lang/String;
+    invoke-virtual {v5}, Ljava/io/File;->getPath()Ljava/lang/String;
 
-    move-result-object v3
+    move-result-object v5
 
-    iput-object v3, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->lexicon:Ljava/lang/String;
+    iput-object v5, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->dataDir:Ljava/lang/String;
 
-    .line 114
-    iget-object p0, v2, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+    .line 118
+    iget-object p0, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
+
+    iget-object p0, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->zipvoice:Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;
+
+    new-instance v5, Ljava/io/File;
+
+    const-string v7, "lexicon.txt"
+
+    invoke-direct {v5, v3, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+
+    invoke-virtual {v5}, Ljava/io/File;->getPath()Ljava/lang/String;
+
+    move-result-object v5
+
+    iput-object v5, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsZipVoiceModelConfig;->lexicon:Ljava/lang/String;
+
+    .line 119
+    iget-object p0, v4, Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;->model:Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;
 
     invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
 
-    move-result-object v3
+    move-result-object v5
 
-    invoke-virtual {v3}, Ljava/lang/Runtime;->availableProcessors()I
+    invoke-virtual {v5}, Ljava/lang/Runtime;->availableProcessors()I
 
-    move-result v3
+    move-result v5
 
-    const/4 v5, 0x2
+    const/4 v7, 0x2
 
-    div-int/2addr v3, v5
+    div-int/2addr v5, v7
 
-    const/4 v6, 0x4
+    const/4 v8, 0x4
 
-    invoke-static {v6, v3}, Ljava/lang/Math;->min(II)I
+    invoke-static {v8, v5}, Ljava/lang/Math;->min(II)I
 
-    move-result v3
+    move-result v5
 
-    invoke-static {v5, v3}, Ljava/lang/Math;->max(II)I
+    invoke-static {v7, v5}, Ljava/lang/Math;->max(II)I
 
-    move-result v3
+    move-result v5
 
-    iput v3, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->numThreads:I
+    iput v5, p0, Lcom/k2fsa/sherpa/onnx/OfflineTtsModelConfig;->numThreads:I
 
-    .line 115
+    .line 120
     new-instance p0, Ljava/io/File;
 
-    const-string v3, "ornek.wav"
+    const-string v5, "ornek.wav"
 
-    invoke-direct {p0, v1, v3}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {p0, v3, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
     invoke-static {p0}, Lcom/dogac/bin1/CarvisZv;->ornekSesOku(Ljava/io/File;)V
 
-    .line 116
+    .line 121
     new-instance p0, Ljava/io/FileInputStream;
 
-    new-instance v3, Ljava/io/File;
+    new-instance v5, Ljava/io/File;
 
-    const-string v5, "ornek.txt"
+    const-string v7, "ornek.txt"
 
-    invoke-direct {v3, v1, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v5, v3, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    invoke-direct {p0, v3}, Ljava/io/FileInputStream;-><init>(Ljava/io/File;)V
+    invoke-direct {p0, v5}, Ljava/io/FileInputStream;-><init>(Ljava/io/File;)V
 
-    new-instance v3, Ljava/io/File;
+    new-instance v5, Ljava/io/File;
 
-    const-string v5, "ornek.txt"
+    const-string v7, "ornek.txt"
 
-    invoke-direct {v3, v1, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v5, v3, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    invoke-virtual {v3}, Ljava/io/File;->length()J
+    invoke-virtual {v5}, Ljava/io/File;->length()J
 
-    move-result-wide v5
+    move-result-wide v7
 
-    long-to-int v1, v5
+    long-to-int v3, v7
 
-    new-array v1, v1, [B
+    new-array v3, v3, [B
 
-    invoke-virtual {p0, v1}, Ljava/io/FileInputStream;->read([B)I
+    invoke-virtual {p0, v3}, Ljava/io/FileInputStream;->read([B)I
 
-    move-result v3
+    move-result v5
 
     invoke-virtual {p0}, Ljava/io/FileInputStream;->close()V
 
-    .line 117
+    .line 122
     new-instance p0, Ljava/lang/String;
 
-    invoke-static {v4, v3}, Ljava/lang/Math;->max(II)I
+    invoke-static {v6, v5}, Ljava/lang/Math;->max(II)I
 
-    move-result v3
+    move-result v5
 
-    const-string v5, "UTF-8"
+    const-string v7, "UTF-8"
 
-    invoke-direct {p0, v1, v4, v3, v5}, Ljava/lang/String;-><init>([BIILjava/lang/String;)V
+    invoke-direct {p0, v3, v6, v5, v7}, Ljava/lang/String;-><init>([BIILjava/lang/String;)V
 
     invoke-virtual {p0}, Ljava/lang/String;->trim()Ljava/lang/String;
 
@@ -2418,20 +2558,38 @@
 
     sput-object p0, Lcom/dogac/bin1/CarvisZv;->ornekMetin:Ljava/lang/String;
 
-    .line 118
+    .line 123
+    const-string p0, "model y\u00fckleniyor"
+
+    sput-object p0, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
+
+    .line 124
     new-instance p0, Lcom/k2fsa/sherpa/onnx/OfflineTts;
 
-    invoke-direct {p0, v2}, Lcom/k2fsa/sherpa/onnx/OfflineTts;-><init>(Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;)V
+    invoke-direct {p0, v4}, Lcom/k2fsa/sherpa/onnx/OfflineTts;-><init>(Lcom/k2fsa/sherpa/onnx/OfflineTtsConfig;)V
 
     sput-object p0, Lcom/dogac/bin1/CarvisZv;->tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
 
-    .line 119
+    .line 125
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v3
+
+    sub-long/2addr v3, v1
+
+    sput-wide v3, Lcom/dogac/bin1/CarvisZv;->yuklemeMs:J
+
+    const-string p0, "haz\u0131r"
+
+    sput-object p0, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
+
+    .line 126
     monitor-exit v0
 
-    .line 120
+    .line 127
     return-void
 
-    .line 99
+    .line 103
     :cond_4
     new-instance p0, Ljava/lang/Exception;
 
@@ -2441,7 +2599,7 @@
 
     throw p0
 
-    .line 119
+    .line 126
     :catchall_0
     move-exception p0
 

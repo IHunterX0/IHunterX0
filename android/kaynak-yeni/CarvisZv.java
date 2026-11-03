@@ -32,7 +32,8 @@ public final class CarvisZv {
     static volatile boolean indiriliyor; static volatile int yuzde; static volatile String hata = "";
     static volatile float perdeYt = 0f, basDb = 0f, parlakDb = 0f; static volatile int adim = 8;
     public static void ayar(float perde, float bas, float parlak, int adimSayisi) { perdeYt = perde; basDb = bas; parlakDb = parlak; adim = Math.max(4, Math.min(12, adimSayisi)); }
-    static volatile int nesil; // her konus/sus çağrısında artar; eski üretim/çalma kendini durdurur
+    static volatile int nesil;
+    static volatile String asama = "boşta"; static volatile long yuklemeMs = -1, sonUretimMs = -1, sonSesMs = -1, sonCalmaBas = 0; static volatile int calinan = 0; // her konus/sus çağrısında artar; eski üretim/çalma kendini durdurur
     static volatile AudioTrack calan;
     static final Object yaziKilit = new Object();
     static Thread isci; static final LinkedBlockingQueue<Object[]> kuyruk = new LinkedBlockingQueue<Object[]>();
@@ -49,6 +50,8 @@ public final class CarvisZv {
             boolean ornek = false;
             if (c != null) try { String[] l = c.getAssets().list("zv"); for (String s : l) if (s.equals("ornek.wav")) ornek = true; } catch (Exception e) { }
             o.put("model", var); o.put("ornek", ornek); o.put("hazir", tts != null); o.put("indiriliyor", indiriliyor); o.put("yuzde", yuzde); o.put("hata", hata);
+            o.put("asama", asama); o.put("yuklemeMs", yuklemeMs); o.put("sonUretimMs", sonUretimMs); o.put("sonSesMs", sonSesMs); o.put("calinan", calinan);
+            try { android.media.AudioManager am = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE); o.put("medyaSes", am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + "/" + am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)); } catch (Exception e) { }
             o.put("abi", android.os.Build.SUPPORTED_ABIS.length > 0 ? android.os.Build.SUPPORTED_ABIS[0] : "");
         } catch (Exception e) { }
         return o.toString();
@@ -95,12 +98,14 @@ public final class CarvisZv {
     static void yukle(Context c) throws Exception {
         synchronized (kilit) {
             if (tts != null) return;
+            long t0 = System.currentTimeMillis();
             File d = dizin(c);
             if (model(c).length() != MODEL_BOYUT) throw new Exception("model indirilmedi");
             File surum = new File(d, "varliklar.surum"); String sv = "5";
             boolean guncel = false; try { FileInputStream f = new FileInputStream(surum); byte[] b = new byte[8]; int n = f.read(b); f.close(); guncel = n > 0 && new String(b, 0, n).equals(sv); } catch (Exception e) { }
             AssetManager am = c.getAssets();
             if (!guncel) {
+                asama = "dosyalar kopyalanıyor";
                 for (String s : am.list("zv")) kopyala(am, "zv/" + s, new File(d, s));
                 FileOutputStream f = new FileOutputStream(surum); f.write(sv.getBytes()); f.close();
             }
@@ -115,7 +120,9 @@ public final class CarvisZv {
             ornekSesOku(new File(d, "ornek.wav"));
             FileInputStream f = new FileInputStream(new File(d, "ornek.txt")); byte[] b = new byte[(int) new File(d, "ornek.txt").length()]; int n = f.read(b); f.close();
             ornekMetin = new String(b, 0, Math.max(0, n), "UTF-8").trim();
+            asama = "model yükleniyor";
             tts = new OfflineTts(k);
+            yuklemeMs = System.currentTimeMillis() - t0; asama = "hazır";
         }
     }
 
@@ -162,13 +169,18 @@ public final class CarvisZv {
                 final Object BITTI = new Object();
                 Thread uret = new Thread(new Runnable() { public void run() {
                     try {
+                        int sira = 0;
                         for (String s : l) {
                             if (benim != nesil) break;
+                            sira++; asama = "üretiliyor " + sira + "/" + l.size();
+                            long u0 = System.currentTimeMillis();
                             GenerationConfig g = new GenerationConfig();
                             final float oran = (float) Math.pow(2.0, perdeYt / 12.0);
                             g.speed = (hiz <= 0 ? 1f : hiz) / oran; g.numSteps = adim; g.referenceAudio = ornekSes; g.referenceSampleRate = ornekSr; g.referenceText = ornekMetin;
                             GeneratedAudio a;
                             synchronized (kilit) { a = tts.generateWithConfig(s, g); }
+                            sonUretimMs = System.currentTimeMillis() - u0; sonSesMs = a.samples.length * 1000L / Math.max(1, a.sampleRate);
+                            if (a.samples.length == 0) throw new Exception("motor boş ses üretti");
                             hazir.put(new Object[] { ton(a.samples, a.sampleRate, oran), a.sampleRate });
                         }
                     } catch (Throwable e) { try { hazir.put(e); } catch (Exception x) { } }
@@ -184,6 +196,8 @@ public final class CarvisZv {
                     cal(benim, cila((float[]) p[0], (Integer) p[1], efekt), (Integer) p[1]);
                 }
             } catch (Throwable e) { hataMetni = e.getClass().getSimpleName() + ": " + e.getMessage(); }
+            asama = hataMetni == null ? "bitti" : "hata";
+            if (hataMetni != null) hata = hataMetni;
             MainActivity a = MainActivity.ornek;
             if (a != null) a.js("window.zvBitti&&window.zvBitti(" + JSONObject.quote(id) + "," + (hataMetni == null ? "null" : JSONObject.quote(hataMetni)) + ")");
         } }).start();
@@ -233,11 +247,12 @@ public final class CarvisZv {
     static void cal(int benim, float[] s, int sr) throws Exception {
         int min = AudioTrack.getMinBufferSize(sr, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
         AudioTrack t = new AudioTrack.Builder()
-            .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+            .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
             .setAudioFormat(new AudioFormat.Builder().setSampleRate(sr).setEncoding(AudioFormat.ENCODING_PCM_FLOAT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setBufferSizeInBytes(Math.max(min, sr)).setTransferMode(AudioTrack.MODE_STREAM).build();
         synchronized (yaziKilit) { calan = t; }
         try {
+            asama = "çalıyor"; calinan++;
             t.play();
             int i = 0, adim = sr / 10;
             while (i < s.length && benim == nesil) { int n = Math.min(adim, s.length - i); int w = t.write(s, i, n, AudioTrack.WRITE_BLOCKING); if (w <= 0) break; i += w; }
