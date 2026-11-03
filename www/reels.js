@@ -41,9 +41,9 @@
   var bellek = {};
   function icerik(it) {
     if (bellek[it.id]) return bellek[it.id];
-    var anahtar = 'reel3|' + it.id;
+    var anahtar = 'reel4|' + it.id;
     return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
-      if (v && v.j && v.j.sahneler) return v.j;
+      if (v && v.j && v.j.sahneler) { if (U.Animasyon.onYukle) U.Animasyon.onYukle(v.j); return v.j; }
       return Kitaplik.bolumAc(it.kitap, it.sira).then(function (bolum) {
         var a = (bolum.altlar || []).filter(function (x) { return x.id === it.alt; })[0];
         var metin = a && U.altMetin ? U.altMetin(a, 3500) : (U.bolumOzu ? U.bolumOzu(bolum, 3500) : '');
@@ -52,28 +52,83 @@
           'YALNIZ aşağıdaki kitap metnine dayan; sayılar ve terimler doğru olsun. Türkçe, kısa cümleler.' + (ornek ? ' Bu konudan çıkmış sorular: ' + ornek.slice(0, 600) : '') + '\n' +
           'Akış (GERÇEK REELS, flashcard DEĞİL): 1) KANCA — Patrick Jane izleyicinin yanlış bildiğini yakalar ("Herkes … sanır."), büyük yazı + ikon 2) VÜCUDA DAL — holografik vücutta ilgili organa kamera ile zoom, organ ne iş yapıyor 3) HÜCREYE İN — lab simülasyonu ile mekanizma canlı oynar 4) GRAFİK/SAYAÇ — sayıları büyük grafikle göster 5) orta soru 6) HAFIZA SARAYI 1-2 sahne (arka "koridor"; abartılı imge ikonu) 7) klinik bağlantı (bu bozulursa hastada ne olur — vücutta organa geri zoom) 8) final soru + "akılda kalsın" tek cümle.\n' +
           U.Animasyon.SENARYO_KURALI + '\n' +
-          'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"saray":{"mekan":"…","duraklar":[{"yer":"…","sembol":"emoji","imge":"abartılı imge","bilgi":"bilgi","anahtar":"1-3 kelime"}]},"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]}\n' +
+          'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"saray":{"mekan":"…","duraklar":[{"yer":"…","sembol":"emoji","imge":"abartılı imge","bilgi":"bilgi","anahtar":"1-3 kelime"}]},"ozet":"tek cümle","makaleSorgu":"…","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]}\n' +
+          'makaleSorgu: bu konuyla ilgili YENİ araştırmaları bulmak için İngilizce Europe PMC sorgusu (2-4 terim, OR ile eş anlamlılar; klinik ya da mekanizma odaklı, ilginç olsun).\n' +
           'saray: 4-5 durak. yorumlar: 6 yorum; 3 tanesi patrick.jane (sınav tuzağı, karıştırılan çift, kestirme), 3 tanesi farklı öğrenci kullanıcı adlarıyla.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
           .then(function (j) {
             if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
+            if (U.Animasyon && U.Animasyon.duzelt) U.Animasyon.duzelt(j);
             if (j.saray && j.saray.duraklar) { j.mekan = j.saray.mekan; j.duraklar = j.saray.duraklar.slice(0, 6); } else j.duraklar = [];
             j.soru = j.soru || (j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0]) || null;
             U.depoGuncelle(anahtar, function (d) { d.j = j; d.t = Date.now(); }, 200);
+            if (U.Animasyon.onYukle) U.Animasyon.onYukle(j);
             return j;
           });
       });
     }).catch(function (e) { delete bellek[it.id]; throw e; });
   }
 
+  /* ---------- makale reels'i (kullanıcı, 2026-11-03: "arada makale şeyleri de çıksın, yz kendi eklesin") ----------
+     Kaynak sırayla: kullanıcının Makaleler'deki ilgi alanları ve az önce izlenen konunun yapay zekâ tarafından yazılan makaleSorgu'su.
+     Europe PMC (yedek PubMed) — yalnız özeti olan, daha önce gösterilmemiş son 3 yılın makaleleri. Senaryo YALNIZ özete dayanır. */
+  var mkSecildi = {};
+  function makaleSec(it) {
+    return Promise.all([Depo.oku('makale'), Depo.oku('reels'), it.onceki ? icerik(it.onceki).catch(function () { return null; }) : null]).then(function (r) {
+      var ilg = ((r[0] && r[0].ilgiler) || []).filter(function (x) { return x && (x.sorgu || x.konu); }), gor = (r[1] && r[1].makaleGor) || {}, sorgular = [];
+      if (r[2] && r[2].makaleSorgu) sorgular.push({ q: String(r[2].makaleSorgu).slice(0, 300), neden: it.onceki.konu });
+      if (ilg.length) { var x = ilg[Math.floor(it.slot / 4) % ilg.length]; sorgular.splice(Math.floor(it.slot / 4) % 2 ? sorgular.length : 0, 0, { q: x.sorgu || x.konu, neden: 'ilgi alanın: ' + x.konu }); }
+      if (!sorgular.length || !U.makaleBul) throw new Error('makale kaynağı yok');
+      function dene(k, yeni) {
+        if (k >= sorgular.length) { if (yeni) return dene(0, false); throw new Error('uygun makale bulunamadı'); }
+        return U.makaleBul(sorgular[k].q, { adet: 10, yeni: yeni }).then(function (l) {
+          var m = l.filter(function (m) { return m.ozet && m.ozet.length > 300 && !gor[m.id] && !mkSecildi[m.id]; })[0];
+          if (!m) return dene(k + 1, yeni);
+          mkSecildi[m.id] = 1; m.neden = sorgular[k].neden; return m;
+        }, function () { return dene(k + 1, yeni); });
+      }
+      return dene(0, true);
+    });
+  }
+  function icerikMakale(it) {
+    if (bellek[it.id]) return bellek[it.id];
+    return bellek[it.id] = makaleSec(it).then(function (m) {
+      var anahtar = 'reelm|' + m.id;
+      return Depo.oku(anahtar).then(function (v) {
+        if (v && v.j && v.j.sahneler) return v.j;
+        return Y.sample.json('Bir tıp öğrencisi için bu YENİ ARAŞTIRMAYI ~45-60 saniyelik, kaydırarak izlenen, ANİMASYONLU bir reels olarak anlat.\n' +
+          'YALNIZ aşağıdaki özete dayan; özette olmayan sayı ya da sonuç UYDURMA. Türkçe, kısa cümleler.\n' +
+          'Akış: 1) KANCA — Jane: "Bunu kimse sana anlatmadı: …" (en çarpıcı bulgu) 2) arka plan: hangi organ/hücre süreci (vucut + kamera zoom ya da lab) 3) ne yaptılar (kısa) 4) ne buldular (özetteki sayılarla grafik/sayaç/zincir) 5) sınav ve klinik için anlamı (bildiğin ders bilgisiyle bağla) 6) bir SORU sahnesi 7) "akılda kalsın".\n' +
+          U.Animasyon.SENARYO_KURALI + '\n' +
+          'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]} (yorumlar: 4; 2 tanesi patrick.jane — bulguyu ders bilgisine bağlayan hap bilgi).\n\n' +
+          'MAKALE: ' + m.baslik + ' — ' + (m.dergi || '') + ' ' + (m.yil || '') + '\nÖZET:  + m.ozet.slice(0, 3500) + ', { cache: false })
+          .then(function (j) {
+            if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
+            U.Animasyon.duzelt(j); j.duraklar = []; j.soru = j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0] || null;
+            U.depoGuncelle(anahtar, function (d) { d.j = j; d.t = Date.now(); }, 200);
+            return j;
+          });
+      }).then(function (j) {
+        j.makale = { id: m.id, baslik: m.baslik, dergi: m.dergi, yil: m.yil, link: m.link, neden: m.neden };
+        U.depoGuncelle('reels', function (v) { v.makaleGor = v.makaleGor || {}; v.makaleGor[m.id] = Date.now(); var k = Object.keys(v.makaleGor); if (k.length > 400) delete v.makaleGor[k[0]]; }, 200);
+        if (U.Animasyon.onYukle) U.Animasyon.onYukle(j);
+        return j;
+      });
+    }).catch(function (e) { delete bellek[it.id]; throw e; });
+  }
+  function icerikHer(it) { return it.tur === 'makale' ? icerikMakale(it) : icerik(it); }
+
   /* ---------- stil ---------- */
   var st = document.createElement('style');
   st.textContent = [
-    'body.rl-acik{overflow:hidden}body.rl-acik .ak-kapsul,body.rl-acik header,body.rl-acik .serit{display:none!important}',
+    'body.rl-acik{overflow:hidden}body.rl-acik .ak-kapsul,body.rl-acik header,body.rl-acik .serit,body.rl-acik .jv-altyazi,body.rl-acik .jv-buyuk,body.rl-acik .mn-nokta{display:none!important}',
+    '.rl-reel .rl-ilerleme{display:none}',
+    '.rl-etiket{position:absolute;left:14px;top:62px;z-index:4;max-width:calc(100% - 100px);font:600 11px var(--f-kod,monospace);letter-spacing:.14em;color:#9ff3e6;text-transform:uppercase;text-shadow:0 0 10px rgba(94,240,220,.6);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.rl-etiket.mk{color:#ffd38a;text-shadow:0 0 10px rgba(255,200,100,.6)}',
     '.rl{position:fixed;inset:0;z-index:300;background:radial-gradient(ellipse at 50% 40%,#06222a,#01070a 70%);overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}',
     '.rl::-webkit-scrollbar{display:none}',
     '.rl-reel{position:relative;height:100vh;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;display:flex;align-items:center;justify-content:center}',
     '.rl-reel > canvas{position:absolute;inset:0;width:100%;height:100%}',
-    '.rl-sahnekap{position:absolute;left:0;right:80px;top:56px;bottom:20px}',
+    '.rl-sahnekap{position:absolute;left:0;right:76px;top:80px;bottom:0}',
     '@media (max-width:640px){.rl-sahnekap{right:64px}}',
     '.rl-ic{position:relative;width:min(720px,calc(100vw - 110px));display:flex;flex-direction:column;gap:14px;align-items:flex-start;padding:80px 20px 120px}',
     '.rl-konu{font:600 11px var(--f-kod,monospace);letter-spacing:.24em;color:#7fe8da;text-transform:uppercase;text-shadow:0 0 10px rgba(94,240,220,.6)}',
@@ -149,23 +204,37 @@
     Kitaplik.katalog().then(function (l) {
       var ilk = kitap || (U.Durum && U.Durum.kitapId) || (function () { try { return sessionStorage.getItem('dersKitap'); } catch (e) { return null; } })() || (l[0] && l[0].id);
       l.forEach(function (k) { dersSec.appendChild(el('option', { value: k.id, text: String(k.baslik).replace(/^1001\s*/, ''), selected: k.id === ilk ? true : null })); });
+      katalogIds = l.map(function (k) { return k.id; });
       dersSec.addEventListener('change', function () { yukle(dersSec.value); });
       yukle(ilk);
     });
+    /* SONSUZ AKIŞ (kullanıcı: "reels akışı hiç bitmesin, kaydırabildiğim kadar kaydırayım"): seçilen dersin konuları (sınav olasılığı
+       sırasıyla) → bitince diğer dersler eklenir → hepsi bitince başa döner (izlenenler önbellekten, kota harcamaz). Her 4. reel makale. */
+    var katalogIds = [];
     function yukle(k) {
-      kok.innerHTML = ''; R.reels = []; R.aktif = -1;
-      kok.appendChild(el('div', { class: 'rl-reel' }, [el('div', { class: 'rl-yukleniyor', text: 'Akış hazırlanıyor: konular çıkmış soru olasılığına göre sıralanıyor…' })]));
-      akisKur(k).then(function (a) {
-        kok.innerHTML = '';
-        a.l.slice(0, 120).forEach(function (it, i) { var r = reelKur(it, i); R.reels.push(r); kok.appendChild(r.el); });
-        gozlem();
-      });
+      kok.innerHTML = ''; R.reels = []; R.aktif = -1; R.liste = []; R.imlec = 0; R.n = 0; R.sonKonu = null; R.yuklenen = [k]; R.kitapYukleniyor = false;
+      if (R.io) R.io.disconnect();
+      R.io = new IntersectionObserver(function (l) { l.forEach(function (e) { if (e.isIntersecting && e.intersectionRatio > 0.6) { var i = +e.target.dataset.i; if (i !== R.aktif) basla(i); } }); }, { root: kok, threshold: [0.6] });
+      var bekle = el('div', { class: 'rl-reel' }, [el('div', { class: 'rl-yukleniyor', text: 'Akış hazırlanıyor: konular çıkmış soru olasılığına göre sıralanıyor…' })]); kok.appendChild(bekle);
+      akisKur(k).then(function (a) { bekle.remove(); R.liste = a.l.slice(); ekle(6); });
     }
-    function gozlem() {
-      var io = new IntersectionObserver(function (l) { l.forEach(function (e) { if (e.isIntersecting && e.intersectionRatio > 0.6) { var i = +e.target.dataset.i; if (i !== R.aktif) basla(i); } }); }, { root: kok, threshold: [0.6] });
-      R.reels.forEach(function (r) { io.observe(r.el); });
-      R.io = io;
+    function digerKitap() {
+      if (R.kitapYukleniyor) return; var k = katalogIds.filter(function (x) { return R.yuklenen.indexOf(x) < 0; })[0]; if (!k) return;
+      R.kitapYukleniyor = true; R.yuklenen.push(k);
+      akisKur(k).then(function (a) { R.liste = R.liste.concat(a.l); }).catch(function () {}).then(function () { R.kitapYukleniyor = false; });
     }
+    function sonrakiOge() {
+      R.n++;
+      if (R.n % 4 === 0 && R.sonKonu) return { tur: 'makale', id: 'mk|' + R.n, slot: R.n, onceki: R.sonKonu, kitap: R.sonKonu.kitap, kitapAd: '📰 Yeni araştırma', konu: 'Yeni araştırma', bolum: '', sira: R.sonKonu.sira };
+      if (!R.liste.length) return null;
+      if (R.imlec >= R.liste.length - 6) digerKitap();
+      if (R.imlec >= R.liste.length) R.imlec = 0;
+      var it = R.liste[R.imlec++]; R.sonKonu = it; return it;
+    }
+    function ekle(adet) {
+      for (var k = 0; k < adet; k++) { var it = sonrakiOge(); if (!it) break; var r = reelKur(it, R.reels.length); R.reels.push(r); kok.appendChild(r.el); R.io.observe(r.el); }
+    }
+    R.ekle = ekle;
     var son = 0;
     function kare(t) {
       if (!R) return; R.raf = requestAnimationFrame(kare);
@@ -178,21 +247,24 @@
     if (!R) return; cancelAnimationFrame(R.raf); if (R.io) R.io.disconnect(); R.reels.forEach(function (r) { r.dur && r.dur(); });
     R.kok.remove(); R.ust.remove(); document.body.classList.remove('rl-acik'); try { if (window.Carvis && window.Carvis.sus) window.Carvis.sus(); } catch (e) {} R = null;
   }
-  function onHazirla(i) { [i + 1, i + 2].forEach(function (j) { var r = R && R.reels[j]; if (r) icerik(r.it).catch(function () {}); }); }
+  function onHazirla(i) { [i + 1, i + 2].forEach(function (j) { var r = R && R.reels[j]; if (r) icerikHer(r.it).catch(function () {}); }); }
 
   function reelKur(it, i) {
     var cv = el('canvas', { 'aria-hidden': 'true' }), ic = el('div', { class: 'rl-ic' }), ilerI = el('i'), sag = el('div', { class: 'rl-sag' });
     var kok = el('section', { class: 'rl-reel', 'data-i': String(i), 'aria-label': it.konu }, [cv, ic, sag, el('div', { class: 'rl-ilerleme' }, [ilerI])]);
     var r = { el: kok, it: it, j: null, t0: 0, durak: -1, bitti: false };
-    ic.appendChild(el('div', { class: 'rl-konu', text: String(it.kitapAd).replace(/^1001\s*/, '') + ' · ' + it.konu + (it.ol != null ? ' · sınavda %' + Math.round(it.ol * 100) : '') }));
+    var mk = it.tur === 'makale';
+    var etiketMetni = mk ? '📰 Yeni araştırma · ' + (it.onceki ? it.onceki.konu : '') : String(it.kitapAd).replace(/^1001\s*/, '') + ' · ' + it.konu + (it.ol != null ? ' · sınavda %' + Math.round(it.ol * 100) : '');
+    var etiket = el('div', { class: 'rl-etiket' + (mk ? ' mk' : ''), text: etiketMetni }); kok.appendChild(etiket);
+    ic.appendChild(el('div', { class: 'rl-konu', text: etiketMetni }));
     ic.appendChild(el('div', { class: 'rl-yukleniyor', text: 'Hazırlanıyor…' }));
     var ap = null, begen = el('button', { type: 'button', 'aria-label': 'Beğen', 'aria-pressed': 'false' }, ['♥', el('small', { text: '' })]);
     function dugme(ikon, ad, fn) { var b = el('button', { type: 'button', 'aria-label': ad, onclick: fn }, [ikon, el('small', { text: ad })]); sag.appendChild(b); return b; }
     sag.appendChild(begen);
-    dugme('🏛', 'Saray', function () { if (!r.j) return; sarayKaydet(r); });
+    dugme('🏛', 'Saray', function () { if (!r.j) return; if (!r.j.duraklar || !r.j.duraklar.length) return U.toast('Bu reel\'de hafıza sarayı yok.'); sarayKaydet(r); });
     dugme('🔍', 'Test', function () { if (r.j) testAc(r); });
     dugme('💬', 'Yorum', function () { if (r.j) yorumlar(r); });
-    dugme('↗', 'Kitap', function () { kapat(); location.hash = U.okuHash(it.kitap, it.sira); });
+    dugme(mk ? '📄' : '↗', mk ? 'Makale' : 'Kitap', function () { if (mk) { if (r.j && r.j.makale && r.j.makale.link) window.open(r.j.makale.link, '_blank', 'noopener'); return; } kapat(); location.hash = U.okuHash(it.kitap, it.sira); });
     istat().then(function (v) { var b = v.begen[it.id]; begen.setAttribute('aria-pressed', String(!!b)); begen.lastChild.textContent = String(800 + ((i * 7919) % 4000) + (b ? 1 : 0)); });
     function begenToggle(zorla) { U.depoGuncelle('reels', function (v) { v.begen = v.begen || {}; var on = zorla || !v.begen[it.id]; if (on) v.begen[it.id] = 1; else delete v.begen[it.id]; begen.setAttribute('aria-pressed', String(on)); begen.lastChild.textContent = String(800 + ((i * 7919) % 4000) + (on ? 1 : 0)); }, 200); }
     begen.addEventListener('click', function () { begenToggle(false); });
@@ -201,18 +273,23 @@
     var sahneKap = el('div', { class: 'rl-sahnekap' }); kok.insertBefore(sahneKap, sag);
     r.basla = function () {
       r.bitti = false; ilerI.style.width = '0';
-      icerik(it).then(function (j) {
+      icerikHer(it).then(function (j) {
         r.j = j; if (!R || R.reels[R.aktif] !== r) return;
+        if (mk && j.makale) etiket.textContent = '📰 ' + (j.makale.dergi || 'Yeni araştırma') + ' ' + (j.makale.yil || '') + ' · ' + (j.makale.neden || '');
         ic.style.display = 'none'; if (r.oy) r.oy.yoket();
         r.oy = new U.Animasyon.Oynatici(sahneKap, j, {
-          konus: function (m) { if (R && R.sesAcik && window.Carvis && window.Carvis.soyle) window.Carvis.soyle(m); },
+          konus: function (m) { if (R && R.sesAcik && window.Carvis && window.Carvis.soyle) return window.Carvis.soyle(m); },
           sus: function () { if (window.Carvis && window.Carvis.sus) window.Carvis.sus(); },
-          cevap: function (ok, q) { izlendi(it.id + '|soru|' + String(q.soru).slice(0, 20), ok ? 20 : 5).then(function () { R && R.istatCiz(); }); if (!ok && U.eksikEkle) U.eksikEkle({ kitap: it.kitap, bolum: it.bolum, sira: it.sira, konu: it.konu, soru: String(q.soru).slice(0, 160), bilmiyor: false, kaynak: 'reels' }); },
+          cevap: function (ok, q) { izlendi(it.id + '|soru|' + String(q.soru).slice(0, 20), ok ? 20 : 5).then(function () { R && R.istatCiz(); }); if (!ok && !mk && U.eksikEkle) U.eksikEkle({ kitap: it.kitap, bolum: it.bolum, sira: it.sira, konu: it.konu, soru: String(q.soru).slice(0, 160), bilmiyor: false, kaynak: 'reels' }); },
           bitti: function () { if (r.bitti) return; r.bitti = true; ilerI.style.width = '100%'; izlendi(it.id, 10).then(function () { R && R.istatCiz(); }); var sonraki = R && R.reels[i + 1]; if (sonraki && !document.querySelector('.rl-sayfa')) setTimeout(function () { R.kok.scrollTo({ top: sonraki.el.offsetTop, behavior: 'smooth' }); }, 1200); }
         });
         r.oy.basla();
         onHazirla(i);
-      }, function (e) { ic.style.display = ''; ic.lastChild.textContent = 'Bu reel hazırlanamadı: ' + (U.AI && U.AI.hataMetni ? U.AI.hataMetni(e) : e.message || e) + ' — kaydır.'; });
+      }, function (e) {
+        ic.style.display = ''; ic.lastChild.textContent = (mk ? 'Makale reel\'i hazırlanamadı: ' : 'Bu reel hazırlanamadı: ') + (U.AI && U.AI.hataMetni ? U.AI.hataMetni(e) : e.message || e) + ' — sonrakine geçiliyor…';
+        // akış takılmasın: hatalı reel kendiliğinden atlanır
+        setTimeout(function () { if (R && R.reels[R.aktif] === r && R.reels[i + 1]) R.kok.scrollTo({ top: R.reels[i + 1].el.offsetTop, behavior: 'smooth' }); }, mk ? 1200 : 3500);
+      });
     };
     r.ciz = null;
     r.dur = function () { if (r.oy) { r.oy.yoket(); r.oy = null; } };
@@ -222,6 +299,7 @@
     if (!R) return; var e = R.reels[R.aktif]; if (e) e.dur(); R.aktif = i; try { if (window.Carvis && window.Carvis.sus) window.Carvis.sus(); } catch (x) {}
     var s = document.querySelector('.rl-sayfa'); if (s) s.remove();
     R.reels[i].basla();
+    if (i >= R.reels.length - 3 && R.ekle) R.ekle(5);
   }
 
   /* ---------- 🏛 sarayı kaydet ---------- */
