@@ -30,6 +30,13 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Jane tuzakları, canlı mod, sağlık (r65)
+- Jane sekmesinde "Beni kandırmaya çalış": yanlış sezgiyi hedefleyen 7 soru (Doğru/Yanlış + 5 şık), önbellek `janeTuzak2|…`.
+- `canli.js`: Carvis balonu varsayılan "canlı şerit" (son 2 mesaj + giriş, yarı saydam, sürüklenebilir); ⤢ tam sohbet. Sayfa kullanılabilir kalır.
+- `saglik.js`: su/vitamin/verim/uyku/kahve (Depo 'saglik'), #saglik sayfası + 7 günlük grafik, ana panoda SAĞLIK paneli,
+  yerel komutlar Carvis.saatKomut'a eklendi (kota harcamaz), hatırlatmalar (su 90 dk, vitamin günde 1), Carvis aracı `saglik`.
+- Menü noktası (.mn-nokta) sol alt köşede, ana sayfada da görünür.
+
 ## Zamanım yok v2 + okuma araç çubuğu (r64)
 - `app10.js` zamanimYok: sekmeler Hızlı tekrar / İlk kez öğreniyorum / Patrick Jane / Hafıza sarayı. Hızlı tekrar ve İlk kez,
   bölümün HER alt başlığını ~7000 karakterlik partilerle sırayla üretir (`partiliOzet`, önbellek anahtarı `zy2|tur|kitap|bolum|j/n`),

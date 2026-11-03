@@ -16,7 +16,8 @@
   css.textContent = [
     'body.ev-sade #ana .sayfa > :not(.jv-pano){display:none!important}',
     'body.ev-sade #ana .sayfa{padding-bottom:0!important}',
-    'body.ev-sade .mn-nokta{display:none!important}',
+    /* sol üstteki menü noktası (kullanıcı: "çok güzel, daha uygun bir yere alalım") → sol alt köşe, başparmak hizası; ana sayfada da */
+    '.mn-nokta{top:auto!important;bottom:calc(26px + env(safe-area-inset-bottom,0px))!important;left:max(22px,env(safe-area-inset-left))!important;width:44px!important;height:44px!important}',
     'body.ev-sade .jv-panel.kd-ses{display:none!important}',
     '.kd-kadran{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:1;transform:translate(-50%,-50%);z-index:5;pointer-events:none}',
     '.kd-kadran svg{width:100%;height:100%;overflow:visible}',
@@ -110,6 +111,7 @@
             git: function () { U.git(U.okuHash(k.id, s ? s.bolum : 0)); } }; });
         return kit.concat([
           { ik: 'pusula', ad: 'Program', alt: 'bugünkü dersler, pratikler, komite', git: function () { location.hash = '#pusula'; } },
+          { ik: 'damla', ad: 'Sağlık', alt: 'su, vitamin, verim, uyku', git: function () { location.hash = '#saglik'; } },
           { ik: 'oynat', ad: 'Reels', alt: 'kaydır, izle, öğren', git: function () { if (U.reelsAc) U.reelsAc(); else location.hash = '#reels'; } },
           { ik: 'makale', ad: 'Makaleler', alt: 'ilgi alanların, yeni araştırmalar', git: function () { location.hash = '#makaleler'; } },
           { ik: 'kart', ad: 'Kartlar', alt: 'bugünkü tekrar', git: function () { location.hash = '#kartlar'; } },

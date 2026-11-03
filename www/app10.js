@@ -136,6 +136,36 @@
       });
     } }, ['🎩 Nerede takılacağımı çöz'])]));
     sJane.appendChild(janeKutu);
+    /* 🃏 Jane'in tuzakları (kullanıcı, 2026-11-03: "Patrick Jane bizi yanıltmak için gıcığına soru sorsun; yanıldığımız yeri erkenden
+       eleyelim"): okumadan önce de çözülebilir. Her soru tek bir yanlış sezgiyi hedefler; yanlışlar Eksikler'e düşer. */
+    var tuzakKutu = el('div', { class: 'jane-test' });
+    var tuzakDug = el('button', { class: 'jane-cta tuzak', type: 'button' }, [el('span', { class: 'ik', text: '🃏' }), el('span', {}, [el('b', { text: 'Beni kandırmaya çalış' }), el('small', { text: 'Jane, en çok yanıldığın sezgileri hedefleyen gıcık sorular sorar · okumadan önce de olur' })])]);
+    tuzakDug.addEventListener('click', function () {
+      tuzakDug.disabled = true; tuzakKutu.innerHTML = '<div class="yukleniyor">Jane tuzak kuruyor…</div>';
+      var an = fnv('janeTuzak2|' + kj.id + '|' + bolum.id);
+      U.AI.onbellekOku(an).then(function (onb) {
+        if (onb && onb.json) return onb.json;
+        return janeVerisi().then(function (r) {
+          return Y.sample.json('Sen Patrick Jane\'sin (The Mentalist): insanların yanlış sezgilerini okuyup onları kendi tuzağına düşüren, muzip ama ADİL biri. Bir tıp öğrencisini YANILTMAK için tasarlanmış 7 "gıcık" soru yaz. ' +
+            'Her soru öğrencinin büyük ihtimalle kurduğu tek bir YANLIŞ sezgiyi hedeflesin: birbirine benzeyen kavramlar, ters çevrilmiş sıra/yön, "genellikle doğru ama burada değil" istisnası, tek kelimesi değiştirilmiş doğru cümle, küçük sayısal sapma, sezgisel ama yanlış neden-sonuç. ' +
+            'Karışık türler: (a) en az 3 tane "Bu cümle doğru mu?" — siklar ["Doğru","Yanlış"]; cümle neredeyse doğru görünsün. (b) gerisi 5 şıklı; en cazip çeldirici sezgisel cevap olsun. ' +
+            'Kurallar: YALNIZ aşağıdaki metne dayan; her sorunun metne göre TEK ve kesin doğru cevabı olsun (hile, belirsizlik yok); "hepsi/hiçbiri" yok; doğru şıkkın yeri değişsin. ' +
+            'Çıkmış sorularda kurulan çeldiricileri ve öğrencinin geçmiş yanlışlarını özellikle hedefle.\n' +
+            'Her soru için: "tuzak" = hangi yanılgıyı hedeflediği (1 kısa cümle); "aciklama" = Jane ağzından 2-3 cümle: önce yakaladıysa "Yakaladım. …", kanmadıysa da geçerli olacak şekilde "Çoğu kişi burada … der; oysa …", sonunda ayırt etme anahtarı.\n' +
+            'YALNIZ JSON: {"sorular":[{"soru":"…","siklar":["…"],"dogru":0,"tuzak":"…","aciklama":"…","konu":"…"}]}\n\n' +
+            'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\n"""\n' + bolumOzu(bolum, 8000) + '\n"""\n\nÇIKMIŞ SORULAR:\n' + (r[0] || '(yok)') + '\n\nÖĞRENCİNİN YANLIŞLARI:\n' + (r[1] || '(yok)'));
+        }).then(function (j) { U.AI.onbellekYaz(an, { json: j, eylem: 'jane-tuzak', kitap: kj.id, t: Date.now() }); return j; });
+      }).then(function (j) {
+        var sorular = (j && j.sorular || []).filter(function (q) { return q && q.soru && Array.isArray(q.siklar) && q.siklar.length >= 2 && +q.dogru >= 0 && +q.dogru < q.siklar.length; }).slice(0, 8).map(function (q) {
+          return { soru: String(q.soru), siklar: q.siklar.map(String), dogru: +q.dogru, aciklama: '🎩 ' + String(q.aciklama || '') + (q.tuzak ? '\n\nTuzak: ' + q.tuzak : ''), konu: String(q.konu || ''), kitap: kj.id, sira: bolum.sira, bolumAd: bolum.kisa || bolum.baslik };
+        });
+        if (!sorular.length) throw new Error('Jane bu sefer tuzak kuramadı; tekrar dene.');
+        tuzakKutu.innerHTML = ''; tuzakDug.style.display = 'none';
+        U.testCiz(tuzakKutu, { baslik: 'Jane\'in tuzakları · ' + (bolum.kisa || bolum.baslik), sorular: sorular }, { kaynak: 'jane-tuzak', bitti: function (d) { U.toast(d ? '🎩 "Kanmadın. Etkileyici."' : '🎩 "Yakaladım. Eksiklerine ekledim."'); } });
+      }).catch(function (e) { tuzakDug.disabled = false; tuzakKutu.innerHTML = ''; tuzakKutu.appendChild(el('p', { class: 'hata-metni', text: e && e.code ? U.AI.hataMetni(e) : String(e && e.message || e) })); });
+    });
+    var janeGiris = sJane.querySelector('.jane-giris');
+    if (janeGiris) { janeGiris.after(tuzakDug); tuzakDug.after(tuzakKutu); } else { sJane.appendChild(tuzakDug); sJane.appendChild(tuzakKutu); }
     // 🏛 Hafıza sarayı (app17.js): bölümün kritik bilgileri bir mekânın odalarına
     var sarayKutu = el('div', { class: 'yp-cevap', hidden: true });
     sSaray.appendChild(sarayKutu);
@@ -213,6 +243,7 @@
     '.jane-dug{width:100%;justify-content:center}',
     '.jane-kart .ai-metin p strong:first-child{color:#ffd38a}.jane-kart .ai-metin p:has(> strong:first-child){padding:10px 14px;border-radius:14px;background:rgba(255,211,138,.05);box-shadow:inset 3px 0 0 #ffd38a}',
     '.jane-cta{display:flex;align-items:center;gap:14px;width:100%;margin:14px 0;padding:16px 18px;border-radius:20px;border:0;cursor:pointer;text-align:left;color:#fff;background:linear-gradient(135deg,rgba(94,240,220,.25),rgba(255,211,138,.15));box-shadow:0 0 0 1px rgba(160,255,240,.6),0 0 30px rgba(94,240,220,.3);animation:janeNefes 2.4s ease-in-out infinite}',
+    '.jane-cta.tuzak{background:linear-gradient(135deg,rgba(255,122,122,.18),rgba(255,211,138,.12));box-shadow:0 0 0 1px rgba(255,170,140,.6),0 0 26px rgba(255,140,120,.25);animation:none;margin-top:0}',
     '.jane-cta .ik{font-size:26px}.jane-cta b{display:block;font-size:17px}.jane-cta small{display:block;color:#d5f5ef;font-size:12.5px}',
     '@keyframes janeNefes{50%{box-shadow:0 0 0 1px rgba(160,255,240,.9),0 0 46px rgba(94,240,220,.5)}}'
   ].join('\n');
