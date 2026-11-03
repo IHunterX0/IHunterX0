@@ -20,6 +20,8 @@
     '.holo:not(.dolu) .h-durum{font-size:10px;letter-spacing:.32em}',
     // köşedeki küçük ✕, kenardaki pencere sekmelerine yakın düşüp yanlışlıkla Carvis'i kapatıyordu (cevap "Durduruldu"); kapatma balondan
     '.holo:not(.dolu) .h-kapat{display:none}',
+    /* kullanıcı, 2026-11-03: sağ alttaki projektör hologramı istenmiyor (ortadaki büyük küre yeterli) → kart/detay yokken görünmez; boyut ölçümü için yerleşim korunur */
+    '.holo:not(.dolu){visibility:hidden!important}',
     '@keyframes holoGir{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}',
     '.holo canvas.kure{position:absolute;inset:0;width:100%;height:100%}',
     '.holo svg.oklar{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}',
