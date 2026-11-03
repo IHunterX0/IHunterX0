@@ -31,10 +31,11 @@
     '.kd-tekerlek{position:fixed;z-index:601;width:min(86vmin,620px);aspect-ratio:1;transform:translate(-50%,-50%) scale(1);animation:kdAc .35s cubic-bezier(.2,1.3,.3,1)}',
     '@keyframes kdAc{from{transform:translate(-50%,-50%) scale(.6) rotate(-25deg);opacity:0}}',
     '.kd-tekerlek svg{width:100%;height:100%;overflow:visible}',
-    '.kd-dilim{cursor:pointer;transition:fill .15s}',
+    '.kd-dilim{cursor:pointer;transition:fill .15s;outline:none}',
+    '.kd-dilim:focus,.kd-dilim:focus-visible{outline:none}',
     '.kd-dilim path.d{fill:rgba(8,40,48,.72);stroke:rgba(110,255,235,.35);stroke-width:1.2;transition:fill .15s,stroke .15s}',
     '.kd-dilim.on path.d{fill:rgba(94,240,220,.28);stroke:#9ffff0;stroke-width:2.2;filter:drop-shadow(0 0 10px #5ef0dc)}',
-    '.kd-dilim text{fill:#e9fffb;font:600 13px var(--f-govde,system-ui);text-anchor:middle;pointer-events:none}',
+    '.kd-dilim text{fill:#e9fffb;font-family:var(--f-baslik,system-ui)!important;font-weight:700;letter-spacing:.02em;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:rgba(2,14,18,.7);stroke-width:2.5px}',
     '.kd-dilim text.ik{font-size:26px}',
     '.kd-orta{position:absolute;left:50%;top:50%;width:36%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}',
     '.kd-orta b{display:block;font:800 clamp(16px,2.6vmin,22px) var(--f-baslik,system-ui);color:#fff;text-shadow:0 0 14px #5ef0dc}',
@@ -144,7 +145,7 @@
         var g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'kd-dilim'); g.setAttribute('role', 'menuitem'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', o.ad);
         g.innerHTML = '<path class="d" d="' + dilimYol(a0, a1, R0, R1) + '"' + (o.renk ? ' style="stroke:' + o.renk + '"' : '') + '/>' +
           '<g transform="translate(' + (Math.cos(am) * rm - 9).toFixed(1) + ' ' + (Math.sin(am) * rm - 19).toFixed(1) + ') scale(.75)" style="color:' + (o.renk || '#c9fff6') + ';filter:drop-shadow(0 0 4px currentColor)"><path d="' + (U.ikonYol ? U.ikonYol(o.ik) : '') + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>' +
-          '<text x="' + (Math.cos(am) * rm).toFixed(1) + '" y="' + (Math.sin(am) * rm + 16).toFixed(1) + '" style="font-size:' + (o.ad.length > 12 ? 9.5 : 11) + 'px">' + U.esc(o.ad) + '</text>';
+          '<text x="' + (Math.cos(am) * rm).toFixed(1) + '" y="' + (Math.sin(am) * rm + 16).toFixed(1) + '" style="font-size:' + (o.ad.length > 12 ? 8.2 : o.ad.length > 8 ? 9.2 : 10) + 'px">' + U.esc(o.ad) + '</text>';
         function sec() { dilimler.forEach(function (x) { x.classList.toggle('on', x === g); }); orta.firstChild.textContent = o.ad; orta.lastChild.textContent = o.alt; }
         g.addEventListener('pointerenter', sec); g.addEventListener('focus', sec);
         g.addEventListener('click', function (e) { e.stopPropagation(); titret(15); kapat(); o.git(); });
@@ -162,7 +163,7 @@
         var i = Math.floor(a / (Math.PI * 2) * n) % n; dilimler[i].dispatchEvent(new Event('pointerenter'));
       });
       tek.addEventListener('pointerup', function () { if (!basili) return; basili = false; });
-      if (dilimler[0]) dilimler[0].focus({ preventScroll: true });
+      if (dilimler[0]) { dilimler[0].dispatchEvent(new Event('pointerenter')); try { dilimler[0].focus({ preventScroll: true, focusVisible: false }); } catch (e) {} }
     });
   }
   /* Hareket bölümü arşivde (kullanıcı, 2026-11-03: "hareket kısmındaki kemik hareketi, kaslar, nefes alma kaldır, arşivle; ben sadece
