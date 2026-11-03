@@ -738,6 +738,20 @@
       });
     });
   };
+  // Ders modunda parçaya ait yapıyı 3B hologramda açar ve anlatılan bölgeye yakınlaştırır; hata dersi durdurmaz
+  function dersGorsel(g) {
+    if (!g || !g.ad || !/^(molekul|kemik|kas)$/.test(g.tur || '')) return Promise.resolve();
+    var tur = g.tur, parca = String(g.parca || '').trim();
+    var ac = { tur: tur, ad: String(g.ad) };
+    if (tur === 'kemik' && parca) { ac.isaret = parca; if (g.bilgi) ac.bilgi = String(g.bilgi); }
+    durum('Ders: hologram hazırlanıyor');
+    var is = Promise.resolve().then(function () { return gorselAc(ac); }).then(function (v) {
+      if (typeof v === 'string' && /bulunamad|yok|olmalı/i.test(v)) return;
+      if (tur === 'molekul' && parca) return sahneIsaretle({ parca: parca, etiket: parca, bilgi: g.bilgi ? String(g.bilgi) : undefined });
+    }).catch(function () {});
+    // görsel yavaşsa anlatımı en fazla 6 sn bekletir
+    return Promise.race([is, new Promise(function (ok) { setTimeout(ok, 6000); })]);
+  }
   Carvis.dersModu = function (kitapId, sira) {
     if (Carvis.dersAktif) return;
     var hedef = kitapId ? Promise.resolve({ kitap: kitapId, sira: sira || 0 }) :
@@ -757,10 +771,11 @@
           var a = altlar[i], metin = U.altMetin(a, 6000);
           durum('Ders: ' + (i + 1) + '/' + altlar.length + ' · hazırlanıyor');
           return Y.sample.json('Bir tıp öğrencisine çalışma kitabının bu kısmını SESLİ ders gibi anlatacaksın. YALNIZ metne dayan, uydurma. Türkçe, düz cümleler (madde işareti yok).\n' +
-            'JSON döndür: {"anlatim":"en fazla 110 kelimelik sesli anlatım; sınavda çıkan noktayı vurgula","soru":"bu kısımdan tek bir kısa açık uçlu soru","cevap":"kitaba göre doğru cevap, 1-2 cümle"}\n\nALT BÖLÜM: ' + (a.baslik || '') + '\n"""\n' + metin + '\n"""')
+            'JSON döndür: {"anlatim":"en fazla 110 kelimelik sesli anlatım; sınavda çıkan noktayı vurgula","soru":"bu kısımdan tek bir kısa açık uçlu soru","cevap":"kitaba göre doğru cevap, 1-2 cümle","gorsel":null}\n' +
+            'gorsel: parça BELİRLİ bir yapıyı anlatıyorsa 3B hologramda göster, yoksa null bırak. Biçim: {"tur":"molekul"|"kemik"|"kas","ad":"molekül adı (ör. histidin, glukoz, ATP, hemoglobin) ya da Latince kemik/kas adı (ör. scapula, biceps brachii)","parca":"molekülde odaklanılacak bölge (ör. imidazol halkası, karboksil grubu) ya da kemikte Latince anatomik işaret (ör. processus coracoideus); yoksa boş","bilgi":"o bölge için en fazla 20 kelimelik kart metni"}\n\nALT BÖLÜM: ' + (a.baslik || '') + '\n"""\n' + metin + '\n"""')
             .then(function (j) {
               mesaj('cv-o', '<b>' + U.esc(a.baslik || 'Parça ' + (i + 1)) + '</b><br>' + U.esc(j.anlatim || '') + '<br><i>Soru: ' + U.esc(j.soru || '') + '</i> <span class="etiket-kucuk ai">AI üretimi</span>');
-              return Carvis.soyle(j.anlatim).then(function () { return sorVe(j, a, metin); });
+              return dersGorsel(j.gorsel).then(function () { return Carvis.soyle(j.anlatim); }).then(function () { return sorVe(j, a, metin); });
             }).then(function () { i++; return parca(); })
             .catch(function (e) { mesaj('cv-o', '<p class="hata-metni">' + U.esc(U.AI ? U.AI.hataMetni(e) : String(e)) + '</p>'); bitti = true; return son(); });
         }
