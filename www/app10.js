@@ -76,7 +76,7 @@
     var sekmeler = el('div', { class: 'zy-sekmeler', role: 'tablist' }), alanlar = {};
     var sHizli = el('div', { class: 'zy-alan', 'data-s': 'hizli' }), sIlk = el('div', { class: 'zy-alan', 'data-s': 'ilk', hidden: true }), sJane = el('div', { class: 'zy-alan', 'data-s': 'jane', hidden: true }), sSaray = el('div', { class: 'zy-alan', 'data-s': 'saray', hidden: true });
     var ilkKutu = el('div', { class: 'yp-cevap' }), ilkBasladi = false;
-    [['hizli', '⚡', 'Hızlı tekrar', 'sınav için, her başlık'], ['ilk', '🌱', 'İlk kez öğreniyorum', 'sezgi + adım adım'], ['jane', '🎩', 'Patrick Jane', 'takılacağın yer + test'], ['saray', '🏛', 'Hafıza sarayı', 'mekânda ezber']].forEach(function (x) {
+    [['hizli', '⚡', 'Hızlı tekrar', 'sınav için, her başlık'], ['ilk', '🌱', 'İlk kez öğreniyorum', 'sezgi + adım adım'], ['jane', '🎩', 'Patrick Jane', 'sarsılma turu + tuzaklar'], ['saray', '🏛', 'Hafıza sarayı', 'mekânda ezber']].forEach(function (x) {
       var b = el('button', { type: 'button', role: 'tab', class: 'zy-sekme' + (x[0] === 'hizli' ? ' on' : ''), 'aria-selected': String(x[0] === 'hizli') }, [el('span', { class: 'ik', text: x[1] }), el('b', { text: x[2] }), el('small', { text: x[3] })]);
       b.addEventListener('click', function () {
         Array.prototype.forEach.call(sekmeler.children, function (c) { c.classList.toggle('on', c === b); c.setAttribute('aria-selected', String(c === b)); });
@@ -84,7 +84,7 @@
         if (x[0] === 'ilk' && !ilkBasladi) { ilkBasladi = true; partiliOzet(ilkKutu, kj, bolum, 'ilk'); }
         if (x[0] === 'saray' && !sarayKutu.dataset.b) { sarayKutu.dataset.b = 1; sarayKutu.hidden = false; if (U.sarayKurPaneli) U.sarayKurPaneli(sarayKutu, kj, bolum); }
       });
-      sekmeler.appendChild(b);
+      sekmeler.appendChild(b); alanlar[x[0]] = b;
     });
     govde.appendChild(sekmeler);
     sHizli.appendChild(kutu); sIlk.appendChild(el('p', { class: 'var-etiket', text: 'Konuyu ilk kez görüyorsan: her başlık önce günlük hayattan bir sezgiyle, sonra yeni terimler, adım adım mantık ve kendini kontrol sorusuyla anlatılır. Bilgi yalnız kitabın bu bölümünden.' })); sIlk.appendChild(ilkKutu);
@@ -106,7 +106,7 @@
       }).catch(function () { return ''; });
       return Promise.all([cikmis, eksik]);
     }
-    sJane.appendChild(el('div', { class: 'jane-giris' }, [el('div', { class: 'jane-av', text: 'PJ' }), el('div', {}, [el('b', { text: 'Patrick Jane' }), el('p', { text: '"Bu bölümü okurken aklından geçeni söyleyeyim…" — çıkmış sorulara ve senin yanlışlarına bakıp nerede karıştıracağını önceden çözer; sonunda o karışıklıklardan ayırt etme testi.' })])]));
+    sJane.appendChild(el('div', { class: 'jane-giris' }, [el('div', { class: 'jane-av', text: 'PJ' }), el('div', {}, [el('b', { text: 'Patrick Jane' }), el('p', { text: '"Okudun ve bildiğini sanıyorsun. Bakalım hangi kısmını gerçekten okudun, hangisini beynin senin yerine uydurdu."' })])]));
     sJane.appendChild(el('div', { class: 'yp-dugmeler' }, [el('button', { class: 'dugme ana jane-dug', type: 'button', onclick: function () {
       var d = this; d.disabled = true; d.style.display = 'none'; janeKutu.hidden = false;
       janeKutu.innerHTML = '<div class="yukleniyor">Çıkmışlar ve yanlışların inceleniyor…</div>';
@@ -164,15 +164,25 @@
         U.testCiz(tuzakKutu, { baslik: 'Jane\'in tuzakları · ' + (bolum.kisa || bolum.baslik), sorular: sorular }, { kaynak: 'jane-tuzak', bitti: function (d) { U.toast(d ? '🎩 "Kanmadın. Etkileyici."' : '🎩 "Yakaladım. Eksiklerine ekledim."'); } });
       }).catch(function (e) { tuzakDug.disabled = false; tuzakKutu.innerHTML = ''; tuzakKutu.appendChild(el('p', { class: 'hata-metni', text: e && e.code ? U.AI.hataMetni(e) : String(e && e.message || e) })); });
     });
+    /* 🎩 Sarsılma turu (sarsma.js): 2. aşama — açık uçlu, güvenli, takip sorulu sorgu */
+    var sorguKutu = el('div', { class: 'js-alan', hidden: true }), sorguBasladi = false;
+    var sorguDug = el('button', { class: 'jane-cta', type: 'button' }, [el('span', { class: 'ik', text: '🎩' }), el('span', {}, [el('b', { text: 'Sarsılma turu' }), el('small', { text: '6 varsayım · cevabını yaz, ne kadar emin olduğunu seç · doğruysan Jane daha da zorlar' })])]);
+    function sarsBaslat() { if (sorguBasladi || !U.janeSorgu) return; sorguBasladi = true; sorguDug.style.display = 'none'; U.janeSorgu(sorguKutu, kj, bolum, janeVerisi); }
+    sorguDug.addEventListener('click', sarsBaslat);
     var janeGiris = sJane.querySelector('.jane-giris');
-    if (janeGiris) { janeGiris.after(tuzakDug); tuzakDug.after(tuzakKutu); } else { sJane.appendChild(tuzakDug); sJane.appendChild(tuzakKutu); }
+    if (janeGiris) { janeGiris.after(sorguDug); sorguDug.after(sorguKutu); }
+    if (janeGiris) { sorguKutu.after(tuzakDug); tuzakDug.after(tuzakKutu); } else { sJane.appendChild(tuzakDug); sJane.appendChild(tuzakKutu); }
     // 🏛 Hafıza sarayı (app17.js): bölümün kritik bilgileri bir mekânın odalarına
     var sarayKutu = el('div', { class: 'yp-cevap', hidden: true });
     sSaray.appendChild(sarayKutu);
     // AI yoksa: kitabın kendi sınav odaklı parçaları
     U.AI.hazir().then(function (ok) {
       if (!ok) { yedek(); return; }
-      partiliOzet(kutu, kj, bolum, 'hizli');
+      partiliOzet(kutu, kj, bolum, 'hizli', function () {
+        var cta = el('button', { class: 'jane-cta js-gec', type: 'button' }, [el('span', { class: 'ik', text: '🎩' }), el('span', {}, [el('b', { text: 'Okudum. Şimdi beni sars' }), el('small', { text: 'Patrick Jane, beyninin otomatik doldurduğu varsayımları tek tek sorgular' })])]);
+        cta.addEventListener('click', function () { if (alanlar.jane) alanlar.jane.click(); sarsBaslat(); setTimeout(function () { sJane.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); });
+        kutu.appendChild(cta);
+      });
     });
     function yedek() {
       kutu.innerHTML = '';
@@ -183,7 +193,7 @@
     }
   }
   /* Bölümün HER alt başlığı: metin ~7000 karakterlik partilere bölünür, partiler sırayla üretilir (önbellekli). Üstte başlık çipleri. */
-  function partiliOzet(kutu, kj, bolum, tur) {
+  function partiliOzet(kutu, kj, bolum, tur, bitince) {
     kutu.innerHTML = '';
     var altlar = (bolum.altlar || []).filter(function (a) { return a.baslik || (a.bloklar && a.bloklar.length); });
     var partiler = [], p = [], boy = 0;
@@ -201,15 +211,23 @@
     });
     kutu.appendChild(toc); kutu.appendChild(durum); kaplar.forEach(function (k) { kutu.appendChild(k); });
     var sira = 0, hazir = 0;
-    function ilerle() { durum.textContent = hazir >= partiler.length ? '✓ ' + altlar.length + ' başlığın hepsi hazır' : hazir + '/' + partiler.length + ' parça hazır · ' + altlar.length + ' başlık'; }
+    var bittiCagrildi = false;
+    function ilerle() { if (hazir >= partiler.length && bitince && !bittiCagrildi) { bittiCagrildi = true; setTimeout(bitince, 0); } durum.textContent = hazir >= partiler.length ? '✓ ' + altlar.length + ' başlığın hepsi hazır' : hazir + '/' + partiler.length + ' parça hazır · ' + altlar.length + ' başlık'; }
     ilerle();
     function sonraki() {
       if (sira >= partiler.length) return; var j = sira++, pp = partiler[j], c = el('div'); kaplar[j].appendChild(c);
       var yedek = setTimeout(sonraki, 50000), cagrildi = false;
-      U.cevapCalistir(c, fnv('zy2|' + tur + '|' + kj.id + '|' + bolum.id + '|' + j + '/' + partiler.length), function () { return istem(tur, kj, bolum, pp); },
-        { kj: kj, eylem: tur === 'ilk' ? 'zamanimyok-ilk' : 'zamanimyok', sonra: function () { clearTimeout(yedek); hazir++; ilerle(); if (!cagrildi) { cagrildi = true; sonraki(); } } });
+      U.cevapCalistir(c, fnv((tur === 'hizli' ? 'zy3|' : 'zy2|') + tur + '|' + kj.id + '|' + bolum.id + '|' + j + '/' + partiler.length), function () { return istem(tur, kj, bolum, pp); },
+        { kj: kj, eylem: tur === 'ilk' ? 'zamanimyok-ilk' : 'zamanimyok', sonra: function () { isaretle(c); clearTimeout(yedek); hazir++; ilerle(); if (!cagrildi) { cagrildi = true; sonraki(); } } });
     }
     sonraki();
+  }
+  // hızlı özetin satır türleri: Aktörler / Zincir / Kilit / Ezber ayrı görünür
+  function isaretle(c) {
+    Array.prototype.forEach.call(c.querySelectorAll('strong'), function (st) {
+      var t = st.textContent.trim().toLocaleLowerCase('tr'), k = /^kilit/.test(t) ? 'zy-kilit' : /^ezber/.test(t) ? 'zy-ezber' : /^akt[öo]r/.test(t) ? 'zy-aktor' : /^zincir/.test(t) ? 'zy-zincir' : '';
+      if (!k) return; var p = st.closest('p, li'); if (p && st === p.firstElementChild) p.classList.add(k);
+    });
   }
   // başlık adı: numara iki kez yazılmasın ("11.1 11.1 …"); adsız giriş bloğu "Giriş"
   function basAd(a, i) { var b = String(a.baslik || '').trim(), no = String(a.no || '').trim(); if (!b) return i === 0 ? 'Giriş' : 'Kısım ' + (i + 1); return no && b.indexOf(no) !== 0 ? no + ' ' + b : b; }
@@ -220,8 +238,14 @@
       '### <başlık numarası ve adı>\n**Önce sezgi:** günlük hayattan bir benzetme ya da somut bir sahne (2-3 cümle)\n**Yeni terimler:** başlıktaki 2-5 yeni terim; her biri "terim (İngilizce/Latince) — sade tanım"\n' +
       '**Adım adım:** mantığı/mekanizmayı 3-6 numaralı adımda, her adımda "çünkü" ile\n**Neden önemli:** vücutta ya da klinikte nerede karşına çıkar (1-2 cümle)\n**Kendine sor:** tek kısa soru; hemen altına "> Cevap: …"\n\n' +
       'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\n"""\n' + metin + '\n"""';
-    return 'Bir tıp öğrencisinin komite sınavına çok az zamanı var. Aşağıdaki bölümün HER alt başlığını ayrı ayrı, sırayla özetle; hiçbir başlığı atlama, başlık sırasını koru. YALNIZ bu metne dayan, uydurma. Türkçe; Latince/İngilizce terimleri koru.\n' +
-      'Her başlık için TAM bu biçim:\n### <başlık numarası ve adı>\n**Özü:** 1-2 cümle\n- 3-7 kısa madde: tanımlar, sayılar, sıralamalar, ayırt edici özellikler — sınavda sorulabilecek her şey\n**Tuzak:** karıştırılan nokta (yalnız metinde varsa)\n\n' +
+    /* kullanıcı, 2026-11-03 (Gemini + GPT kognitif stil raporları): 1. aşama sürtünmesiz okunup geçilir — giriş/motivasyon/soru yok,
+       çıplak mekanizma; ama genel mantıktan TAHMİN EDİLEMEYEN mikro ayrıntılar "Kilit" satırında açıkça yazılır (otomatik doldurma riski). */
+    return 'Bir tıp öğrencisinin komite sınavına çok az zamanı var; bu metni bir kez okuyup geçecek. Aşağıdaki bölümün HER alt başlığını ayrı ayrı, sırayla özetle; hiçbir başlığı atlama, başlık sırasını koru. YALNIZ bu metne dayan, uydurma. Türkçe; Latince/İngilizce terimleri koru.\n' +
+      'Okuyucu mekanizmayı çok hızlı kurar ama genel mantıktan yola çıkıp ara ayrıntıları kendi kafasından doldurma eğilimindedir. Bu yüzden: giriş cümlesi, motivasyon, soru, benzetme, tekrar YOK; soğuk, net, madde madde. Uzunluk başlığın yoğunluğuna göre: hafif başlık ~60-100 kelime, yoğun başlık en çok ~200 kelime.\n' +
+      'Her başlık için TAM bu biçim (ilgisiz satırı atla):\n### <başlık numarası ve adı>\n**Aktörler:** enzim/molekül/yapı/hücre bölmesi, virgülle\n**Zincir:** girdi → ara basamaklar → çıktı (mekanizmanın iskeleti; gerekirse 2 satır)\n' +
+      '- 2-5 kısa madde: tanımlar, sayılar, sıralamalar, ayırt edici özellikler — sınavda sorulabilecek her şey\n' +
+      '**Kilit:** genel mantıktan TAHMİN EDİLEMEYEN, ezberlenmesi ya da dikkat edilmesi gereken ayrıntı: istisna, düzenleme (hangi molekül neyi aktive/inhibe eder), yer (sitozol/mitokondri vb.), kofaktör, sıra/yön/sayı; benzer kavramla karıştırılan nokta. 1-3 tane, noktalı virgülle. Yalnız metinde varsa.\n' +
+      '**Ezber:** sınavda birebir istenecek adlar/terimler, virgülle (yalnız metinde varsa)\n\n' +
       'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\n"""\n' + metin + '\n"""';
   }
   var zyCss = document.createElement('style');
@@ -245,6 +269,10 @@
     '.jane-cta{display:flex;align-items:center;gap:14px;width:100%;margin:14px 0;padding:16px 18px;border-radius:20px;border:0;cursor:pointer;text-align:left;color:#fff;background:linear-gradient(135deg,rgba(94,240,220,.25),rgba(255,211,138,.15));box-shadow:0 0 0 1px rgba(160,255,240,.6),0 0 30px rgba(94,240,220,.3);animation:janeNefes 2.4s ease-in-out infinite}',
     '.jane-cta.tuzak{background:linear-gradient(135deg,rgba(255,122,122,.18),rgba(255,211,138,.12));box-shadow:0 0 0 1px rgba(255,170,140,.6),0 0 26px rgba(255,140,120,.25);animation:none;margin-top:0}',
     '.jane-cta .ik{font-size:26px}.jane-cta b{display:block;font-size:17px}.jane-cta small{display:block;color:#d5f5ef;font-size:12.5px}',
+    '.zy-alan .zy-aktor,.zy-alan .zy-zincir{margin:4px 0;color:#d8f2ee}.zy-alan .zy-zincir{font-family:var(--f-kod,monospace);font-size:13.5px;letter-spacing:.01em}',
+    '.zy-alan .zy-kilit{margin:8px 0;padding:8px 12px;border-radius:12px;background:rgba(255,170,90,.08);box-shadow:inset 3px 0 0 #ffb25e;list-style:none}.zy-alan .zy-kilit strong:first-child{color:#ffc27a}',
+    '.zy-alan .zy-ezber{margin:6px 0;padding:6px 12px;border-radius:12px;background:rgba(170,150,255,.07);box-shadow:inset 3px 0 0 #b9a6ff;list-style:none}.zy-alan .zy-ezber strong:first-child{color:#cbbcff}',
+    '.js-gec{margin-top:18px}',
     '@keyframes janeNefes{50%{box-shadow:0 0 0 1px rgba(160,255,240,.9),0 0 46px rgba(94,240,220,.5)}}'
   ].join('\n');
   document.head.appendChild(zyCss);

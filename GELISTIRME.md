@@ -161,3 +161,11 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 - Animasyonlu ders anlatımı sekmesi (3B molekülde odaklanma + anlatım + soru; AI yalnız senaryo yazar).
 - Yalnız kullanıcının sesiyle uyanma (Vosk konuşmacı modeli, ses tanıtma ekranı, sık kelimeler).
 - Ses: izinli ses kütüphanesi ya da Piper + holografik efekt.
+
+## r70–r76 (2026-11-03)
+- r70: menü/çember/kadran ipucu yazıları kaldırıldı.
+- r71–r74: sağ alttaki projektör hologramı gizlendi (ortadaki büyük küre kalır); Carvis yazı şeridi normalde gizli, altyazıya dokununca açılır; yan panel açıkken şerit ve altyazı panelin soluna ortalanır.
+- r75: uygulama çemberi hızlandırıldı (tam ekran backdrop blur yok, arka sayfa ve JarvisKure'ler çember açıkken çizilmez, ikon animasyonları durağan, dönen halka ayrı GPU katmanında); ✕ kapat tuşu.
+- r76: Zamanım yok iki aşamalı (Gemini + GPT kognitif stil raporlarına göre):
+  - 1. aşama (hızlı tekrar, `zy3|` önbelleği): başlık başına Aktörler / Zincir / maddeler / **Kilit** (genel mantıktan tahmin edilemeyen istisna, düzenleme, yer, sıra) / **Ezber**; giriş, motivasyon, soru yok. Bitince "Okudum. Şimdi beni sars".
+  - 2. aşama (`sarsma.js`, Patrick Jane sarsılma turu): 6 otomatik doldurma varsayımı; açık uçlu cevap + güven (eminim/sanırım/tahmin); yanlışta çöken varsayım + karşı örnek + ikinci hak, sonra çözüm; doğruysa stres testi takip sorusu. "Emin ama yanlış" → `janeOto` (1 gün sonra aynı kitabın turunda geri sorulur) + Eksikler. Her cevap `janeKalibrasyon`'a (tür × güven × sonuç).
