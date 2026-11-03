@@ -450,6 +450,21 @@
       });
     }
   };
+  // Açılışta: (1) yalnız cihaza özel derlemede gelen hazır sağlayıcıları (window.__ozelSaglayicilar) bir kez ekle;
+  // (2) anahtarı olup modeli olmayan sağlayıcıların modellerini kendiliğinden çek (kullanıcı: "sen yapsana")
+  setTimeout(function () {
+    var SG = window.yerelAyar.saglayici, l = SG.liste(), degisti = false;
+    (window.__ozelSaglayicilar || []).forEach(function (o) {
+      if (l.some(function (x) { return x.tur === o.tur && x.anahtar === o.anahtar; })) return;
+      var h = HAZIR_SAGLAYICI[o.tur] || {};
+      l.push({ id: 's' + Date.now().toString(36) + o.tur, tur: o.tur, ad: h.ad || o.tur, taban: o.taban || h.taban, anahtar: o.anahtar, modeller: [], acik: true }); degisti = true;
+    });
+    if (degisti) SG.yaz(l);
+    SG.liste().forEach(function (x, i) {
+      if (!x.anahtar || (x.modeller || []).length || x.tur === 'omniroute') return;
+      SG.modelleriGetir(x).then(function (m) { if (!m.length) return; var t = SG.liste(); if (t[i] && t[i].id === x.id) { t[i].modeller = m.slice(0, 6); SG.yaz(t); } }, function (e) { sagSonHata[x.id] = 'Modeller alınamadı: ' + e.message; });
+    });
+  }, 4000);
   sample.groq = groqSample; // test
   window.yerelGemini.ara = function (soru, o) {
     return geminiAra(soru, o).catch(function (e) {
