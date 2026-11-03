@@ -42,6 +42,19 @@
     .param p1, "v"    # Landroid/webkit/WebView;
     .param p2, "r"    # Landroid/webkit/WebResourceRequest;
 
+    invoke-interface {p2}, Landroid/webkit/WebResourceRequest;->getUrl()Landroid/net/Uri;
+
+    move-result-object v0
+
+    invoke-static {v0}, Lcom/dogac/bin1/Yama;->yanit(Landroid/net/Uri;)Landroid/webkit/WebResourceResponse;
+
+    move-result-object v0
+
+    if-eqz v0, :yama_yok
+
+    return-object v0
+
+    :yama_yok
     .line 71
     iget-object v0, p0, Lcom/dogac/bin1/MainActivity$1;->val$yukleyici:Landroidx/webkit/WebViewAssetLoader;
 

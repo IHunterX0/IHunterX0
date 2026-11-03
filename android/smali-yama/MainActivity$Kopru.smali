@@ -1518,3 +1518,35 @@
 
     return-void
 .end method
+
+.method public yamaSec()V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/Yama;->sec()V
+
+    return-void
+.end method
+
+.method public yamaDurum()Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/Yama;->durum()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
+.method public yamaSifirla(Ljava/lang/String;)V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {p1}, Lcom/dogac/bin1/Yama;->sifirla(Ljava/lang/String;)V
+
+    return-void
+.end method

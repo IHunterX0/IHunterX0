@@ -30,6 +30,19 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Yama sistemi (r57'den itibaren güncellemeler APK yerine .zip)
+- Neden: tam APK 400 MiB gönderim sınırına dayandı; Piper vb. modeller eklenecek. Kullanıcı bir kez r57 tam APK'yı kurar; sonrası
+  uygulama içinden **ARŞİV → 📦 Güncelleme** sayfasından `carvis-yama-*.zip` seçerek yüklenir (internetsiz).
+- Android: `kaynak-yeni/Yama.java` (smali: `smali-yama/Yama*.smali`). Kancalar: `MainActivity$1.shouldInterceptRequest` başında
+  `Yama.yanit(uri)` (filesDir/yama/www/… varsa onu verir), `MainActivity.onActivityResult` başında `Yama.sonuc(...)` (istek kodu 13),
+  `Kopru.yamaSec/yamaDurum/yamaSifirla`. Yamalı `MainActivity.smali` de `smali-yama/`da (anahtar içermez).
+- Zip biçimi: kökte `yama.json` (`{"uygulama":"carvis","ad","surum","taban","sil":[...],"wwwTemizle":false,"yenidenYukle":true}`) +
+  `www/…`, `model/…`, `veri/…`. Yol denetimi (.., mutlak yol) var; önce `yama_gecici/`e açılır, sonra taşınır.
+- Yeni tam APK kurulursa (`lastUpdateTime` değişir) eski www yaması silinir; `model/` ve `veri/` kalır. Java'dan model yolu: `Yama.modelDizini()`.
+- Üretim: `python3 araclar/yama_yap.py <taban_commit> rNN cikti.zip [--ek model/piper=<klasör>]` — birikimli (tabandan bu yana tüm www
+  değişiklikleri), sıra bağımsız. **r57 APK tabanı: bu bölümü ekleyen commit** (`git log --grep "Yama sistemi" -1`).
+- Her yamada `www/spotify.js` SURUM yine artırılır (Güncelleme sayfası ve tanılama gösterir).
+
 ## Reels şema kütüphanesi (r54, internetsiz)
 - `www/sema/` (yalnız APK'da, repoda değil; ~115 MB, 2155 figür): OpenStax *Anatomy & Physiology 2e* (öneki s, tümü), *Biology 2e* (b; kimya, hücre,
   metabolizma, genetik, sinir/endokrin/bağışıklık bölümleri), *Introductory Statistics 2e* (i; tümü), *College Physics 2e* (p; akışkanlar, ısı,
