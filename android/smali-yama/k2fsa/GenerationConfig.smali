@@ -17,6 +17,8 @@
 
 .field public numSteps:I
 
+.field public phonemeCodepoints:[[I
+
 .field public referenceAudio:[F
 
 .field public referenceSampleRate:I
@@ -28,6 +30,8 @@
 .field public silenceScale:F
 
 .field public speed:F
+
+.field public tokens:[[Ljava/lang/String;
 
 
 # direct methods
@@ -62,6 +66,10 @@
     iput v0, p0, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->numSteps:I
 
     iput-object v1, p0, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->extra:Ljava/util/Map;
+
+    iput-object v1, p0, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->phonemeCodepoints:[[I
+
+    iput-object v1, p0, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->tokens:[[Ljava/lang/String;
 
     return-void
 .end method
