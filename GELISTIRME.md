@@ -38,6 +38,7 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 - Üretim: `git clone --depth 1 --filter=blob:none --sparse https://github.com/openstax/<repo>` → `git -C <repo> sparse-checkout set modules collections`
   → `python3 -I araclar/sema/sema_dizin.py <repo> <collection.xml> "<kitap etiketi>" ham.json "<bölüm;bölüm|hepsi>"`
   → `python3 -I araclar/sema/sema_indir.py ham.json <cikti> <repo> <önek>` (raw.githubusercontent'tan, 900 px JPEG q80; dizin.json'a ekler)
+  → APK 400 MiB gönderim sınırı için 820 px / q72 yeniden sıkıştırılır (~93 MB).
   → `<cikti>/*` → `dec/assets/www/sema/`.
 - JS: `U.semaBul(ara, kullanilan, ders)` (animasyon.js; ders → kitap önceliği) İngilizce terimle başlık/açıklama üzerinde puanlı arama; bulunamazsa Wikimedia Commons API (tablette; sunucu IP'si 429 alıyor).
 
