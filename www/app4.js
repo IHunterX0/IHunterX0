@@ -77,7 +77,7 @@
   }
 
   /* ================= yedek ================= */
-  var YEDEK_BELGELER = ['ilerleme', 'notlar', 'kartlarim', 'istatistik', 'testler', 'sohbetler', 'plan', 'sure', 'pomodoro', 'eksikler', 'seviye', 'saraylar', 'carvisProfil', 'defter', 'haftalikRapor', 'ekran'];
+  var YEDEK_BELGELER = ['ilerleme', 'notlar', 'kartlarim', 'istatistik', 'testler', 'sohbetler', 'plan', 'sure', 'pomodoro', 'eksikler', 'seviye', 'saraylar', 'carvisProfil', 'defter', 'haftalikRapor', 'ekran', 'oneriler'];
   function yedekBelgeleri() {
     return Kitaplik.katalog().then(function (l) {
       var adlar = YEDEK_BELGELER.slice();
