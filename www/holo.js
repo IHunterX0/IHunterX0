@@ -10,6 +10,15 @@
   css.textContent = [
     '.holo{position:fixed;inset:0;z-index:900;display:none;background:radial-gradient(ellipse at 30% 50%,rgba(6,30,44,.88),rgba(2,8,13,.95) 70%);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);color:#cdf6ff;font-family:var(--f-govde,system-ui);overflow:hidden}',
     '.holo.acik{display:block;animation:holoGir .45s ease-out}',
+    /* kullanıcı, 2026-11-03: "Carvis tüm ekranı kaplamasın, ekranımı görebileyim; konuşma efekti yeni hologram olsun" →
+       boşta/dinlerken/konuşurken küre köşede bir projektörün üstünde süzülür; sayfa görünür ve dokunulabilir kalır.
+       Kart ya da detay paneli açılınca yalnız hafif bir karartma gelir (bulanıklık yok). */
+    '.holo{background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}',
+    '.holo.dolu{background:linear-gradient(90deg,rgba(2,8,13,.62),rgba(2,8,13,.35))!important}',
+    '.holo .h-kapat,.holo .h-kart,.holo .h-detay,.holo .h-bolum{pointer-events:auto}',
+    '.holo:not(.dolu) .h-ust,.holo:not(.dolu) .h-soru,.holo:not(.dolu) .h-altyazi{display:none}',
+    '.holo:not(.dolu) .h-durum{font-size:10px;letter-spacing:.32em}',
+    '.holo:not(.dolu) .h-kapat{width:30px;height:30px;font-size:13px;background:rgba(2,12,18,.6)}',
     '@keyframes holoGir{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}',
     '.holo canvas.kure{position:absolute;inset:0;width:100%;height:100%}',
     '.holo svg.oklar{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}',
@@ -85,6 +94,17 @@
     D.dpr = Math.min(window.devicePixelRatio || 1, 2); D.w = kok.clientWidth; D.h = kok.clientHeight;
     cv.width = D.w * D.dpr; cv.height = D.h * D.dpr;
     var genis = D.w >= 760, dolu = kartlarEl.children.length || detayAcik();
+    kok.classList.toggle('dolu', !!dolu); D.dock = !dolu;
+    if (!dolu) {
+      // projektör: sağ altta, alttaki komut kapsülünün ve Carvis balonunun üstünde
+      D.R = Math.max(40, Math.min(78, Math.min(D.w, D.h) * 0.08));
+      D.cx = D.w - D.R * 1.9 - 18; D.cy = D.h - D.R * 2.6 - 120;
+      durumEl.style.left = D.cx + 'px'; durumEl.style.top = (D.cy + D.R * 2.25) + 'px';
+      kapat.style.cssText = 'top:' + Math.max(8, D.cy - D.R * 1.6) + 'px;right:' + Math.max(8, D.w - D.cx - D.R * 1.5) + 'px';
+      kartlarEl.style.cssText = 'display:none'; detayEl.style.cssText = '';
+      oklariCiz(); return;
+    }
+    kapat.style.cssText = '';
     D.cx = genis ? D.w * (detayAcik() ? 0.17 : dolu ? 0.3 : 0.5) : D.w / 2;
     D.cy = genis ? D.h * 0.5 : D.h * (dolu ? (detayAcik() ? 0.13 : 0.27) : 0.45);
     D.R = Math.min(D.w, D.h) * (genis ? (detayAcik() ? 0.12 : 0.17) : (detayAcik() ? 0.08 : 0.16));
@@ -112,6 +132,8 @@
     D.aci += dt * D.hiz;
     var c = cv.getContext('2d'); c.setTransform(D.dpr, 0, 0, D.dpr, 0, 0); c.clearRect(0, 0, D.w, D.h);
     c.globalCompositeOperation = 'lighter';
+    projektor(c, t);
+    c.globalAlpha = 0.86 + 0.14 * Math.random() * (Math.random() < 0.06 ? 1 : 0.25); // hologram titreşimi
     var ca = Math.cos(D.aci), sa = Math.sin(D.aci), ct = Math.cos(0.38), st = Math.sin(0.38), R = D.R;
     for (var k = 0; k < 3; k++) { c.beginPath(); c.ellipse(D.cx, D.cy, R * (1.32 + k * 0.17), R * (0.34 + k * 0.05), D.aci * (k % 2 ? -0.6 : 0.4) + k, 0, 6.283); c.strokeStyle = 'rgba(79,224,255,' + (0.12 + 0.05 * D.enerji) + ')'; c.lineWidth = 1; c.stroke(); }
     var g = c.createRadialGradient(D.cx, D.cy, 0, D.cx, D.cy, R * 0.95);
@@ -126,7 +148,27 @@
       c.strokeStyle = 'rgba(79,224,255,' + (a * 0.25) + ')'; c.lineWidth = 4.5; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
       c.strokeStyle = 'rgba(190,250,255,' + a + ')'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
     }
+    // tarama çizgileri (yatay, aşağı akar)
+    c.save(); c.beginPath(); c.arc(D.cx, D.cy, R * 1.12, 0, 6.283); c.clip();
+    var adim = Math.max(3, R / 14), kay = (t / 40) % adim;
+    c.fillStyle = 'rgba(160,250,255,' + (0.05 + 0.04 * D.enerji) + ')';
+    for (var sy = D.cy - R * 1.12 + kay; sy < D.cy + R * 1.12; sy += adim) c.fillRect(D.cx - R * 1.12, sy, R * 2.24, 1);
+    c.restore();
+    c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
+  }
+  // projektör tabanı + ışık konisi (menüdeki hologramla aynı dil)
+  function projektor(c, t) {
+    var R = D.R, bx = D.cx, by = D.cy + R * 1.85, rx = R * 1.15, ry = R * 0.3;
+    var kon = c.createLinearGradient(0, by, 0, D.cy - R * 0.2);
+    kon.addColorStop(0, 'rgba(79,224,255,' + (0.2 + 0.1 * D.enerji) + ')'); kon.addColorStop(1, 'rgba(79,224,255,0)');
+    c.fillStyle = kon; c.beginPath(); c.moveTo(bx - rx * 0.92, by); c.lineTo(D.cx - R * 0.85, D.cy); c.lineTo(D.cx + R * 0.85, D.cy); c.lineTo(bx + rx * 0.92, by); c.closePath(); c.fill();
+    for (var k = 0; k < 5; k++) { var f = (k + 1) / 6, x = bx - rx * 0.8 + rx * 1.6 * f; c.strokeStyle = 'rgba(160,250,255,' + (0.05 + 0.05 * Math.sin(t / 300 + k * 1.7)) + ')'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, by); c.lineTo(D.cx + (x - bx) * 0.75, D.cy + R * 0.2); c.stroke(); }
+    var gl = c.createRadialGradient(bx, by, 0, bx, by, rx * 1.3); gl.addColorStop(0, 'rgba(120,240,255,.35)'); gl.addColorStop(1, 'rgba(79,224,255,0)');
+    c.fillStyle = gl; c.beginPath(); c.ellipse(bx, by, rx * 1.3, ry * 1.6, 0, 0, 6.283); c.fill();
+    c.strokeStyle = 'rgba(140,250,255,.75)'; c.lineWidth = 1.6; c.beginPath(); c.ellipse(bx, by, rx, ry, 0, 0, 6.283); c.stroke();
+    c.strokeStyle = 'rgba(140,250,255,.3)'; c.lineWidth = 1; c.beginPath(); c.ellipse(bx, by, rx * 0.62, ry * 0.62, 0, 0, 6.283); c.stroke();
+    c.beginPath(); c.ellipse(bx, by + ry * 0.55, rx * 1.06, ry * 1.05, 0, 0.15, Math.PI - 0.15); c.strokeStyle = 'rgba(79,224,255,.25)'; c.stroke();
   }
 
   /* ---------- kartlar + oklar ---------- */

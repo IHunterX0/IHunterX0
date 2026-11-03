@@ -23,7 +23,7 @@
 
   // Bölüm ağırlıkları: önce çıkmış soru tahmini (beklenen soru), yetmezse bölüm başına çıkmış soru sayısı, o da yoksa eşit
   function agirliklar(kitap) {
-    return Promise.all([Kitaplik.ac(kitap), U.cikmisTahmin ? U.cikmisTahmin(kitap, 'hepsi').catch(function () { return { yok: true }; }) : Promise.resolve({ yok: true }), Kitaplik.sorular(kitap).catch(function () { return []; })]).then(function (r) {
+    return Promise.all([Kitaplik.ac(kitap), U.cikmisTahmin ? (U.cikmisTahminSirada ? U.cikmisTahminSirada(kitap) : U.cikmisTahmin(kitap, 'hepsi')).catch(function () { return { yok: true }; }) : Promise.resolve({ yok: true }), Kitaplik.sorular(kitap).catch(function () { return []; })]).then(function (r) {
       var kj = r[0], t = r[1], sorular = Array.isArray(r[2]) ? r[2] : (r[2] && r[2].sorular) || [];
       var bol = (kj.bolumler || []).map(function (b, i) { return { sira: b.sira != null ? b.sira : i, ad: b.kisa || b.baslik, id: b.id, w: 0, konular: [] }; });
       var kaynak;

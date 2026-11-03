@@ -30,6 +30,16 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Sınav türü, komite, kota (r58)
+- Komite sınavları (`www/sinav.js`): Plan sayfasında tarih + tür; en yakın komite tüm derslerin sınav tarihi olur. `U.siradakiSinav()`.
+- Vize/final: `U.sinavAyrimi` (bölüm başına kesin binom testi, genel vize payına göre) + `U.ayrimSinama(kitap, T)` (son 3 yılda ayrı veri
+  vs birleşik veri isabeti). `U.cikmisTahminSirada` sıradaki sınavın türünü kullanır; o derste birleşik daha isabetliyse birleşik.
+  2026-11 sınaması: hiçbir derste bölümler vize/final arasında anlamlı ayrışmıyor (p ≥ 0,05); ayrı veri biyokimya/biyofizik vizesinde
+  biraz daha iyi, anatomide birleşik daha iyi — farklar küçük.
+- Kota: Carvis her istekte yalnız konuyla ilgili araç gruplarını gönderir (`aracSec`), tur sınırı 3 (cihaz 2), geçmiş 4 mesaj;
+  kısa sohbet hafif modelle. Reels yalnız bir sonrakini önden hazırlar. `ekrana_bak` aracı ekranda görüneni okur.
+- Konuşma görünümü (`holo.js`): kart/detay yoksa küre sağ altta projektör üstünde (sayfa görünür ve dokunulabilir kalır).
+
 ## Yama sistemi (r57'den itibaren güncellemeler APK yerine .zip)
 - Neden: tam APK 400 MiB gönderim sınırına dayandı; Piper vb. modeller eklenecek. Kullanıcı bir kez r57 tam APK'yı kurar; sonrası
   uygulama içinden **ARŞİV → 📦 Güncelleme** sayfasından `carvis-yama-*.zip` seçerek yüklenir (internetsiz).

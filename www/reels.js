@@ -27,7 +27,7 @@
 
   /* ---------- akış: tahmin ağırlıklı konular ---------- */
   function akisKur(kitap) {
-    return Promise.all([Kitaplik.ac(kitap), U.cikmisTahmin ? U.cikmisTahmin(kitap, 'hepsi').catch(function () { return { yok: true }; }) : Promise.resolve({ yok: true }), Depo.oku('reels')]).then(function (r) {
+    return Promise.all([Kitaplik.ac(kitap), U.cikmisTahmin ? (U.cikmisTahminSirada ? U.cikmisTahminSirada(kitap) : U.cikmisTahmin(kitap, 'hepsi')).catch(function () { return { yok: true }; }) : Promise.resolve({ yok: true }), Depo.oku('reels')]).then(function (r) {
       var kj = r[0], t = r[1], izl = (r[2] && r[2].izlenen) || {}, l = [];
       if (!t.yok) t.tahmin.forEach(function (x) { l.push({ id: kitap + '|' + x.alt, kitap: kitap, kitapAd: kj.baslik, sira: x.sira, alt: x.alt, konu: x.konu, bolum: x.bolum, ol: x.olasilik, aile: x.aileler }); });
       else (kj.bolumler || []).forEach(function (b, i) { (b.altlar || []).forEach(function (a) { l.push({ id: kitap + '|' + a.id, kitap: kitap, kitapAd: kj.baslik, sira: i, alt: a.id, konu: (a.no ? a.no + ' ' : '') + (a.baslik || ''), bolum: b.kisa || b.baslik, ol: null }); }); });
@@ -313,7 +313,7 @@
     if (!R) return; cancelAnimationFrame(R.raf); if (R.io) R.io.disconnect(); R.reels.forEach(function (r) { r.dur && r.dur(); });
     R.kok.remove(); R.ust.remove(); document.body.classList.remove('rl-acik'); try { if (window.Carvis && window.Carvis.sus) window.Carvis.sus(); } catch (e) {} R = null;
   }
-  function onHazirla(i) { [i + 1, i + 2].forEach(function (j) { var r = R && R.reels[j]; if (r) icerikHer(r.it).catch(function () {}); }); }
+  function onHazirla(i) { [i + 1].forEach(function (j) { var r = R && R.reels[j]; if (r) icerikHer(r.it).catch(function () {}); }); }
 
   function reelKur(it, i) {
     var cv = el('canvas', { 'aria-hidden': 'true' }), ic = el('div', { class: 'rl-ic' }), ilerI = el('i'), sag = el('div', { class: 'rl-sag' });

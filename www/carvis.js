@@ -362,6 +362,41 @@
     t.execute = function (g) { try { if (K && K.oneGetir && K.onPlandaMi && !K.onPlandaMi()) K.oneGetir(); } catch (e) {} return ex(g); };
     return t;
   }
+  function ekranMetni() {
+    var rl = document.querySelector('.rl'), kok = rl || document.querySelector('#ana'); if (!kok) return { sayfa: location.hash || 'ana' };
+    var ust = (window.innerHeight || 800), parca = [], top = 0;
+    // yalnız görünür alandaki metin (aşağıda kalan uzun sayfa gönderilmez)
+    var yuruyen = document.createTreeWalker(kok, NodeFilter.SHOW_TEXT, null), n;
+    while ((n = yuruyen.nextNode()) && top < 2400) {
+      var m = n.nodeValue.replace(/\s+/g, ' ').trim(); if (m.length < 2) continue;
+      var e = n.parentNode; if (!e || !e.getBoundingClientRect) continue;
+      var r = e.getBoundingClientRect(); if (r.bottom < 0 || r.top > ust || r.width === 0) continue;
+      var st = getComputedStyle(e); if (st.visibility === 'hidden' || st.display === 'none' || +st.opacity === 0) continue;
+      parca.push(m); top += m.length + 1;
+    }
+    var h1 = kok.querySelector('h1, .rl-etiket');
+    return { sayfa: location.hash || 'ana', baslik: h1 ? h1.textContent.trim().slice(0, 120) : '', gorunen_metin: parca.join(' ').slice(0, 2400) };
+  }
+  /* Kota tasarrufu (kullanıcı, 2026-11-03: "Carvis cevap verirken kotası çok hızlı doluyor"): her istekte 35+ araç tanımı gidiyordu
+     (her tur yeniden). Artık sorunun konusuna göre yalnız ilgili araç grupları gönderilir; tur sınırı ve geçmiş kısaldı. */
+  var GRUP = {
+    cekirdek: /^(kitapta_ara|bolum_getir|kavram_getir|sayfa_ac|ekrana_bak|internet_ara)$/,
+    gorsel: /^(gorsel_ac|sahne_isaretle|isaret_goster|kamera_yaklas|katalog_ara|parca_goster|tur_baslat|animasyon_oynat|hareket_yap)$/,
+    calisma: /^(test_hazirla|zamanim_yok|ders_baslat|hafiza_sarayi|cikmis_tahmin|calisma_onerisi|eksiklerim|plan_oku|pomodoro|deftere_ekle|haftalik_rapor)$/,
+    makale: /^(makale_ara|ilgi_ekle)$/,
+    profil: /^(hatirla|unut|profil_ayarla)$/,
+    eklenti: /^ozellik_ekle$/
+  };
+  function aracSec(t, tum) {
+    var al = { cekirdek: 1 };
+    if (/molekül|yapı|kemik|kas\b|kası|göster|3 ?b|3d|üç boyut|anatomi|halka|processus|tuberculum|fossa|foramen|animasyon|hareket|görsel|şekil|resim/i.test(t)) al.gorsel = 1;
+    if (/test|soru|quiz|zamanım yok|özet|ders|anlat|saray|tahmin|çıka|çıkmış|ne çalış|plan|program|eksik|pomodoro|defter|not al|rapor|hafta|bugün|sınav|komite/i.test(t)) al.calisma = 1;
+    if (/makale|araştırma|yayın|paper|literatür|ilgi alan/i.test(t)) al.makale = 1;
+    if (/hatırla|unut|adım|bana .* de\b|hitap|profil|tonun|resmi konuş|samimi/i.test(t)) al.profil = 1;
+    if (/eklenti|özellik (ekle|yaz)|kendine|kodla|yeni (bir )?(ekran|özellik|komut)/i.test(t)) al.eklenti = 1;
+    var bilinen = function (a) { for (var g in GRUP) if (GRUP[g].test(a.name)) return true; return false; };
+    return tum.filter(function (a) { for (var g in al) if (GRUP[g].test(a.name)) return true; return !bilinen(a); });
+  }
   function araclar() {
     var l = (U.sohbetAraclari ? U.sohbetAraclari() : []).concat(U.makaleAraclari ? U.makaleAraclari() : []);
     var adlar = {}; l.forEach(function (t) { adlar[t.name] = 1; });
@@ -372,6 +407,9 @@
       l.push(t);
     });
     l = l.concat(hafizaAraclari());
+    // kullanıcı, 2026-11-03: "Carvis ekranımı görebilsin" — gerektiğinde ekrandaki metni okur (her istekte göndermek kota yerdi)
+    l.push({ name: 'ekrana_bak', description: 'Kullanıcının şu an ekranda gördüğünü döndürür (sayfa, başlık, görünen metin). "bu", "şu", "ekrandaki", "burada", "bunu açıkla" gibi ifadelerde önce bunu çağır.',
+      inputSchema: { type: 'object', properties: {} }, execute: function () { return ekranMetni(); } });
     // Eklentiler: Carvis kendi kodunu yazar (kullanıcı onayıyla) + eklentilerin tanımladığı araçlar
     if (U.eklentiAraclari) U.eklentiAraclari().forEach(function (t) { if (t && t.name && t.execute) l.push(t); });
     if (U.eklentiYazdir) l.push({ name: 'ozellik_ekle', description: 'Kullanıcı uygulamaya YENİ bir özellik/ekran/komut istediğinde ("şunu yapan bir şey ekle", "kendine şu özelliği yaz") eklenti yazdırır: Eklentiler sayfası açılır, yapay zekâ kodu yazar, kullanıcı onaylayınca eklenir. Sen kısaca "yazıyorum, onaylarsan eklenecek" de.',
@@ -762,11 +800,13 @@
       Carvis.ctl = new AbortController();
       if (!Y.sample) { cev.innerHTML = '<p class="hata-metni">Yapay zekâ yok.</p>'; return Promise.resolve(); }
       var cihazIsi = /spotify|ruh hal|moduma|şarkı|müzik|patlat|playlist|çalma listesi|\bçal\b|\baç\b.*(uygulama|youtube|ayarlar|kamera)|whatsapp|mesaj|\bara\b|arayayım|kayıt|ses(i|ini)? |%\s*\d|pomodoro|zamanlayıcı|hatırla|unut/i.test(t) && !/kitap|bölüm|sayfa|anatomi|biyokimya|biyofizik|istatistik|kemik|kas |molekül|enzim/i.test(t);
-      var gecmis = Carvis.gecmis.slice(-6).map(function (m) { return m.role === 'assistant' && m.content.length > 700 ? { role: m.role, content: m.content.slice(0, 700) + '…' } : m; });
+      var gecmis = Carvis.gecmis.slice(-4).map(function (m) { return m.role === 'assistant' && m.content.length > 450 ? { role: m.role, content: m.content.slice(0, 450) + '…' } : m; });
       var tumAraclar = araclar();
+      // kısa sohbet/selamlaşma: hafif model (daha bol kotalı) yeter
+      var basit = t.split(/\s+/).length <= 5 && !/neden|nasıl|nedir|ne demek|açıkla|anlat|fark|mekanizma|hesapla|çöz|test|soru/i.test(t);
       var CIHAZ_ARAC = /^(spotify_ruh_hali|spotify_kontrol|ses_seviyesi|muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|plan_oku|ekran_suresi|eksiklerim|pomodoro|calisma_onerisi|hatirla|unut|profil_ayarla)$/;
       return profilMetni().then(function (pm) { return Y.sample([{ role: 'user', content: KURAL + '\n' + pm + '\n' + baglam + '\nAnladıysan "Tamam" yaz.' }, { role: 'assistant', content: 'Tamam.' }].concat(gecmis),
-        { tools: cihazIsi ? tumAraclar.filter(function (a) { return CIHAZ_ARAC.test(a.name); }) : tumAraclar, hafif: cihazIsi, maxTur: cihazIsi ? 3 : 4, groqAtla: cihazIsi ? null : /^(muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|ekran_suresi|ilgi_ekle|unut|profil_ayarla|ses_seviyesi)$/, signal: Carvis.ctl.signal, onText: function (u) { cev.innerHTML = U.mdHtml(u.text); } }); })
+        { tools: cihazIsi ? tumAraclar.filter(function (a) { return CIHAZ_ARAC.test(a.name); }) : aracSec(t, tumAraclar), hafif: cihazIsi || basit, maxTur: cihazIsi ? 2 : 3, groqAtla: cihazIsi ? null : /^(muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|ekran_suresi|ilgi_ekle|unut|profil_ayarla|ses_seviyesi)$/, signal: Carvis.ctl.signal, onText: function (u) { cev.innerHTML = U.mdHtml(u.text); } }); })
         .then(function (r) {
           Carvis.gecmis.push({ role: 'assistant', content: r.text });
           cev.innerHTML = (Carvis._internet ? '<span class="cv-etiket">İnternetten · doğrula</span>' : '') + U.mdHtml(r.text);

@@ -203,10 +203,88 @@
     });
   };
   function yilEtiket(y) { return String(y).slice(2) + '-' + String(y + 1).slice(2); }
+  /* Vize / final ayrımı (kullanıcı, 2026-11-03: "çıkmış tahmininde vize ve finalde sorulmuşlar istatistiksel olarak ayrılsın; ayrılmazsa
+     yeterince net olmuyor"). Her bölüm için: kaç soru vizede, kaç soru finalde; dersin genel vize payına (p0) göre iki yönlü kesin
+     binom testi → p < 0,05 ise bölüm o sınava "ait" sayılır. Konu (alt bölüm) düzeyinde de vize/final yıl sayıları tutulur. */
+  function binomP(k, n, p) {
+    if (!n || p <= 0 || p >= 1) return 1;
+    var lf = [0]; for (var i = 1; i <= n; i++) lf[i] = lf[i - 1] + Math.log(i);
+    function pr(x) { return Math.exp(lf[n] - lf[x] - lf[n - x] + x * Math.log(p) + (n - x) * Math.log(1 - p)); }
+    var p0 = pr(k), t = 0; for (var x = 0; x <= n; x++) { var q = pr(x); if (q <= p0 * (1 + 1e-7)) t += q; }
+    return Math.min(1, t);
+  }
+  U.sinavAyrimi = function (kitap) {
+    return Promise.all([Kitaplik.ac(kitap), Kitaplik.sorular(kitap)]).then(function (r) {
+      var kj = r[0], b = {}, alt = {}, V = 0, F = 0, yV = {}, yF = {};
+      r[1].forEach(function (q) {
+        if (q.deneme) return; var sira = bolumSira(kj, q.bolum), a = q.alt || q.bolum;
+        (q.varyantlar || []).forEach(function (v) {
+          var sc = sinavCoz(v.sinav); if (!sc || sc.tur === 'Büt') return; var vz = sc.tur === 'Vize', bb = kj.bolumler[sira] || {};
+          var o = b[sira] = b[sira] || { sira: sira, ad: bb.kisa || bb.baslik || '', v: 0, f: 0, vy: {}, fy: {} };
+          var u = alt[a] = alt[a] || { v: 0, f: 0, vy: {}, fy: {} };
+          if (vz) { o.v++; u.v++; o.vy[sc.yil] = 1; u.vy[sc.yil] = 1; V++; yV[sc.yil] = 1; } else { o.f++; u.f++; o.fy[sc.yil] = 1; u.fy[sc.yil] = 1; F++; yF[sc.yil] = 1; }
+        });
+      });
+      var p0 = V / ((V + F) || 1);
+      var bl = Object.keys(b).map(function (k) { var o = b[k]; o.n = o.v + o.f; o.vizePay = o.n ? o.v / o.n : 0; o.p = binomP(o.v, o.n, p0); o.vYil = Object.keys(o.vy).length; o.fYil = Object.keys(o.fy).length; o.karar = o.p < 0.05 ? (o.vizePay > p0 ? 'vize' : 'final') : 'ikisi'; return o; })
+        .sort(function (a, c) { return a.sira - c.sira; });
+      Object.keys(alt).forEach(function (k) { var u = alt[k]; u.vYil = Object.keys(u.vy).length; u.fYil = Object.keys(u.fy).length; });
+      return { kitap: kitap, p0: p0, V: V, F: F, vYilSay: Object.keys(yV).length, fYilSay: Object.keys(yF).length, bolumler: bl, alt: alt };
+    });
+  };
+  /* Ayrım gerçekten işe yarıyor mu? Geçmiş T sınavlarının (son 3 yıl) konularını iki yolla tahmin et: yalnız T verisi ("ayni") ve
+     vize+final birlikte ("karisik"); ilk K konuda kaç tanesinin gerçekten çıktığını say. Hangisi daha isabetliyse o kullanılır
+     (eşitlikte ayrı veri). 2026-11 sınaması: anatomide karışık, biyokimya/biyofizikte ayrı veri biraz daha iyiydi; farklar küçük. */
+  var sinamaBellek = {};
+  U.ayrimSinama = function (kitap, T) {
+    var an = kitap + '|' + T; if (sinamaBellek[an]) return sinamaBellek[an];
+    return sinamaBellek[an] = Promise.all([Kitaplik.ac(kitap), Kitaplik.sorular(kitap)]).then(function (r) {
+      var kj = r[0], D = T === 'Vize' ? 'Final' : 'Vize', m = {}, yil = {};
+      birimler(kj, r[1], T).forEach(function (u) { (m[u.alt] = m[u.alt] || { t: {}, d: {} }).t = u.yillar; Object.keys(u.yillar).forEach(function (y) { yil[y] = 1; }); });
+      birimler(kj, r[1], D).forEach(function (u) { (m[u.alt] = m[u.alt] || { t: {}, d: {} }).d = u.yillar; });
+      var yl = Object.keys(yil).map(Number).sort(), h = { ayni: 0, karisik: 0 }, K = 0, keys = Object.keys(m);
+      yl.slice(-3).forEach(function (y) {
+        var cikan = keys.filter(function (k) { return m[k].t[y]; }), k = Math.max(5, cikan.length); K += k;
+        ['ayni', 'karisik'].forEach(function (ad) {
+          h[ad] += keys.map(function (key) { return { key: key, s: puan(m[key].t, y) + (ad === 'karisik' ? puan(m[key].d, y) : 0) }; })
+            .filter(function (x) { return x.s > 0; }).sort(function (p, q) { return q.s - p.s; }).slice(0, k).filter(function (x) { return m[x.key].t[y]; }).length;
+        });
+      });
+      return { T: T, K: K, ayni: h.ayni, karisik: h.karisik, oneri: h.karisik > h.ayni ? 'hepsi' : T };
+    });
+  };
+  function ayrimCiz(kap, a, secili) {
+    if (!a || !a.bolumler.length) return;
+    var ayri = a.bolumler.filter(function (o) { return o.karar !== 'ikisi'; }).length;
+    kap.appendChild(el('h3', { text: '📊 Vize mi, final mi? (bölüm bölüm)' }));
+    kap.appendChild(el('p', { class: 'var-etiket', text: 'Geçmiş ' + a.vYilSay + ' vize ve ' + a.fYilSay + ' finalde ' + a.V + ' vize, ' + a.F + ' final sorusu. Dersin genel vize payı %' + Math.round(a.p0 * 100) + '. ' +
+      'Bir bölümün vize payı bundan istatistiksel olarak anlamlı farklıysa (kesin binom testi, p < 0,05) o sınava ait sayılır: ' + ayri + '/' + a.bolumler.length + ' bölüm belirgin biçimde ayrışıyor.' + (secili !== 'hepsi' ? ' Yukarıdaki olasılıklar yalnız ' + secili + ' verisinden hesaplandı.' : '') }));
+    if (secili !== 'hepsi' && U.ayrimSinama) { var sn = el('p', { class: 'var-etiket' }); kap.appendChild(sn);
+      U.ayrimSinama(a.kitap, secili).then(function (x) { sn.textContent = 'Bu derste geçmiş ' + secili.toLowerCase() + 'leri tahmin ederken (son 3 yıl, ilk ' + x.K + ' konu): yalnız ' + secili.toLowerCase() + ' verisi ' + x.ayni + ' isabet, vize+final birlikte ' + x.karisik + ' isabet → ' +
+        (x.oneri === 'hepsi' ? 'bu derste birleşik veri daha isabetli; reels ve ders programı bu derste birleşik sıralamayı kullanıyor.' : 'ayrı veri ' + (x.ayni > x.karisik ? 'daha isabetli' : 'en az onun kadar isabetli') + '; reels ve ders programı ' + secili.toLowerCase() + ' verisini kullanıyor.'); }); }
+    var tablo = el('div', { class: 'th-ayrim' });
+    a.bolumler.forEach(function (o) {
+      var etiket = o.karar === 'vize' ? 'VİZE' : o.karar === 'final' ? 'FİNAL' : 'ikisi de';
+      tablo.appendChild(el('div', { class: 'th-ay-satir ' + o.karar + (secili !== 'hepsi' && o.karar !== 'ikisi' && o.karar !== secili.toLowerCase() ? ' soluk' : '') }, [
+        el('a', { href: '#' + U.okuHash(a.kitap, o.sira), class: 'ad', text: o.ad || ('Bölüm ' + o.sira) }),
+        el('div', { class: 'c', title: 'vize %' + Math.round(o.vizePay * 100) }, [el('i', { class: 'v', style: 'width:' + (o.vizePay * 100).toFixed(0) + '%' }), el('i', { class: 'f', style: 'width:' + ((1 - o.vizePay) * 100).toFixed(0) + '%' })]),
+        el('span', { class: 'n', text: 'V ' + o.v + ' soru · ' + o.vYil + '/' + a.vYilSay + ' yıl  |  F ' + o.f + ' soru · ' + o.fYil + '/' + a.fYilSay + ' yıl' }),
+        el('b', { class: 'k', title: 'p = ' + o.p.toFixed(3), text: etiket + (o.karar !== 'ikisi' ? (o.p < 0.001 ? ' ★★★' : o.p < 0.01 ? ' ★★' : ' ★') : '') })]));
+    });
+    kap.appendChild(tablo);
+  }
+  var thCss = document.createElement('style');
+  thCss.textContent = '.th-ayrim{display:flex;flex-direction:column;gap:6px;margin:6px 0 16px}.th-ay-satir{display:grid;grid-template-columns:minmax(120px,1.3fr) 1.2fr auto auto;gap:10px;align-items:center;font-size:13.5px}' +
+    '.th-ay-satir .c{display:flex;height:10px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06)}.th-ay-satir .c i.v{background:#5ef0dc;box-shadow:0 0 8px #5ef0dc}.th-ay-satir .c i.f{background:#ffd38a;box-shadow:0 0 8px #ffd38a}' +
+    '.th-ay-satir .n{font:600 11.5px var(--f-kod,monospace);color:#bfe9e3;white-space:nowrap}.th-ay-satir .k{font:800 11px var(--f-kod,monospace);letter-spacing:.08em;color:#8fb9b5;white-space:nowrap}' +
+    '.th-ay-satir.vize .k{color:#5ef0dc;text-shadow:0 0 10px #5ef0dc}.th-ay-satir.final .k{color:#ffd38a;text-shadow:0 0 10px #ffd38a}.th-ay-satir.soluk{opacity:.4}' +
+    '.th-vf{font:700 11px var(--f-kod,monospace);margin-left:6px}.th-vf .v{color:#5ef0dc}.th-vf .f{color:#ffd38a}' +
+    '@media (max-width:700px){.th-ay-satir{grid-template-columns:1fr auto}.th-ay-satir .c,.th-ay-satir .n{grid-column:1/-1}}';
+  document.head.appendChild(thCss);
   function sinamaMetni(s) { return s.yillar.map(yilEtiket).join(', ') + ' yılları geriye dönük tahmin edildi: önerilen ilk konuların ' + s.isabet + '/' + s.K + ' tanesi gerçekten çıktı (rastgele seçimle ~' + s.rastgeleIsabet + ')'; }
   function tahminAraci(g) {
     var kitap = g.kitap || (Durum.aktifKitap && Durum.aktifKitap.id) || 'anatomi';
-    return U.cikmisTahmin(kitap, g.tur === 'Vize' || g.tur === 'Final' ? g.tur : 'hepsi').then(function (t) {
+    return (g.tur === 'Vize' || g.tur === 'Final' ? Promise.resolve(g.tur) : (U.siradakiSinav ? U.siradakiSinav().then(function (sn) { return sn.tur || 'hepsi'; }) : Promise.resolve('hepsi'))).then(function (tur) { return U.cikmisTahmin(kitap, tur); }).then(function (t) {
       if (t.yok) return t.mesaj;
       return { kitap: t.kitapAd, hedef_yil: yilEtiket(t.hedefYil), yontem: 'konu (alt bölüm) düzeyinde, geçmiş ' + t.yillar.length + ' yılın tekrar örüntüsü; ' + sinamaMetni(t.sinama) + '. Kesin değil, öncelik sırası.',
         konu_tekrar_orani: '%' + Math.round(t.sinama.tekrarOrani * 100) + ' (son yılın sorularından konusu önceki yıllarda da sorulmuş olanlar)',
@@ -223,19 +301,21 @@
     sayfa.appendChild(el('div', { class: 'kahraman' }, [el('div', { class: 'ust-etiket', text: 'Çıkmış sorulardan' }), el('h1', { text: '🔮 Bu yıl ne çıkar?' }),
       el('p', { text: 'Her konunun (alt bölüm) geçmiş sınavlarda kaç yıl, kaç soruyla ve en son ne zaman sorulduğuna bakılır; yakın yıllar daha ağır sayılır. Yüzdeler, aynı puandaki konuların geçmişte ertesi yıl gerçekten çıkma oranıdır. Yöntem son üç yıla geriye dönük uygulanarak sınandı; isabet aşağıda. Kesin değil, öncelik sırası içindir. Her konunun altında o konunun çıkmış soruları çözülebilir.' })]));
     var kitapSec = el('select', { 'aria-label': 'Kitap' }), turSec = el('select', { 'aria-label': 'Sınav' });
-    [['hepsi', 'Vize + Final'], ['Vize', 'Vize'], ['Final', 'Final']].forEach(function (x) { turSec.appendChild(el('option', { value: x[0], text: x[1] })); });
+    [['Vize', 'Vize'], ['Final', 'Final'], ['hepsi', 'Vize + Final (birleşik)']].forEach(function (x) { turSec.appendChild(el('option', { value: x[0], text: x[1] })); });
     var aiDug = el('button', { class: 'dugme kucuk', type: 'button', text: '✦ Yapay zekâ yorumu' }), denemeDug = el('button', { class: 'dugme kucuk ana', type: 'button', text: '🎯 Tahmini deneme (20 soru)' });
     sayfa.appendChild(el('div', { class: 'yp-dugmeler', style: 'align-items:center;flex-wrap:wrap' }, [kitapSec, turSec, denemeDug, aiDug]));
     var sonuc = el('div'); sayfa.appendChild(sonuc);
     Kitaplik.katalog().then(function (l) {
       l.forEach(function (k) { kitapSec.appendChild(el('option', { value: k.id, text: k.baslik, selected: (arg || (Durum.aktifKitap && Durum.aktifKitap.id)) === k.id ? true : null })); });
-      ciz();
+      (U.siradakiSinav ? U.siradakiSinav() : Promise.resolve({ tur: 'Vize' })).then(function (sn) { turSec.value = sn && sn.tur && sn.tur !== 'hepsi' ? sn.tur : 'Vize'; ciz(); }, function () { ciz(); });
     });
-    kitapSec.addEventListener('change', ciz); turSec.addEventListener('change', ciz);
+    kitapSec.addEventListener('change', ciz);
+    turSec.addEventListener('change', function () { if (turSec.value !== 'hepsi') U.depoGuncelle('plan', function (v) { v.sinavTuru = turSec.value; }, 200); ciz(); });
     var T = null;
     function ciz() {
       sonuc.innerHTML = ''; sonuc.appendChild(el('div', { class: 'yukleniyor', text: 'Hesaplanıyor…' }));
-      U.cikmisTahmin(kitapSec.value, turSec.value).then(function (t) {
+      Promise.all([U.cikmisTahmin(kitapSec.value, turSec.value), U.sinavAyrimi(kitapSec.value).catch(function () { return null; })]).then(function (rr) {
+        var t = rr[0]; if (t && !t.yok) t.ayrim = rr[1];
         T = t; sonuc.innerHTML = '';
         if (t.yok) { sonuc.appendChild(el('p', { class: 'var-etiket', text: t.mesaj })); return; }
         var s = t.sinama;
@@ -245,6 +325,7 @@
           el('div', {}, [el('b', { text: s.isabet + '/' + s.K }), el('small', { text: 'geriye dönük sınama (' + s.yillar.map(yilEtiket).join(', ') + '): önerilen konulardan gerçekten çıkan · rastgele seçimle ~' + s.rastgeleIsabet })]),
           el('div', {}, [el('b', { text: '~' + t.ortSoru }), el('small', { text: 'yılda ortalama soru (' + (turSec.value === 'hepsi' ? 'vize+final' : turSec.value) + ')' })])]));
         var aiKap = el('div'); sonuc.appendChild(aiKap); T.aiKap = aiKap;
+        ayrimCiz(sonuc, t.ayrim, turSec.value);
         sonuc.appendChild(el('h3', { text: 'Bölüm başına beklenen soru' }));
         var enCok = t.bolumler[0] ? t.bolumler[0].beklenen : 1;
         t.bolumler.slice(0, 12).forEach(function (b) {
@@ -268,7 +349,8 @@
         el('div', { class: 'th-ust' }, [el('span', { class: 'th-yuzde', text: '%' + Math.round(x.olasilik * 100) }), el('span', { class: 'ad', text: x.konu }),
           el('button', { class: 'dugme kucuk', type: 'button', text: 'Soruları çöz (' + x.aileler.length + ')', onclick: function () { ac.hidden = !ac.hidden; if (!ac.children.length) U.testCiz(ac, { baslik: x.konu, sorular: konuSorulari(t.kitap, x, 8) }, { guvenliHtml: true, kaynak: 'tahmin' }); } }),
           el('a', { class: 'dugme kucuk', href: '#' + U.okuHash(t.kitap, x.sira), text: '↗', title: 'Kitapta aç', onclick: function () { Durum.vurguBlok = x.blok; } })]),
-        el('small', { class: 'var-etiket', text: x.bolum + ' · ' + x.kez + '/' + t.yillar.length + ' yıl çıktı · son ' + yilEtiket(x.son) + ' · yılda ~' + x.soruYil.toFixed(1) + ' soru' }), gec, ac]);
+        el('small', { class: 'var-etiket' }, [x.bolum + ' · ' + x.kez + '/' + t.yillar.length + ' yıl çıktı · son ' + yilEtiket(x.son) + ' · yılda ~' + x.soruYil.toFixed(1) + ' soru',
+          (function () { var u = t.ayrim && t.ayrim.alt[x.alt]; return u ? el('span', { class: 'th-vf' }, [' · ', el('span', { class: 'v', text: 'Vize ' + u.vYil + '/' + t.ayrim.vYilSay }), ' · ', el('span', { class: 'f', text: 'Final ' + u.fYil + '/' + t.ayrim.fYilSay })]) : ''; })()]), gec, ac]);
       return d;
     }
     denemeDug.addEventListener('click', function () {
@@ -330,7 +412,7 @@
       if (vade) isler.push({ tur: 'kart', ad: vade + ' vadeli tekrar kartı', neden: 'Aralıklı tekrar: unutmadan hemen önce hatırlamak kalıcılığı en çok artıran adım. Güne bununla başla.', dk: Math.max(5, Math.round(vade * 0.4)), hash: 'kartlar' });
       (plan || []).filter(function (x) { return !x.tekrar; }).slice(0, 4).forEach(function (x) { isler.push({ tur: 'plan', ad: x.akademikGorev ? '🌍 ' + x.ad : (x.derin ? '🎓 ' : '') + x.kitapAd + ' · ' + x.ad, neden: 'Plan: ' + (x.neden || '') + (x.sinavaGun != null ? ' · sınava ' + x.sinavaGun + ' gün' : ''), dk: x.dk, kitap: x.kitap, sira: x.sira }); });
       ((ek && ek.zayif) || []).slice(0, 2).forEach(function (z) { isler.push({ tur: 'eksik', ad: 'Eksik kapat: ' + (z.kitapAd || z.kitap).replace(/^1001\s*/, '') + ' · ' + (z.bolum || ''), neden: z.bilmiyor + ' bilmiyorum, ' + z.yanlis + ' yanlış' + (z.konular && z.konular.length ? ' (' + z.konular.slice(0, 2).join(', ') + ')' : '') + '. Önce Zamanım yok özeti, sonra 5 soruluk test.', dk: 25, kitap: z.kitap, sira: z.sira, konu: (z.konular || [])[0] }); });
-      var tah = sinav ? U.cikmisTahmin(sinav.kitap, 'hepsi').catch(function () { return null; }) : Promise.resolve(null);
+      var tah = sinav ? (U.siradakiSinav ? U.siradakiSinav() : Promise.resolve({ tur: 'hepsi' })).then(function (sn) { return U.cikmisTahmin(sinav.kitap, sn.tur || 'hepsi'); }).catch(function () { return null; }) : Promise.resolve(null);
       return tah.then(function (t) {
         if (t && !t.yok) isler.push({ tur: 'tahmin', ad: 'Yüksek olasılıklı konular: ' + t.kitapAd, neden: 'Sınava ' + sinav.gun + ' gün. En olası: ' + t.tahmin.slice(0, 3).map(function (x) { return x.konu + ' %' + Math.round(x.olasilik * 100); }).join(', ') + '.', dk: 20, hash: 'tahmin-' + t.kitap });
         return { isler: isler, sinav: sinav, pomodoro: pm, vadeli: vade };
