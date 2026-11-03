@@ -277,7 +277,8 @@
     new JarvisKure(c, { kucuk: true, serit: 1, iplik: 3, nokta: 90 });
     var b = el('div', { class: 'jv-buyuk', 'aria-hidden': 'true' }, [el('canvas')]); document.body.appendChild(b);
     new JarvisKure(b.firstChild, { serit: 3, iplik: 6, nokta: 150, kosul: function () { return b.classList.contains('acik') && !document.body.classList.contains('jv-merkez'); } });
-    setInterval(function () { b.classList.toggle('acik', !!(window.Carvis && window.Carvis.acik)); }, 250);
+    // kullanıcı, 2026-11-03 ("biraz gereksiz değil mi"): ortadaki büyük küre kaldırıldı; konuşurken yalnız sağ alttaki projektör hologramı görünür.
+    b.style.display = 'none';
     return true;
   }
   if (!dugmeKur()) { var dn = 0, z = setInterval(function () { if (dugmeKur() || ++dn > 40) clearInterval(z); }, 250); }
