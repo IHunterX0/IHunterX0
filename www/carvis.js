@@ -372,6 +372,10 @@
       l.push(t);
     });
     l = l.concat(hafizaAraclari());
+    // Eklentiler: Carvis kendi kodunu yazar (kullanıcı onayıyla) + eklentilerin tanımladığı araçlar
+    if (U.eklentiAraclari) U.eklentiAraclari().forEach(function (t) { if (t && t.name && t.execute) l.push(t); });
+    if (U.eklentiYazdir) l.push({ name: 'ozellik_ekle', description: 'Kullanıcı uygulamaya YENİ bir özellik/ekran/komut istediğinde ("şunu yapan bir şey ekle", "kendine şu özelliği yaz") eklenti yazdırır: Eklentiler sayfası açılır, yapay zekâ kodu yazar, kullanıcı onaylayınca eklenir. Sen kısaca "yazıyorum, onaylarsan eklenecek" de.',
+      inputSchema: { type: 'object', properties: { istek: { type: 'string', description: 'kullanıcının istediği özellik, ayrıntılı' } }, required: ['istek'] }, execute: function (g) { return U.eklentiYazdir(String(g.istek || '')); } });
     return l.concat([
       { name: 'sayfa_ac', description: 'Kitapta bulunan yeri ekranda açar ve cümleyi vurgular. kaynak: kitapta_ara sonucundaki "kaynak" alanı (aynen).',
         inputSchema: { type: 'object', properties: { kaynak: { type: 'string' } }, required: ['kaynak'] }, execute: sayfaAc },
@@ -885,6 +889,7 @@
     }).catch(function (e) { Carvis.dersAktif = false; durum('Ders modu açılamadı: ' + (e.message || e)); });
   };
   Carvis._durum = durum;
+  Carvis.gorselAc = gorselAc; Carvis.sahneIsaretle = sahneIsaretle;
   window.Carvis = Carvis;
   window.Carvis._test = { gorselAc: gorselAc, sahneIsaretle: sahneIsaretle, sayfaAc: sayfaAc, UYANDIRMA: UYANDIRMA, KAPAT: KAPAT, yankiMi: yankiMi, profilMetni: profilMetni, selamMetni: selamMetni, araclar: araclar, Profil: function () { return Profil; }, ayarPaneli: ayarPaneli };
   if (uyandirmaAcik) setTimeout(uyandirmaUygula, 1500);

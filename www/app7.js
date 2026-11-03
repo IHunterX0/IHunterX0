@@ -159,7 +159,7 @@
         if (hed.length) {
           var fma = hed[0].object.userData.fma, kk = S.kat[fma];
           lab.duraklat(); sec(fma);
-          if (kk) etiket.goster(hed[0].object, hed[0].point, kk.tr, kk.la, kk.dogrulama === 'doğrulanmadı' || kk.dogrulama === 'kitapla çelişiyor' ? 'Ad: ' + kk.dogrulama : null);
+          if (kk) etiket.goster(hed[0].object, hed[0].point, kk.tr, kk.la, kk.dogrulama === 'kitapla çelişiyor' ? 'Ad: ' + kk.dogrulama : null);
         } else etiket.gizle();
       });
       var etiket = S.etiket = U.labEtiket(tuval, kam);
@@ -233,6 +233,27 @@
         return aiIsaretBul(fma, ad, null);
       });
     }
+    // İşaret noktasına yakın üçgenlerden ayrı bir yüzey yaması: kemiğin üstünde teal renkte nefes alır
+    function yuzeyYamasi(mesh, p, R) {
+      try {
+        var T = S.T, g = mesh && mesh.geometry; if (!g || !g.attributes || !g.attributes.position) return null;
+        mesh.updateMatrixWorld(true);
+        var yerel = mesh.worldToLocal(p.clone()), olcek = new T.Vector3(); mesh.getWorldScale(olcek);
+        var r = R / Math.max(1e-6, (Math.abs(olcek.x) + Math.abs(olcek.y) + Math.abs(olcek.z)) / 3), r2 = r * r;
+        var pos = g.attributes.position, idx = g.index ? g.index.array : null, n = idx ? idx.length : pos.count, out = [];
+        var a = new T.Vector3(), b = new T.Vector3(), c = new T.Vector3();
+        for (var i = 0; i < n; i += 3) {
+          var i0 = idx ? idx[i] : i, i1 = idx ? idx[i + 1] : i + 1, i2 = idx ? idx[i + 2] : i + 2;
+          a.fromBufferAttribute(pos, i0); b.fromBufferAttribute(pos, i1); c.fromBufferAttribute(pos, i2);
+          if (a.distanceToSquared(yerel) < r2 || b.distanceToSquared(yerel) < r2 || c.distanceToSquared(yerel) < r2) out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+        }
+        if (out.length < 9) return null;
+        var yg = new T.BufferGeometry(); yg.setAttribute('position', new T.Float32BufferAttribute(out, 3)); yg.computeVertexNormals();
+        var mat = new T.MeshBasicMaterial({ color: 0x5ef0dc, transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: T.DoubleSide, blending: T.AdditiveBlending });
+        var ym = new T.Mesh(yg, mat); ym.matrixAutoUpdate = false; ym.matrix.copy(mesh.matrixWorld); ym.renderOrder = 19;
+        return ym;
+      } catch (e) { return null; }
+    }
     function odakTemizle() {
       var o = S.odak; if (!o) return;
       o.parcalar.forEach(function (m) { S.sahne.remove(m); m.geometry.dispose(); m.material.dispose(); });
@@ -246,6 +267,9 @@
         var hale = new T.Mesh(new T.SphereGeometry(Math.max(0.005, boy * 0.07), 24, 16), new T.MeshBasicMaterial({ color: 0x4fe0ff, depthTest: false, transparent: true, opacity: 0.35 }));
         var dalga = new T.Mesh(new T.SphereGeometry(Math.max(0.005, boy * 0.07), 24, 16), new T.MeshBasicMaterial({ color: 0x8fe8ff, depthTest: false, transparent: true, opacity: 0.5, wireframe: true }));
         [cekirdek, hale, dalga].forEach(function (k, i) { k.position.copy(p); k.renderOrder = 20 + i; S.sahne.add(k); });
+        // kullanıcı (2026-11-03): "o spesifik kısmın yüzeyi teal renginde breathelesin, yanıp sönsün" — kemiğin işarete yakın yüzeyi
+        var yama = yuzeyYamasi(S.parcalar[fma], p, Math.max(0.006, boy * 0.16));
+        if (yama) { S.sahne.add(yama); }
         var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('class', 'odak-svg'); svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:6';
         var cizgi = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
@@ -258,7 +282,7 @@
           el('small', { text: (DURUM_AD[x.durum] || '') + (x.durum === 'onayli' || x.durum === 'derlendi' ? '' : ' · konum yaklaşık') }), arkaEl]);
         kart.style.cssText = 'position:absolute;left:0;top:0;z-index:7;pointer-events:none;background:linear-gradient(135deg,rgba(10,44,60,.94),rgba(4,18,27,.94));border:1px solid #4fe0ff;border-radius:10px;padding:' + (tuval.clientWidth < 600 ? '6px 8px' : '9px 11px') + ';color:#e8fbff;font-size:' + (tuval.clientWidth < 600 ? '11px' : '13px') + ';line-height:1.35;box-shadow:0 0 22px rgba(79,224,255,.35)';
         sahneKap.appendChild(kart);
-        S.odak = { nokta: p, kart: kart, svg: svg, cizgi: cizgi, uc: uc, arkaEl: arkaEl, parcalar: [cekirdek, hale, dalga] }; S.odakFma = fma;
+        S.odak = { nokta: p, kart: kart, svg: svg, cizgi: cizgi, uc: uc, arkaEl: arkaEl, parcalar: [cekirdek, hale, dalga].concat(yama ? [yama] : []) }; S.odakFma = fma;
         if (kart.animate) kart.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 450, easing: 'ease-out' });
         var t0 = performance.now();
         S.odakAnim = function () { // açık mavi titreşim + dışa yayılan halka
@@ -266,6 +290,7 @@
           hale.scale.setScalar(0.85 + 0.35 * n); hale.material.opacity = 0.25 + 0.3 * n;
           var d = (t % 1.4) / 1.4; dalga.scale.setScalar(1 + d * 2.2); dalga.material.opacity = 0.55 * (1 - d);
           cekirdek.material.opacity = 0.75 + 0.25 * n;
+          if (yama) { var nefes = 0.5 + 0.5 * Math.sin(t * 2.4); yama.material.opacity = 0.18 + 0.62 * nefes; yama.material.color.setRGB(0.25 + 0.2 * nefes, 0.85 + 0.12 * nefes, 0.78 + 0.1 * nefes); }
         };
         // kamerayı işaretin dışa bakan yüzüne çevir
         var yon = p.clone().sub(m.c).normalize().add(new T.Vector3(0, 0.25, 0.35)).normalize();
@@ -317,7 +342,8 @@
       kart.appendChild(el('div', { class: 'ust-etiket', text: k.bolge === 'ust' ? 'Üst ekstremite' : k.bolge === 'alt' ? 'Alt ekstremite' : k.bolge === 'kafa' ? 'Kafa' : 'Gövde iskeleti' }));
       kart.appendChild(el('h3', { class: 'an-ad', text: k.tr }));
       kart.appendChild(el('p', { class: 'an-la' }, [el('em', { text: k.la }), ' · ' + k.en]));
-      kart.appendChild(el('span', { class: 'etiket-kucuk ' + (k.dogrulama === 'doğrulanmadı' || k.dogrulama === 'kitapla çelişiyor' ? 'uyari' : 'kitap'), text: 'Ad: ' + k.dogrulama }));
+      if (k.dogrulama === 'kitapla çelişiyor') kart.appendChild(el('span', { class: 'etiket-kucuk uyari', text: 'Ad: kitapla çelişiyor' }));
+      else if (k.dogrulama && k.dogrulama !== 'doğrulanmadı') kart.appendChild(el('span', { class: 'etiket-kucuk kitap', text: 'Ad: ' + k.dogrulama }));
       if (k.not) kart.appendChild(el('p', { class: 'uyari-kutu', text: k.not }));
       var kitap = el('div', { class: 'kk-ic' }, [el('div', { class: 'yukleniyor', text: 'Kitapta aranıyor…' })]);
       kart.appendChild(el('h4', { text: 'Kitapta: neden böyle, ne işe yarar' })); kart.appendChild(kitap);
