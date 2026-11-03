@@ -30,6 +30,12 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Uygulama çemberi + holografik pencereler (r68)
+- `anaekran.js`: sağ altta amber nokta (.ae-nokta, sol alttaki menü noktasının eşi) → favori uygulamalar çemberde (`U.uygulamaHalkasi`);
+  seçince ikon ışıyıp büyür, çember merkeze çöker, uygulama açılır. Raf kaldırıldı. Konumlar px (translate yüzdesi elemanın kendi boyutuna göre).
+  Kategoriler: Tarayıcı / Sosyal ve mesaj / Ders ve yapay zekâ / Müzik ve medya / Araçlar / Diğer; varsayılan favoriler kullanıcının listesi.
+- `holo3.js`: pencereler yatay ışık çizgisinden doğar (clip-path), parlar, titrer; sayfa geçişleri yumuşak holo; azaltılmış harekette kapalı.
+
 ## Carvis ana ekran / launcher (r66 TAM APK — yeni yama tabanı)
 - Manifest: MainActivity'ye `MAIN + HOME + DEFAULT` intent-filter (metin hâli `android/manifest/AndroidManifest.metin.xml`).
   Üretim: `apktool d -s --no-assets <apk> -o tmpman` → metni düzenle → `apktool b tmpman` → çıkan ikili AndroidManifest.xml'i

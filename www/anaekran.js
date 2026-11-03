@@ -66,17 +66,37 @@
     '.ae-kur p{margin:0;flex:1;font-size:13.5px;color:#d6f7f1}',
     /* hologram ikon stili: renkli ikonlar tek renk turkuaz ışık */
     'body.ae-hologram .ae-ikon img,body.ae-hologram .ae-raf img{filter:grayscale(1) brightness(1.35) sepia(1) hue-rotate(125deg) saturate(2.4) drop-shadow(0 0 6px rgba(94,240,220,.7))!important;opacity:.95}',
-    '.ae-raf{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:61;display:flex;gap:6px;align-items:flex-end;padding:6px 10px 4px;border-radius:22px 22px 999px 999px;' +
-      'background:radial-gradient(120% 90% at 50% 100%,rgba(94,240,220,.16),transparent 70%);animation:aeRaf .5s cubic-bezier(.2,.9,.2,1.1)}',
-    '.ae-raf::after{content:"";position:absolute;left:8%;right:8%;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(140,255,240,.8),transparent);box-shadow:0 0 12px rgba(94,240,220,.8)}',
-    '.ae-raf.sol{right:calc(50% + 150px)}.ae-raf.sag{left:calc(50% + 150px)}',
-    '@keyframes aeRaf{from{opacity:0;transform:translateY(16px)}}',
-    '.ae-raf-uyg{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:transparent;color:#cfeee9;cursor:pointer;padding:4px 0;border-radius:14px;transition:transform .2s}',
-    '.ae-raf-uyg:active{transform:translateY(-4px) scale(.96)}',
-    '.ae-raf-uyg img,.ae-raf-uyg b,.ae-raf-uyg i{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-size:22px;box-shadow:0 0 0 1px rgba(110,255,235,.3),0 6px 16px rgba(0,0,0,.4)}',
-    '.ae-raf-uyg span{font:600 10.5px var(--f-govde,system-ui);max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    'body.rl-acik .ae-raf{display:none}',
-    '@media (max-width:900px){.ae-raf.sol{right:calc(50% + 120px)}.ae-raf.sag{left:calc(50% + 120px)}.ae-raf-uyg{width:52px}.ae-raf-uyg span{display:none}}'
+    '.ae-nokta{position:fixed;right:max(22px,env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:200;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;' +
+      'background:radial-gradient(circle,#fff1cf 0 14%,rgba(255,211,138,.6) 22%,rgba(255,211,138,.08) 56%,transparent 70%);box-shadow:0 0 18px rgba(255,200,100,.45);animation:aeNefes 3.6s ease-in-out infinite}',
+    '@keyframes aeNefes{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1.08);opacity:1}}',
+    'body.rl-acik .ae-nokta{display:none}',
+    '.ae-halka{position:fixed;inset:0;z-index:400;display:grid;place-items:center;background:radial-gradient(circle at 50% 50%,rgba(30,22,6,.55),rgba(1,6,9,.92) 70%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:aeAc .35s ease-out}',
+    '.ae-halka.kapaniyor{animation:aeKapa .3s ease-in forwards}',
+    '@keyframes aeAc{from{opacity:0}}@keyframes aeKapa{to{opacity:0;filter:blur(6px)}}',
+    '.ae-ipucu{position:fixed;top:max(20px,env(safe-area-inset-top));left:0;right:0;text-align:center;font:11px var(--f-kod,monospace);letter-spacing:.2em;color:rgba(255,226,170,.6)}',
+    '.ae-sahne{position:relative;width:min(92vmin,660px);height:min(92vmin,660px)}',
+    '.ae-cizim{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}',
+    '.ae-don{transform-origin:0 0;animation:aeDon 50s linear infinite}@keyframes aeDon{to{transform:rotate(360deg)}}',
+    '.ae-isin{stroke:rgba(255,226,170,.55);stroke-width:.5;stroke-dasharray:2 3;stroke-dashoffset:60;animation:aeIsin 1.4s linear infinite,aeIsinGir .5s ease-out both}',
+    '@keyframes aeIsin{to{stroke-dashoffset:0}}@keyframes aeIsinGir{from{opacity:0}}',
+    '.ae-orta{position:absolute;left:50%;top:50%;width:26%;height:26%;transform:translate(-50%,-50%);border-radius:50%;border:0;background:transparent;cursor:pointer;display:grid;place-items:center}',
+    '.ae-orta canvas{position:absolute;inset:0;width:100%;height:100%}.ae-orta span{position:relative;font:700 10px var(--f-kod,monospace);letter-spacing:.24em;color:#ffe2a8;text-shadow:0 0 10px rgba(255,200,100,.8);margin-top:62%}',
+    '.ae-dugum{position:absolute;left:50%;top:50%;width:96px;height:104px;margin:-52px 0 0 -48px;border:0;background:transparent;color:#fff4dd;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;' +
+      'transform:translate(var(--x),var(--y));animation:aeDugum .55s cubic-bezier(.2,1.4,.4,1) both}',
+    '@keyframes aeDugum{from{transform:translate(0,0) scale(.2);opacity:0;filter:blur(8px)}to{transform:translate(var(--x),var(--y)) scale(1);opacity:1;filter:blur(0)}}',
+    '.ae-dugum i{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-style:normal;position:relative;overflow:hidden;' +
+      'background:radial-gradient(circle,rgba(255,211,138,.16),rgba(20,14,4,.55) 70%);box-shadow:0 0 0 1px rgba(255,211,138,.45),0 0 22px rgba(255,200,100,.22)}',
+    '.ae-dugum i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,240,210,.08) 0 1px,transparent 1px 3px);animation:aeTara 2.4s linear infinite;pointer-events:none}',
+    '@keyframes aeTara{to{background-position:0 30px}}',
+    '.ae-dugum img{width:42px;height:42px;border-radius:11px}.ae-dugum b{font-size:24px;color:#ffe2a8}',
+    '.ae-dugum span{font:600 12px var(--f-govde,system-ui);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 0 8px rgba(0,0,0,.8)}',
+    '.ae-dugum:hover i,.ae-dugum:focus-visible i{box-shadow:0 0 0 1.5px #ffe2a8,0 0 30px rgba(255,200,100,.5)}',
+    '.ae-dugum.secildi{z-index:3;animation:aeSec .42s ease-in forwards}',
+    '@keyframes aeSec{50%{transform:translate(var(--x),var(--y)) scale(1.35);filter:brightness(1.8) drop-shadow(0 0 22px #ffd38a)}100%{transform:translate(0,0) scale(.3);opacity:0;filter:brightness(2.5) blur(4px)}}',
+    '.ae-halka.cokuyor .ae-dugum:not(.secildi){animation:aeCok .35s ease-in forwards}@keyframes aeCok{to{transform:translate(0,0) scale(.2);opacity:0;filter:blur(6px)}}',
+    '.ae-halka.cokuyor .ae-isinlar{opacity:0;transition:opacity .25s}',
+    'body.ae-hologram .ae-dugum img{filter:grayscale(1) brightness(1.4) sepia(1) hue-rotate(-10deg) saturate(2.2) drop-shadow(0 0 6px rgba(255,200,100,.7))}',
+    '@media (prefers-reduced-motion: reduce){.ae-don,.ae-isin,.ae-nokta{animation:none}}'
   ].join('\n');
   document.head.appendChild(css);
 
@@ -128,23 +148,51 @@
   U.SEKMELER.push({ id: 'uygulamalar', ad: 'Uygulamalar', ikon: '▦' });
   if (U.sekmeleriCiz) try { U.sekmeleriCiz(); } catch (e) {}
 
-  /* ana sayfa: alttaki komut kapsülünün iki yanında ışık rafı (favoriler; yalnız ana sayfada) */
-  function raf() {
-    if (!VAR) return; var ev = document.body.classList.contains('ev-sade') || /^#?(kutuphane)?$/.test(location.hash.replace(/^#/, ''));
-    var eski = document.querySelectorAll('.ae-raf'); if (!ev) { Array.prototype.forEach.call(eski, function (x) { x.remove(); }); return; }
+  /* Uygulama çemberi (kullanıcı, 2026-11-03: "yine çember olsun, sık kullanılan uygulamalar için; tıklayınca açılsınlar, o sol
+     üstteki tuş gibi; pencereleri, animasyonları holografik yap"). Sağ altta amber nokta (sol alttaki menü noktasının eşi) →
+     ekranın ortasında favori uygulamalar bir çember üzerinde; merkezden her birine akan ışık çizgileri, dönen çentikli halka;
+     seçince ikon ışıyıp büyür, çember merkeze çöker, uygulama açılır. */
+  var halka = null;
+  function halkaAc() {
+    if (halka) return halkaKapat();
     Promise.all([U.uygulamalar(false), favoriler(), stil()]).then(function (r) {
       var L = r[0], F = r[1]; document.body.classList.toggle('ae-hologram', r[2] === 'hologram');
-      var l = F.map(function (p) { return L.filter(function (u) { return u.paket === p; })[0]; }).filter(Boolean).slice(0, 8);
-      Array.prototype.forEach.call(document.querySelectorAll('.ae-raf'), function (x) { x.remove(); });
-      var yari = Math.ceil(l.length / 2), sol = el('div', { class: 'ae-raf sol' }), sag = el('div', { class: 'ae-raf sag' });
-      function d(u) { return el('button', { type: 'button', class: 'ae-raf-uyg', title: u.ad, 'aria-label': u.ad, onclick: function () { ac(u); } }, [u.ikon ? el('img', { src: u.ikon, alt: '' }) : el('b', { text: u.ad.charAt(0) }), el('span', { text: u.ad })]); }
-      l.slice(0, yari).forEach(function (u) { sol.appendChild(d(u)); }); l.slice(yari).forEach(function (u) { sag.appendChild(d(u)); });
-      sag.appendChild(el('button', { type: 'button', class: 'ae-raf-uyg tum', title: 'Tüm uygulamalar', onclick: function () { location.hash = '#uygulamalar'; } }, [el('i', { text: '▦' }), el('span', { text: 'Tümü' })]));
-      document.body.appendChild(sol); document.body.appendChild(sag);
-    }).catch(function () {});
+      var l = F.map(function (p) { return L.filter(function (u) { return u.paket === p; })[0]; }).filter(Boolean).slice(0, 11);
+      l.push({ ad: 'Tümü', tum: true });
+      var NS = 'http://www.w3.org/2000/svg', sahne = el('div', { class: 'ae-sahne' }), n = l.length, R = 0.37;
+      var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '-100 -100 200 200'); svg.setAttribute('class', 'ae-cizim');
+      var h = '<g class="ae-don" fill="none" stroke="rgba(255,211,138,.32)" stroke-width=".35"><circle r="60"/><circle r="68" stroke-dasharray="1 2.6"/><circle r="95" stroke="rgba(255,211,138,.14)"/>';
+      for (var i = 0; i < 96; i++) { var aa = i / 96 * Math.PI * 2, r1 = i % 8 ? 91 : 87; h += '<line x1="' + (Math.cos(aa) * r1).toFixed(1) + '" y1="' + (Math.sin(aa) * r1).toFixed(1) + '" x2="' + (Math.cos(aa) * 95).toFixed(1) + '" y2="' + (Math.sin(aa) * 95).toFixed(1) + '"/>'; }
+      h += '</g><g class="ae-isinlar">';
+      l.forEach(function (u, k) { var a2 = -Math.PI / 2 + k / n * Math.PI * 2; h += '<line class="ae-isin" style="animation-delay:' + (k * 40) + 'ms" x1="' + (Math.cos(a2) * 13).toFixed(1) + '" y1="' + (Math.sin(a2) * 13).toFixed(1) + '" x2="' + (Math.cos(a2) * (R * 200 - 12)).toFixed(1) + '" y2="' + (Math.sin(a2) * (R * 200 - 12)).toFixed(1) + '"/>'; });
+      svg.innerHTML = h + '</g>'; sahne.appendChild(svg);
+      var orta = el('button', { class: 'ae-orta', type: 'button', 'aria-label': 'Tüm uygulamalar', onclick: function () { halkaKapat(); location.hash = '#uygulamalar'; } }, [el('canvas', { 'aria-hidden': 'true' }), el('span', { text: 'UYGULAMALAR' })]);
+      sahne.appendChild(orta);
+      var dugumler = [];
+      l.forEach(function (u, k) {
+        // translate yüzdesi elemanın kendi boyutuna göredir → sahne boyutundan piksel hesaplanır
+        var S = Math.min(660, Math.min(innerWidth, innerHeight) * 0.92), a2 = -Math.PI / 2 + k / n * Math.PI * 2, x = Math.cos(a2) * R * S, y = Math.sin(a2) * R * S;
+        var d = el('button', { class: 'ae-dugum' + (u.tum ? ' tum' : ''), type: 'button', 'aria-label': u.ad, style: '--x:' + x.toFixed(1) + 'px;--y:' + y.toFixed(1) + 'px;animation-delay:' + (80 + k * 45) + 'ms' },
+          [el('i', {}, [u.tum ? el('b', { text: '▦' }) : u.ikon ? el('img', { src: u.ikon, alt: '' }) : el('b', { text: u.ad.charAt(0) })]), el('span', { text: u.ad })]);
+        d.addEventListener('click', function (e) {
+          e.stopPropagation(); if (u.tum) { halkaKapat(); location.hash = '#uygulamalar'; return; }
+          try { navigator.vibrate && navigator.vibrate(18); } catch (x2) {}
+          d.classList.add('secildi'); halka.classList.add('cokuyor');
+          setTimeout(function () { ac(u); halkaKapat(true); }, 420);
+        });
+        sahne.appendChild(d); dugumler.push(d);
+      });
+      halka = el('div', { class: 'ae-halka', role: 'dialog', 'aria-label': 'Uygulamalar' }, [el('div', { class: 'ae-ipucu', text: 'UYGULAMA SEÇ · DIŞARI DOKUN: KAPAT' }), sahne]);
+      halka.addEventListener('click', function (e) { if (e.target === halka || e.target === sahne) halkaKapat(); });
+      document.body.appendChild(halka);
+      if (window.JarvisKure) new window.JarvisKure(orta.querySelector('canvas'), { kucuk: true, serit: 2, iplik: 4, nokta: 90, kosul: function () { return !!halka; } });
+    }).catch(function (e) { U.toast(e.message || 'Uygulamalar okunamadı'); });
   }
-  window.addEventListener('hashchange', function () { setTimeout(raf, 120); });
+  function halkaKapat(hizli) { if (!halka) return; var h2 = halka; halka = null; h2.classList.add('kapaniyor'); setTimeout(function () { h2.remove(); }, hizli ? 120 : 320); }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && halka) halkaKapat(); });
+  window.addEventListener('hashchange', function () { if (halka) halkaKapat(); });
+  U.uygulamaHalkasi = halkaAc;
+  if (VAR) { var nokta = el('button', { class: 'ae-nokta', type: 'button', 'aria-label': 'Uygulamalar', title: 'Uygulamalar', onclick: halkaAc }); (document.body ? document.body.appendChild(nokta) : document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(nokta); })); }
   var eskiKut = U.GORUNUMLER.kutuphane;
-  U.GORUNUMLER.kutuphane = function () { eskiKut.apply(this, arguments); setTimeout(raf, 500); };
-  setTimeout(raf, 1600);
+  U.GORUNUMLER.kutuphane = function () { eskiKut.apply(this, arguments); };
 })();
