@@ -38,6 +38,18 @@ public final class CarvisZv {
     static final Object yaziKilit = new Object();
     static Thread isci; static final LinkedBlockingQueue<Object[]> kuyruk = new LinkedBlockingQueue<Object[]>();
 
+    /** Yerel (native) çağrıdan önce aşamayı diske yazar; uygulama çökerse bir sonraki açılışta görünür ve motor kendini kapatır. */
+    static void iz(Context c, String a) {
+        if (a != null) asama = a;
+        if (c == null) return;
+        File f = new File(dizin(c), "cokus.iz");
+        try { if (a == null) f.delete(); else { FileOutputStream o = new FileOutputStream(f); o.write(a.getBytes("UTF-8")); o.getFD().sync(); o.close(); } } catch (Exception e) { }
+    }
+    static String oncekiCokus(Context c) {
+        File f = new File(dizin(c), "cokus.iz"); if (!f.exists() || tts != null || !asama.equals("boşta")) return "";
+        try { FileInputStream i = new FileInputStream(f); byte[] b = new byte[200]; int n = i.read(b); i.close(); return n > 0 ? new String(b, 0, n, "UTF-8") : "?"; } catch (Exception e) { return "?"; }
+    }
+    public static void cokusSifirla() { Context c = bag(); if (c != null) new File(dizin(c), "cokus.iz").delete(); }
     static Context bag() { MainActivity a = MainActivity.ornek; return a == null ? null : a.getApplicationContext(); }
     static File dizin(Context c) { File d = new File(c.getFilesDir(), "zv"); d.mkdirs(); return d; }
     static File model(Context c) { return new File(dizin(c), "fm_decoder_int8.onnx"); }
@@ -50,7 +62,7 @@ public final class CarvisZv {
             boolean ornek = false;
             if (c != null) try { String[] l = c.getAssets().list("zv"); for (String s : l) if (s.equals("ornek.wav")) ornek = true; } catch (Exception e) { }
             o.put("model", var); o.put("ornek", ornek); o.put("hazir", tts != null); o.put("indiriliyor", indiriliyor); o.put("yuzde", yuzde); o.put("hata", hata);
-            o.put("asama", asama); o.put("yuklemeMs", yuklemeMs); o.put("sonUretimMs", sonUretimMs); o.put("sonSesMs", sonSesMs); o.put("calinan", calinan);
+            o.put("asama", asama); if (c != null) o.put("cokus", oncekiCokus(c)); o.put("yuklemeMs", yuklemeMs); o.put("sonUretimMs", sonUretimMs); o.put("sonSesMs", sonSesMs); o.put("calinan", calinan);
             try { android.media.AudioManager am = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE); o.put("medyaSes", am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + "/" + am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)); } catch (Exception e) { }
             o.put("abi", android.os.Build.SUPPORTED_ABIS.length > 0 ? android.os.Build.SUPPORTED_ABIS[0] : "");
         } catch (Exception e) { }
@@ -110,18 +122,20 @@ public final class CarvisZv {
                 FileOutputStream f = new FileOutputStream(surum); f.write(sv.getBytes()); f.close();
             }
             OfflineTtsConfig k = new OfflineTtsConfig();
-            k.model.zipvoice.tokens = new File(d, "tokens.txt").getPath();
-            k.model.zipvoice.encoder = new File(d, "text_encoder_int8.onnx").getPath();
-            k.model.zipvoice.decoder = model(c).getPath();
-            k.model.zipvoice.vocoder = new File(d, "vocos_24khz.onnx").getPath();
-            k.model.zipvoice.dataDir = new File(d, "espeak-ng-data").getPath();
-            k.model.zipvoice.lexicon = new File(d, "lexicon.txt").getPath();
-            k.model.numThreads = Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
+            com.k2fsa.sherpa.onnx.OfflineTtsZipVoiceModelConfig zc = k.getModel().getZipvoice();
+            zc.setTokens(new File(d, "tokens.txt").getPath());
+            zc.setEncoder(new File(d, "text_encoder_int8.onnx").getPath());
+            zc.setDecoder(model(c).getPath());
+            zc.setVocoder(new File(d, "vocos_24khz.onnx").getPath());
+            zc.setDataDir(new File(d, "espeak-ng-data").getPath());
+            zc.setLexicon(new File(d, "lexicon.txt").getPath());
+            k.getModel().setNumThreads(Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 2)));
             ornekSesOku(new File(d, "ornek.wav"));
             FileInputStream f = new FileInputStream(new File(d, "ornek.txt")); byte[] b = new byte[(int) new File(d, "ornek.txt").length()]; int n = f.read(b); f.close();
             ornekMetin = new String(b, 0, Math.max(0, n), "UTF-8").trim();
-            asama = "model yükleniyor";
-            tts = new OfflineTts(k);
+            iz(c, "model yükleniyor");
+            tts = new OfflineTts(null, k);
+            iz(c, null);
             yuklemeMs = System.currentTimeMillis() - t0; asama = "hazır";
         }
     }
@@ -176,12 +190,14 @@ public final class CarvisZv {
                             long u0 = System.currentTimeMillis();
                             GenerationConfig g = new GenerationConfig();
                             final float oran = (float) Math.pow(2.0, perdeYt / 12.0);
-                            g.speed = (hiz <= 0 ? 1f : hiz) / oran; g.numSteps = adim; g.referenceAudio = ornekSes; g.referenceSampleRate = ornekSr; g.referenceText = ornekMetin;
+                            g.setSpeed((hiz <= 0 ? 1f : hiz) / oran); g.setNumSteps(adim); g.setReferenceAudio(ornekSes); g.setReferenceSampleRate(ornekSr); g.setReferenceText(ornekMetin);
+                            iz(bag(), "üretim " + sira);
                             GeneratedAudio a;
                             synchronized (kilit) { a = tts.generateWithConfig(s, g); }
-                            sonUretimMs = System.currentTimeMillis() - u0; sonSesMs = a.samples.length * 1000L / Math.max(1, a.sampleRate);
-                            if (a.samples.length == 0) throw new Exception("motor boş ses üretti");
-                            hazir.put(new Object[] { ton(a.samples, a.sampleRate, oran), a.sampleRate });
+                            iz(bag(), null);
+                            sonUretimMs = System.currentTimeMillis() - u0; sonSesMs = a.getSamples().length * 1000L / Math.max(1, a.getSampleRate());
+                            if (a.getSamples().length == 0) throw new Exception("motor boş ses üretti");
+                            hazir.put(new Object[] { ton(a.getSamples(), a.getSampleRate(), oran), a.getSampleRate() });
                         }
                     } catch (Throwable e) { try { hazir.put(e); } catch (Exception x) { } }
                     try { hazir.put(BITTI); } catch (Exception x) { }
@@ -196,6 +212,7 @@ public final class CarvisZv {
                     cal(benim, cila((float[]) p[0], (Integer) p[1], efekt), (Integer) p[1]);
                 }
             } catch (Throwable e) { hataMetni = e.getClass().getSimpleName() + ": " + e.getMessage(); }
+            iz(bag(), null);
             asama = hataMetni == null ? "bitti" : "hata";
             if (hataMetni != null) hata = hataMetni;
             MainActivity a = MainActivity.ornek;

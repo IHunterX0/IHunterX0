@@ -51,7 +51,7 @@
         }
     .end annotation
 
-    .line 170
+    .line 184
     iput-object p1, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
 
     iput-object p2, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$l:Ljava/util/ArrayList;
@@ -70,10 +70,10 @@
 .method public run()V
     .locals 11
 
-    .line 172
+    .line 186
     nop
 
-    .line 173
+    .line 187
     :try_start_0
     iget-object v0, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$l:Ljava/util/ArrayList;
 
@@ -96,7 +96,7 @@
 
     check-cast v2, Ljava/lang/String;
 
-    .line 174
+    .line 188
     iget-object v3, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
 
     iget v3, v3, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
@@ -107,7 +107,7 @@
 
     goto/16 :goto_2
 
-    .line 175
+    .line 189
     :cond_0
     const/4 v3, 0x1
 
@@ -149,17 +149,17 @@
 
     sput-object v4, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
 
-    .line 176
+    .line 190
     invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
 
     move-result-wide v4
 
-    .line 177
+    .line 191
     new-instance v6, Lcom/k2fsa/sherpa/onnx/GenerationConfig;
 
     invoke-direct {v6}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;-><init>()V
 
-    .line 178
+    .line 192
     sget v7, Lcom/dogac/bin1/CarvisZv;->perdeYt:F
 
     float-to-double v7, v7
@@ -176,7 +176,7 @@
 
     double-to-float v7, v7
 
-    .line 179
+    .line 193
     iget-object v8, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
 
     iget v8, v8, Lcom/dogac/bin1/CarvisZv$2;->val$hiz:F
@@ -199,25 +199,50 @@
     :goto_1
     div-float/2addr v8, v7
 
-    iput v8, v6, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->speed:F
+    invoke-virtual {v6, v8}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->setSpeed(F)V
 
     sget v8, Lcom/dogac/bin1/CarvisZv;->adim:I
 
-    iput v8, v6, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->numSteps:I
+    invoke-virtual {v6, v8}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->setNumSteps(I)V
 
     sget-object v8, Lcom/dogac/bin1/CarvisZv;->ornekSes:[F
 
-    iput-object v8, v6, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceAudio:[F
+    invoke-virtual {v6, v8}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->setReferenceAudio([F)V
 
     sget v8, Lcom/dogac/bin1/CarvisZv;->ornekSr:I
 
-    iput v8, v6, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceSampleRate:I
+    invoke-virtual {v6, v8}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->setReferenceSampleRate(I)V
 
     sget-object v8, Lcom/dogac/bin1/CarvisZv;->ornekMetin:Ljava/lang/String;
 
-    iput-object v8, v6, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceText:Ljava/lang/String;
+    invoke-virtual {v6, v8}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->setReferenceText(Ljava/lang/String;)V
 
-    .line 181
+    .line 194
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
+
+    move-result-object v8
+
+    new-instance v9, Ljava/lang/StringBuilder;
+
+    invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v10, "\u00fcretim "
+
+    invoke-virtual {v9, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v9
+
+    invoke-virtual {v9, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v9
+
+    invoke-virtual {v9}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v9
+
+    invoke-static {v8, v9}, Lcom/dogac/bin1/CarvisZv;->iz(Landroid/content/Context;Ljava/lang/String;)V
+
+    .line 196
     sget-object v8, Lcom/dogac/bin1/CarvisZv;->kilit:Ljava/lang/Object;
 
     monitor-enter v8
@@ -235,8 +260,17 @@
     :try_end_1
     .catchall {:try_start_1 .. :try_end_1} :catchall_0
 
-    .line 182
+    .line 197
     :try_start_2
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
+
+    move-result-object v6
+
+    const/4 v8, 0x0
+
+    invoke-static {v6, v8}, Lcom/dogac/bin1/CarvisZv;->iz(Landroid/content/Context;Ljava/lang/String;)V
+
+    .line 198
     invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
 
     move-result-wide v8
@@ -245,7 +279,9 @@
 
     sput-wide v8, Lcom/dogac/bin1/CarvisZv;->sonUretimMs:J
 
-    iget-object v4, v2, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->samples:[F
+    invoke-virtual {v2}, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->getSamples()[F
+
+    move-result-object v4
 
     array-length v4, v4
 
@@ -255,7 +291,9 @@
 
     mul-long/2addr v4, v8
 
-    iget v6, v2, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->sampleRate:I
+    invoke-virtual {v2}, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->getSampleRate()I
+
+    move-result v6
 
     invoke-static {v3, v6}, Ljava/lang/Math;->max(II)I
 
@@ -267,25 +305,33 @@
 
     sput-wide v4, Lcom/dogac/bin1/CarvisZv;->sonSesMs:J
 
-    .line 183
-    iget-object v3, v2, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->samples:[F
+    .line 199
+    invoke-virtual {v2}, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->getSamples()[F
+
+    move-result-object v3
 
     array-length v3, v3
 
     if-eqz v3, :cond_2
 
-    .line 184
+    .line 200
     iget-object v3, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$hazir:Ljava/util/concurrent/LinkedBlockingQueue;
 
-    iget-object v4, v2, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->samples:[F
+    invoke-virtual {v2}, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->getSamples()[F
 
-    iget v5, v2, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->sampleRate:I
+    move-result-object v4
+
+    invoke-virtual {v2}, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->getSampleRate()I
+
+    move-result v5
 
     invoke-static {v4, v5, v7}, Lcom/dogac/bin1/CarvisZv;->ton([FIF)[F
 
     move-result-object v4
 
-    iget v2, v2, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->sampleRate:I
+    invoke-virtual {v2}, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->getSampleRate()I
+
+    move-result v2
 
     invoke-static {v2}, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
 
@@ -297,10 +343,10 @@
 
     invoke-virtual {v3, v2}, Ljava/util/concurrent/LinkedBlockingQueue;->put(Ljava/lang/Object;)V
 
-    .line 185
+    .line 201
     goto/16 :goto_0
 
-    .line 183
+    .line 199
     :cond_2
     new-instance v0, Ljava/lang/Exception;
 
@@ -312,7 +358,7 @@
     :try_end_2
     .catchall {:try_start_2 .. :try_end_2} :catchall_1
 
-    .line 181
+    .line 196
     :catchall_0
     move-exception v0
 
@@ -326,7 +372,7 @@
     :try_end_4
     .catchall {:try_start_4 .. :try_end_4} :catchall_1
 
-    .line 186
+    .line 202
     :catchall_1
     move-exception v0
 
@@ -346,7 +392,7 @@
     :goto_2
     nop
 
-    .line 187
+    .line 203
     :try_start_6
     iget-object v0, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$hazir:Ljava/util/concurrent/LinkedBlockingQueue;
 
@@ -361,7 +407,7 @@
     :catch_1
     move-exception v0
 
-    .line 188
+    .line 204
     :goto_3
     return-void
 .end method

@@ -38,7 +38,7 @@
         }
     .end annotation
 
-    .line 162
+    .line 176
     iput-object p1, p0, Lcom/dogac/bin1/CarvisZv$2;->val$metin:Ljava/lang/String;
 
     iput p2, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
@@ -57,203 +57,212 @@
 
 # virtual methods
 .method public run()V
-    .locals 8
+    .locals 9
 
-    .line 163
+    .line 177
     nop
 
-    .line 165
+    .line 179
+    const/4 v0, 0x0
+
     :try_start_0
     invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
 
-    move-result-object v0
+    move-result-object v1
 
-    if-eqz v0, :cond_3
+    if-eqz v1, :cond_3
 
-    .line 166
-    invoke-static {v0}, Lcom/dogac/bin1/CarvisZv;->yukle(Landroid/content/Context;)V
+    .line 180
+    invoke-static {v1}, Lcom/dogac/bin1/CarvisZv;->yukle(Landroid/content/Context;)V
 
-    .line 167
-    iget-object v0, p0, Lcom/dogac/bin1/CarvisZv$2;->val$metin:Ljava/lang/String;
+    .line 181
+    iget-object v1, p0, Lcom/dogac/bin1/CarvisZv$2;->val$metin:Ljava/lang/String;
 
-    invoke-static {v0}, Lcom/dogac/bin1/CarvisZv;->cumleler(Ljava/lang/String;)Ljava/util/ArrayList;
+    invoke-static {v1}, Lcom/dogac/bin1/CarvisZv;->cumleler(Ljava/lang/String;)Ljava/util/ArrayList;
 
-    move-result-object v0
+    move-result-object v1
 
-    .line 168
-    new-instance v1, Ljava/util/concurrent/LinkedBlockingQueue;
+    .line 182
+    new-instance v2, Ljava/util/concurrent/LinkedBlockingQueue;
 
-    invoke-direct {v1}, Ljava/util/concurrent/LinkedBlockingQueue;-><init>()V
+    invoke-direct {v2}, Ljava/util/concurrent/LinkedBlockingQueue;-><init>()V
 
-    .line 169
-    new-instance v2, Ljava/lang/Object;
+    .line 183
+    new-instance v3, Ljava/lang/Object;
 
-    invoke-direct {v2}, Ljava/lang/Object;-><init>()V
+    invoke-direct {v3}, Ljava/lang/Object;-><init>()V
 
-    .line 170
-    new-instance v3, Ljava/lang/Thread;
+    .line 184
+    new-instance v4, Ljava/lang/Thread;
 
-    new-instance v4, Lcom/dogac/bin1/CarvisZv$2$1;
+    new-instance v5, Lcom/dogac/bin1/CarvisZv$2$1;
 
-    invoke-direct {v4, p0, v0, v1, v2}, Lcom/dogac/bin1/CarvisZv$2$1;-><init>(Lcom/dogac/bin1/CarvisZv$2;Ljava/util/ArrayList;Ljava/util/concurrent/LinkedBlockingQueue;Ljava/lang/Object;)V
+    invoke-direct {v5, p0, v1, v2, v3}, Lcom/dogac/bin1/CarvisZv$2$1;-><init>(Lcom/dogac/bin1/CarvisZv$2;Ljava/util/ArrayList;Ljava/util/concurrent/LinkedBlockingQueue;Ljava/lang/Object;)V
 
-    invoke-direct {v3, v4}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+    invoke-direct {v4, v5}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
-    .line 189
-    invoke-virtual {v3}, Ljava/lang/Thread;->start()V
+    .line 205
+    invoke-virtual {v4}, Ljava/lang/Thread;->start()V
 
-    .line 191
+    .line 207
     :goto_0
-    invoke-virtual {v1}, Ljava/util/concurrent/LinkedBlockingQueue;->take()Ljava/lang/Object;
+    invoke-virtual {v2}, Ljava/util/concurrent/LinkedBlockingQueue;->take()Ljava/lang/Object;
 
-    move-result-object v0
+    move-result-object v1
 
-    .line 192
-    if-ne v0, v2, :cond_0
+    .line 208
+    if-ne v1, v3, :cond_0
 
-    .line 198
-    const/4 v0, 0x0
+    .line 214
+    move-object v1, v0
 
     goto :goto_1
 
-    .line 193
+    .line 209
     :cond_0
-    instance-of v3, v0, Ljava/lang/Throwable;
+    instance-of v4, v1, Ljava/lang/Throwable;
 
-    if-nez v3, :cond_2
+    if-nez v4, :cond_2
 
-    .line 194
-    iget v3, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
+    .line 210
+    iget v4, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
 
-    sget v4, Lcom/dogac/bin1/CarvisZv;->nesil:I
+    sget v5, Lcom/dogac/bin1/CarvisZv;->nesil:I
 
-    if-eq v3, v4, :cond_1
+    if-eq v4, v5, :cond_1
 
     goto :goto_0
 
-    .line 195
+    .line 211
     :cond_1
-    check-cast v0, [Ljava/lang/Object;
+    check-cast v1, [Ljava/lang/Object;
 
-    .line 196
-    iget v3, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
+    .line 212
+    iget v4, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
 
-    const/4 v4, 0x0
+    const/4 v5, 0x0
 
-    aget-object v4, v0, v4
+    aget-object v5, v1, v5
 
-    check-cast v4, [F
+    check-cast v5, [F
 
-    const/4 v5, 0x1
+    const/4 v6, 0x1
 
-    aget-object v6, v0, v5
+    aget-object v7, v1, v6
 
-    check-cast v6, Ljava/lang/Integer;
+    check-cast v7, Ljava/lang/Integer;
 
-    invoke-virtual {v6}, Ljava/lang/Integer;->intValue()I
+    invoke-virtual {v7}, Ljava/lang/Integer;->intValue()I
 
-    move-result v6
+    move-result v7
 
-    iget v7, p0, Lcom/dogac/bin1/CarvisZv$2;->val$efekt:F
+    iget v8, p0, Lcom/dogac/bin1/CarvisZv$2;->val$efekt:F
 
-    invoke-static {v4, v6, v7}, Lcom/dogac/bin1/CarvisZv;->cila([FIF)[F
+    invoke-static {v5, v7, v8}, Lcom/dogac/bin1/CarvisZv;->cila([FIF)[F
 
-    move-result-object v4
+    move-result-object v5
 
-    aget-object v0, v0, v5
+    aget-object v1, v1, v6
 
-    check-cast v0, Ljava/lang/Integer;
+    check-cast v1, Ljava/lang/Integer;
 
-    invoke-virtual {v0}, Ljava/lang/Integer;->intValue()I
+    invoke-virtual {v1}, Ljava/lang/Integer;->intValue()I
 
-    move-result v0
+    move-result v1
 
-    invoke-static {v3, v4, v0}, Lcom/dogac/bin1/CarvisZv;->cal(I[FI)V
+    invoke-static {v4, v5, v1}, Lcom/dogac/bin1/CarvisZv;->cal(I[FI)V
 
-    .line 197
+    .line 213
     goto :goto_0
 
-    .line 193
+    .line 209
     :cond_2
-    check-cast v0, Ljava/lang/Throwable;
+    check-cast v1, Ljava/lang/Throwable;
 
-    throw v0
+    throw v1
 
-    .line 165
+    .line 179
     :cond_3
-    new-instance v0, Ljava/lang/Exception;
+    new-instance v1, Ljava/lang/Exception;
 
-    const-string v1, "uygulama kapal\u0131"
+    const-string v2, "uygulama kapal\u0131"
 
-    invoke-direct {v0, v1}, Ljava/lang/Exception;-><init>(Ljava/lang/String;)V
+    invoke-direct {v1, v2}, Ljava/lang/Exception;-><init>(Ljava/lang/String;)V
 
-    throw v0
+    throw v1
     :try_end_0
     .catchall {:try_start_0 .. :try_end_0} :catchall_0
 
-    .line 198
+    .line 214
     :catchall_0
-    move-exception v0
+    move-exception v1
 
-    new-instance v1, Ljava/lang/StringBuilder;
+    new-instance v2, Ljava/lang/StringBuilder;
 
-    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
 
-    invoke-virtual {v0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Ljava/lang/Class;->getSimpleName()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v2
 
-    invoke-virtual {v2}, Ljava/lang/Class;->getSimpleName()Ljava/lang/String;
+    const-string v3, ": "
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v2
 
-    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/Throwable;->getMessage()Ljava/lang/String;
 
     move-result-object v1
 
-    const-string v2, ": "
-
-    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v1
 
-    invoke-virtual {v0}, Ljava/lang/Throwable;->getMessage()Ljava/lang/String;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    move-result-object v0
+    move-result-object v1
 
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    .line 199
+    .line 215
     :goto_1
-    if-nez v0, :cond_4
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
 
-    const-string v1, "bitti"
+    move-result-object v2
+
+    invoke-static {v2, v0}, Lcom/dogac/bin1/CarvisZv;->iz(Landroid/content/Context;Ljava/lang/String;)V
+
+    .line 216
+    if-nez v1, :cond_4
+
+    const-string v0, "bitti"
 
     goto :goto_2
 
     :cond_4
-    const-string v1, "hata"
+    const-string v0, "hata"
 
     :goto_2
-    sput-object v1, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
+    sput-object v0, Lcom/dogac/bin1/CarvisZv;->asama:Ljava/lang/String;
 
-    .line 200
-    if-eqz v0, :cond_5
+    .line 217
+    if-eqz v1, :cond_5
 
-    sput-object v0, Lcom/dogac/bin1/CarvisZv;->hata:Ljava/lang/String;
+    sput-object v1, Lcom/dogac/bin1/CarvisZv;->hata:Ljava/lang/String;
 
-    .line 201
+    .line 218
     :cond_5
-    sget-object v1, Lcom/dogac/bin1/MainActivity;->ornek:Lcom/dogac/bin1/MainActivity;
+    sget-object v0, Lcom/dogac/bin1/MainActivity;->ornek:Lcom/dogac/bin1/MainActivity;
 
-    .line 202
-    if-eqz v1, :cond_7
+    .line 219
+    if-eqz v0, :cond_7
 
     new-instance v2, Ljava/lang/StringBuilder;
 
@@ -281,35 +290,35 @@
 
     move-result-object v2
 
-    if-nez v0, :cond_6
+    if-nez v1, :cond_6
 
-    const-string v0, "null"
+    const-string v1, "null"
 
     goto :goto_3
 
     :cond_6
-    invoke-static {v0}, Lorg/json/JSONObject;->quote(Ljava/lang/String;)Ljava/lang/String;
+    invoke-static {v1}, Lorg/json/JSONObject;->quote(Ljava/lang/String;)Ljava/lang/String;
 
-    move-result-object v0
+    move-result-object v1
 
     :goto_3
-    invoke-virtual {v2, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    move-result-object v0
+    move-result-object v1
 
     const-string v2, ")"
 
-    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    move-result-object v0
+    move-result-object v1
 
-    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    move-result-object v0
+    move-result-object v1
 
-    invoke-virtual {v1, v0}, Lcom/dogac/bin1/MainActivity;->js(Ljava/lang/String;)V
+    invoke-virtual {v0, v1}, Lcom/dogac/bin1/MainActivity;->js(Ljava/lang/String;)V
 
-    .line 203
+    .line 220
     :cond_7
     return-void
 .end method

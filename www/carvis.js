@@ -22,7 +22,7 @@
     var onbellek = {}, z = { bekle: {}, sonHata: '' };
     function ayar(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
     z.durum = function () { try { return JSON.parse(K && K.zvDurum ? K.zvDurum() : '{}'); } catch (e) { return {}; } };
-    z.acik = function () { if (!K || !K.zvKonus || ayar('zv_acik') !== '1') return false; var d = z.durum(); return !!d.model && !!d.ornek; };
+    z.acik = function () { if (!K || !K.zvKonus || ayar('zv_acik') !== '1') return false; var d = z.durum(); return !!d.model && !!d.ornek && !d.cokus; };
     z.efekt = function () { var v = parseFloat(ayar('zv_efekt')); return isNaN(v) ? 0 : v; };
     z.sayi = function (k, vars) { var v = parseFloat(ayar(k)); return isNaN(v) ? vars : v; };
     z.uygula = function () { try { if (K && K.zvAyar) K.zvAyar(z.sayi('zv_perde', 0), z.sayi('zv_bas', 0), z.sayi('zv_parlak', 0), Math.round(z.sayi('zv_adim', 8))); } catch (e) {} };
@@ -574,6 +574,7 @@
       var zvDurumP = el('p', { class: 'var-etiket', 'aria-live': 'polite' });
       var zvIndir = el('button', { class: 'dugme kucuk', type: 'button', text: '⇣ Ses modelini indir (125 MB)', onclick: function () { K.zvIndir(); Zv.ciz(); } });
       var zvDene = el('button', { class: 'dugme kucuk', type: 'button', text: '▶ Dene', onclick: function () { Ses.konus((hitap() ? 'Merhaba ' + hitap() + '. ' : 'Merhaba. ') + 'Bütün sistemler çevrimiçi. Bugün hangi konuya çalışıyoruz?'); } });
+      var zvTekrar = el('button', { class: 'dugme kucuk', type: 'button', text: '↻ Tekrar dene', hidden: true, onclick: function () { try { K.zvCokusSifirla(); } catch (e) {} Zv.sonHata = ''; Zv.ciz(); } });
       var zvZm = null;
       Zv.ciz = function () {
         var d = Zv.durum();
@@ -586,6 +587,8 @@
           d.model ? (d.hazir ? 'Hazır ✓' : 'Model indirildi ✓ (ilk konuşmada birkaç saniye yüklenir)') + (Zv.sonHata ? ' · Son hata: ' + Zv.sonHata : '') + (d.hata && d.hata !== Zv.sonHata ? ' · Motor: ' + d.hata : '') :
           (d.hata ? 'İndirme hatası: ' + d.hata + ' — tekrar dene.' : 'Model henüz indirilmedi.');
         zvDurumP.textContent += ayr;
+        if (d.cokus) zvDurumP.textContent = '⚠ Ses motoru önceki denemede uygulamayı kapattı (aşama: ' + d.cokus + '). Güvenlik için kapattım; Carvis eski sesle konuşuyor. "Tekrar dene"ye basarsan bir kez daha denenir.';
+        zvTekrar.hidden = !d.cokus;
         clearTimeout(zvZm); if (document.body.contains(zvDurumP)) zvZm = setTimeout(Zv.ciz, 1000);
       };
       zvAc.addEventListener('change', function () { Zv.ayar('zv_acik', zvAc.checked ? '1' : '0'); if (zvAc.checked && !Zv.durum().model) K.zvIndir(); Zv.ciz(); });
@@ -599,7 +602,7 @@
         r.addEventListener('change', function () { Zv.ayar(x[0], r.value); Zv.uygula(); });
         govde.appendChild(satir(et, r));
       });
-      govde.appendChild(el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [zvIndir, zvDene]));
+      govde.appendChild(el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [zvIndir, zvDene, zvTekrar]));
       govde.appendChild(zvDurumP);
       Zv.ciz();
     }

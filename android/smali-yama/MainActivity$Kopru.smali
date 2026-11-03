@@ -1508,3 +1508,13 @@
 
     return-void
 .end method
+
+.method public zvCokusSifirla()V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/CarvisZv;->cokusSifirla()V
+
+    return-void
+.end method

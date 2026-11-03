@@ -31,7 +31,7 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
 ## Carvis sesi — ZipVoice (r36, internetsiz)
-- Motor: sherpa-onnx **v1.13.8** Android (`lib/arm64-v8a/libsherpa-onnx-jni.so` + `libonnxruntime.so`, HF `csukuangfj2/sherpa-onnx-libs`).
+- Motor: sherpa-onnx **v1.13.8 resmî AAR** (JitPack `com/github/k2-fsa/sherpa-onnx/sherpa-onnx/v1.13.8/sherpa-onnx-v1.13.8.aar`): `jni/arm64-v8a/*.so` + `classes.jar` içindeki Kotlin TTS sınıfları (d8 → smali). HF csukuangfj2 "1.13.8" paketi daha yeni bir derlemeydi, JNI alanları uymadı ve uygulamayı çökertti (r37–r39).
   JNI, Kotlin `Tts.kt` sınıflarını alan adıyla okur → `android/kaynak-yeni/sherpa-onnx/*.java` birebir karşılığı (alan adı/türü değişirse uygulama çöker).
 - APK `assets/zv/`: `text_encoder_int8.onnx` + `tokens.txt` (HF `k2-fsa/ZipVoice/zipvoice_distill`), `vocos_24khz.onnx`
   (HF `wetdog/vocos-mel-24khz-onnx` + sherpa metadata: model_type=vocos, n_fft=1024, hop=256, win=1024, center=1, hann, reflect),
