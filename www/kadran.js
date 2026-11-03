@@ -105,15 +105,16 @@
       return U.Depo.oku('ilerleme').then(function (il) {
         il = il || {};
         var kit = l.map(function (k) { var s = (il.okuma || {})[k.id], okunan = Object.keys(((il.okunan || {})[k.id]) || {}).length, top = (k.sayilar && k.sayilar.altBolum) || 0;
-          return { ik: /anatomi/.test(k.id) ? '🦴' : /kimya/.test(k.id) ? '⬡' : /istatistik/.test(k.id) ? '📈' : /fizik/.test(k.id) ? '〰' : '📖', ad: k.baslik.replace(/^1001\s*/, ''), alt: (top ? '%' + Math.round(100 * okunan / top) + ' okundu · ' : '') + (s ? 'kaldığın yerden aç' : 'baştan aç'), renk: k.renk || '#4fe0ff',
+          return { ik: /anatomi/.test(k.id) ? 'kemik' : /kimya/.test(k.id) ? 'molekul' : /istatistik/.test(k.id) ? 'grafik' : /fizik/.test(k.id) ? 'dalga' : 'kitap', ad: k.baslik.replace(/^1001\s*/, ''), alt: (top ? '%' + Math.round(100 * okunan / top) + ' okundu · ' : '') + (s ? 'kaldığın yerden aç' : 'baştan aç'), renk: k.renk || '#4fe0ff',
             git: function () { U.git(U.okuHash(k.id, s ? s.bolum : 0)); } }; });
         return kit.concat([
-          { ik: '▶', ad: 'Reels', alt: 'kaydır, izle, öğren', git: function () { if (U.reelsAc) U.reelsAc(); else location.hash = '#reels'; } },
-          { ik: '📰', ad: 'Makaleler', alt: 'ilgi alanların, yeni araştırmalar', git: function () { location.hash = '#makaleler'; } },
-          { ik: '❖', ad: 'Kartlar', alt: 'bugünkü tekrar', git: function () { location.hash = '#kartlar'; } },
-          { ik: '◎', ad: 'Test', alt: 'çıkmış sorular', git: function () { location.hash = '#test'; } },
-          { ik: '🔮', ad: 'Tahmin', alt: 'bu sınavda ne çıkar', git: function () { location.hash = '#tahmin'; } },
-          { ik: '📅', ad: 'Plan', alt: 'komite ve günlük plan', git: function () { location.hash = '#plan'; } }
+          { ik: 'pusula', ad: 'Program', alt: 'bugünkü dersler, pratikler, komite', git: function () { location.hash = '#pusula'; } },
+          { ik: 'oynat', ad: 'Reels', alt: 'kaydır, izle, öğren', git: function () { if (U.reelsAc) U.reelsAc(); else location.hash = '#reels'; } },
+          { ik: 'makale', ad: 'Makaleler', alt: 'ilgi alanların, yeni araştırmalar', git: function () { location.hash = '#makaleler'; } },
+          { ik: 'kart', ad: 'Kartlar', alt: 'bugünkü tekrar', git: function () { location.hash = '#kartlar'; } },
+          { ik: 'hedef', ad: 'Test', alt: 'çıkmış sorular', git: function () { location.hash = '#test'; } },
+          { ik: 'tahmin', ad: 'Tahmin', alt: 'bu sınavda ne çıkar', git: function () { location.hash = '#tahmin'; } },
+          { ik: 'takvim', ad: 'Plan', alt: 'komite ve günlük plan', git: function () { location.hash = '#plan'; } }
         ]);
       });
     });
@@ -142,7 +143,7 @@
         var a0 = -Math.PI / 2 + i / n * Math.PI * 2 - Math.PI / n + bosluk, a1 = a0 + Math.PI * 2 / n - 2 * bosluk, am = (a0 + a1) / 2, rm = (R0 + R1) / 2 + 4;
         var g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'kd-dilim'); g.setAttribute('role', 'menuitem'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', o.ad);
         g.innerHTML = '<path class="d" d="' + dilimYol(a0, a1, R0, R1) + '"' + (o.renk ? ' style="stroke:' + o.renk + '"' : '') + '/>' +
-          '<text class="ik" x="' + (Math.cos(am) * rm).toFixed(1) + '" y="' + (Math.sin(am) * rm - 2).toFixed(1) + '">' + o.ik + '</text>' +
+          '<g transform="translate(' + (Math.cos(am) * rm - 9).toFixed(1) + ' ' + (Math.sin(am) * rm - 19).toFixed(1) + ') scale(.75)" style="color:' + (o.renk || '#c9fff6') + ';filter:drop-shadow(0 0 4px currentColor)"><path d="' + (U.ikonYol ? U.ikonYol(o.ik) : '') + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>' +
           '<text x="' + (Math.cos(am) * rm).toFixed(1) + '" y="' + (Math.sin(am) * rm + 16).toFixed(1) + '" style="font-size:' + (o.ad.length > 12 ? 9.5 : 11) + 'px">' + U.esc(o.ad) + '</text>';
         function sec() { dilimler.forEach(function (x) { x.classList.toggle('on', x === g); }); orta.firstChild.textContent = o.ad; orta.lastChild.textContent = o.alt; }
         g.addEventListener('pointerenter', sec); g.addEventListener('focus', sec);
@@ -164,6 +165,10 @@
       if (dilimler[0]) dilimler[0].focus({ preventScroll: true });
     });
   }
+  /* Hareket bölümü arşivde (kullanıcı, 2026-11-03: "hareket kısmındaki kemik hareketi, kaslar, nefes alma kaldır, arşivle; ben sadece
+     hücre düzeyinde istiyorum"): menülerden ve Carvis araçlarından çıkarıldı; kod duruyor, #lab-hareket adresiyle açılabilir. */
+  (function () { var l = U.SEKMELER || []; for (var i = l.length - 1; i >= 0; i--) if (l[i] && l[i].id === 'lab-hareket') l.splice(i, 1); })();
+  var arsivCss = document.createElement('style'); arsivCss.textContent = '.lab-dug[href*="lab-hareket"],.lab-dug[href*="lab-eklem"]{display:none!important}'; document.head.appendChild(arsivCss);
   U.kisaYolCarki = function () { var d = document.querySelector('.jv-durbun'); cark_ac(d || document.body); };
 
   /* ---------- ana sayfa sadeleştirme + kurulum ---------- */

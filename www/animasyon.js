@@ -23,7 +23,8 @@
     '.an-katman{position:absolute;inset:0}',
     '.an-o{position:absolute;transform:translate(-50%,-50%);will-change:transform,opacity;pointer-events:auto}',
     '.an-yazi{font:800 calc(var(--b,1) * clamp(24px,5vw,48px))/1.12 var(--f-baslik,system-ui);color:#fff;text-align:center;letter-spacing:-.01em;text-shadow:0 0 22px rgba(94,240,220,.75),0 3px 0 rgba(0,0,0,.35);max-width:88%;white-space:pre-wrap}',
-    '.an-ikon{font-size:calc(var(--b,1) * clamp(44px,8vw,88px));line-height:1;filter:drop-shadow(0 0 18px rgba(94,240,220,.7))}',
+    '.an-ikon{font-size:calc(var(--b,1) * clamp(44px,8vw,88px));line-height:1;color:#9ffff0;filter:drop-shadow(0 0 18px rgba(94,240,220,.7))}',
+    '.an-ikon .hik{width:1em;height:1em;vertical-align:0}',
     '.an-etiket{font:700 calc(var(--b,1) * clamp(13px,1.9vw,17px)) var(--f-kod,monospace);letter-spacing:.04em;color:#e6fffb;text-shadow:0 0 10px rgba(94,240,220,.85);white-space:nowrap}',
     '.an-sayac{font:200 calc(var(--b,1) * clamp(40px,8vw,84px)) var(--f-kod,monospace);color:#ffd38a;text-shadow:0 0 24px rgba(255,200,100,.75)}',
     '.an-vucut{position:absolute;left:50%;top:50%;height:96%;aspect-ratio:200/520;transform:translate(-50%,-50%)}',
@@ -587,7 +588,8 @@
       }
       if (g.tip === 'yazi' || g.tip === 'etiket' || g.tip === 'ikon' || g.tip === 'sayac') {
         var cls = g.tip === 'yazi' ? 'an-yazi' : g.tip === 'etiket' ? 'an-etiket' : g.tip === 'ikon' ? 'an-ikon' : 'an-sayac';
-        e = el('div', { class: 'an-o ' + cls + (acik ? ' an-tikla' : ''), style: 'left:' + px(g.x) + ';top:' + px(g.y) + ';--b:' + b + ((g.tip === 'etiket' || g.tip === 'yazi') && g.renk ? ';color:' + r : '') }, [g.tip === 'ikon' ? (g.emoji || '◆') : g.tip === 'sayac' ? String(g.bas || 0) + (g.birim ? ' ' + g.birim : '') : String(g.metin || '')]);
+        var ikIcerik = g.tip === 'ikon' ? ((g.ad && U.ikonYol && U.ikonYol(g.ad)) ? U.ikon(g.ad) : (g.emoji && U.emojiIkon && U.emojiIkon(g.emoji)) ? U.ikon(U.emojiIkon(g.emoji)) : (g.emoji || '◆')) : null;
+        e = el('div', { class: 'an-o ' + cls + (acik ? ' an-tikla' : ''), style: 'left:' + px(g.x) + ';top:' + px(g.y) + ';--b:' + b + ((g.tip === 'etiket' || g.tip === 'yazi' || g.tip === 'ikon') && g.renk ? ';color:' + r : '') }, [g.tip === 'ikon' ? ikIcerik : g.tip === 'sayac' ? String(g.bas || 0) + (g.birim ? ' ' + g.birim : '') : String(g.metin || '')]);
         katman.appendChild(e); G.set(e, { opacity: 0 });
         var giris = g.giris || (g.tip === 'ikon' ? 'buyu' : g.tip === 'yazi' ? 'patla' : 'belir');
         if (giris === 'buyu') tl.fromTo(e, { opacity: 0, scale: 0.2, rotation: -12 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(2.4)' }, t0);
@@ -846,11 +848,11 @@
       ' {"tip":"molekul","id":"atp","stil":"cubuk|kure|cartoon","x":0.5,"y":0.42,"g":0.8,"y2":0.5,"etiket":"ATP"} — dönen 3B molekül. Mevcut: glukoz, fruktoz, galaktoz, riboz, deoksiriboz, sukroz, laktoz, maltoz, palmitik, oleik, linoleik, arasidonik, tripalmitin, fosfatidilkolin, kolesterol, glisin, histidin, sistein, triptofan, prolin, glisilglisin, atp, adenin, guanin, sitozin, timin, urasil, hemoglobin, miyoglobin, dna, kollajen, albumin.',
       ' {"tip":"zincir","adimlar":["Na⁺ kanalı açılır","Na⁺ içeri","Depolarizasyon","K⁺ çıkar"],"y":0.1,"renk":"teal"} — neden→sonuç zinciri, adım adım belirir (mekanizmalar için en iyisi).',
       ' {"tip":"karsilastir","sol":{"baslik":"…","maddeler":["…"]},"sag":{"baslik":"…","maddeler":["…"]},"y":0.1} — karıştırılan iki kavram yan yana (ayırt etme).',
-      ' {"tip":"yazi","metin":"en çok 5 kelime","x":0.5,"y":0.14,"giris":"patla|yaz|uc|belir"} · {"tip":"ikon","emoji":"tek emoji","x":..,"y":..,"boyut":1-2.8,"nabiz":true,"hareket":[{"x":..,"y":..,"t":..,"sure":1}]}',
+      ' {"tip":"yazi","metin":"en çok 5 kelime","x":0.5,"y":0.14,"giris":"patla|yaz|uc|belir"} · {"tip":"ikon","ad":"holografik çizgi ikon adı","renk":"..","x":..,"y":..,"boyut":1-2.8,"nabiz":true,"hareket":[{"x":..,"y":..,"t":..,"sure":1}]} — EMOJİ KULLANMA; ikon adları: ' + (U.IKONLAR ? Object.keys(U.IKONLAR).join(', ') : 'kalp, beyin, molekul') + '.',
       ' {"tip":"sayac","x":..,"y":..,"bas":-70,"son":30,"birim":"mV","sure":2} · {"tip":"akis","yol":[[x,y],…],"etiket":"Na⁺","adet":5-10,"renk":"yesil","sure":1.8} · {"tip":"ok","x1":..,"y1":..,"x2":..,"y2":..,"kavis":0.2,"etiket":".."}',
       ' {"tip":"sekil","sekil":"hucre|daire|kutu|altigen|kanal|zar","x":..,"y":..,"g":..,"y2":..,"renk":"..","etiket":".."} · {"tip":"etiket","metin":"..","x":..,"y":..} · {"tip":"vurgu","hedef":"id"} · {"tip":"cizik","hedef":"yanlış yazının id\'si"}',
       'Renkler: teal, sari, mor, kirmizi, yesil, mavi, turuncu, beyaz. Ortaya (5.-6. sahne) ve sona birer SORU sahnesi: {"tip":"soru","soru":"…","siklar":["…","…","…","…"],"dogru":0,"aciklama":"Jane tarzı kısa açıklama"} — video beklemez; 10 sn içinde cevap gelmezse doğrusu gösterilir.',
-      'ÖRNEK AKIŞ (kalp konusu için, kısaltılmış): [{"anlatim":"Herkes kalbin beyinden emir beklediğini sanır. Değil.","arka":"kalp","ogeler":[{"id":"y","tip":"yazi","metin":"Kalbi kim ateşler?","x":0.5,"y":0.16,"t":0},{"id":"i","tip":"ikon","emoji":"🫀","x":0.5,"y":0.48,"boyut":2.6,"nabiz":true,"t":0.4}]},' +
+      'ÖRNEK AKIŞ (kalp konusu için, kısaltılmış): [{"anlatim":"Herkes kalbin beyinden emir beklediğini sanır. Değil.","arka":"kalp","ogeler":[{"id":"y","tip":"yazi","metin":"Kalbi kim ateşler?","x":0.5,"y":0.16,"t":0},{"id":"i","tip":"ikon","ad":"kalp","renk":"kirmizi","x":0.5,"y":0.48,"boyut":2.6,"nabiz":true,"t":0.4}]},' +
         '{"anlatim":"Göğsün ortasına, biraz sola in. Şuradaki küçük düğüm: SA nod.","arka":"vucut","gecis":"dal","ogeler":[{"id":"v","tip":"vucut","odak":["kalp"],"t":0}],"kamera":[{"hedef":"kalp","zoom":3.2,"t":1,"sure":1.4,"not":"Sağ atriyumda doğal pil: dakikada 60-100 uyarı"}]},' +
         '{"anlatim":"Şimdi hücreye gir. Kalsiyum içeri dolar, plato bu yüzden uzun.","arka":"hucre","ogeler":[{"id":"l","tip":"lab","surec":"kalp-ap","x":0.5,"y":0.4,"g":0.92,"y2":0.52,"etiket":"ventrikül kas hücresi","t":0.2}]},' +
         '{"anlatim":"Grafiğe bak: hızlı yükseliş, uzun plato, iniş.","arka":"kalp","ogeler":[{"id":"g","tip":"grafik","noktalar":[[0,-90],[5,20],[20,5],[200,-5],[280,-90],[320,-90]],"birim":"mV","xEtiket":"ms","isaretler":[{"x":5,"metin":"faz 0"},{"x":120,"metin":"plato"}],"t":0.2,"sure":2.8}]}, …]'

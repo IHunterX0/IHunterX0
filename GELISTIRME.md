@@ -30,6 +30,16 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Program (Pratik Pusulası), ikonlar, Hareket arşivi (r60)
+- `www/pusula.js`: https://cerrahpasa-turkce-tip.vercel.app/data/{veri,liste}.json (CORS açık) → #pusula: gün şeridi, dersler,
+  pratikler (öğrenci no → grup; liste.json'daki tuzlu SHA-256 özetle kesin oturumlar; numara yalnız cihazda), komite geri sayımı,
+  ders başlığı → kitap bölümü eşleşmesi. Komite sınavları (programlar.TR.onemli, tur ara/final) Plan'a `kaynak:'pusula'` ile
+  kendiliğinden aktarılır. Carvis aracı `ders_programi`. Önbellek Depo 'pusulaVeri' (6 saat).
+- `www/ikon.js`: holografik çizgi ikon seti (`U.ikon`, `U.ikonYol`, `U.emojiIkon`); MutationObserver bilinen emojileri ikonla
+  değiştirir, bilinmeyenleri tek renk hologram tonuna boyar. Reels `ikon` öğesi artık `ad` (ikon adı) alır; istem emoji yasaklar.
+- Hareket (lab-hareket: kemik hareketi, kaslar, solunum) arşivde: menülerden ve Carvis araçlarından (hareket_yap, animasyon_oynat)
+  çıkarıldı; kod duruyor (#lab-hareket).
+
 ## Ana sayfa kadranı, pomodoro, reels v5 (r59)
 - `www/kadran.js`: ana sayfa yalnız Carvis panosu (kitap kartları/halkası, SES ASİSTANI paneli, sol üst nokta ve kaydırma gizli).
   Dürbünün dış çemberinde kasa kadranı: sola çevir/dokun → küçük çark (`U.kisaYolCarki`: kitaplar + reels, makale, kartlar, test, tahmin, plan),

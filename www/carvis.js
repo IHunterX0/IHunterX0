@@ -414,6 +414,7 @@
     if (U.eklentiAraclari) U.eklentiAraclari().forEach(function (t) { if (t && t.name && t.execute) l.push(t); });
     if (U.eklentiYazdir) l.push({ name: 'ozellik_ekle', description: 'Kullanıcı uygulamaya YENİ bir özellik/ekran/komut istediğinde ("şunu yapan bir şey ekle", "kendine şu özelliği yaz") eklenti yazdırır: Eklentiler sayfası açılır, yapay zekâ kodu yazar, kullanıcı onaylayınca eklenir. Sen kısaca "yazıyorum, onaylarsan eklenecek" de.',
       inputSchema: { type: 'object', properties: { istek: { type: 'string', description: 'kullanıcının istediği özellik, ayrıntılı' } }, required: ['istek'] }, execute: function (g) { return U.eklentiYazdir(String(g.istek || '')); } });
+    l = l.filter(function (t) { return !/^(hareket_yap|animasyon_oynat)$/.test(t.name); }); // Hareket arşivde
     return l.concat([
       { name: 'sayfa_ac', description: 'Kitapta bulunan yeri ekranda açar ve cümleyi vurgular. kaynak: kitapta_ara sonucundaki "kaynak" alanı (aynen).',
         inputSchema: { type: 'object', properties: { kaynak: { type: 'string' } }, required: ['kaynak'] }, execute: sayfaAc },
