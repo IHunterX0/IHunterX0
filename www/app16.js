@@ -53,6 +53,9 @@
   function sahneCiz(cv, durum) {
     var g = cv.getContext('2d'), N = 340, nok = [], t0 = performance.now(), dpr = Math.min(2, window.devicePixelRatio || 1);
     for (var i = 0; i < N; i++) { var y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963; nok.push([Math.cos(th) * r, y, Math.sin(th) * r, 0.55 + 0.45 * Math.abs(Math.sin(i * 12.9898))]); }
+    // kullanıcı, 2026-11-03: "çubuklu küre tasarımını görmek istemiyorum, yeni Carvis tasarımını istiyorum" → JarvisKure (jarvis.js) üst katmanda
+    var jk = null, jkO = null, jkS = 0;
+    if (window.JarvisKure && cv.parentNode) { jk = document.createElement('canvas'); jk.setAttribute('aria-hidden', 'true'); jk.style.cssText = 'position:absolute;pointer-events:none;z-index:1'; cv.parentNode.insertBefore(jk, cv.nextSibling); jkO = new window.JarvisKure(jk, { serit: 3, iplik: 5, nokta: 130 }); }
     (function kare() {
       if (!document.body.contains(cv)) return;
       requestAnimationFrame(kare);
@@ -79,10 +82,16 @@
       });
       g.globalAlpha = 1;
       // HUD halkaları
+      if (jkO) { g.globalAlpha = 1; }
       g.strokeStyle = 'rgba(79,224,255,.2)'; g.lineWidth = 1;
       [1.12, 1.32].forEach(function (k, j) { var s0 = AZ ? 0 : t * (j ? -0.18 : 0.12); g.beginPath(); g.setLineDash(j ? [2, 7] : [30, 10]); g.arc(cx, cy, R * k, s0, s0 + Math.PI * 1.75); g.stroke(); });
       g.setLineDash([]);
-      // çubuklu küre
+      if (jkO) {
+        var S = Math.round(R * 2.5); if (S !== jkS) { jkS = S; jk.style.width = S + 'px'; jk.style.height = S + 'px'; jkO.boyut(); }
+        jk.style.left = (cv.offsetLeft + cx - S / 2) + 'px'; jk.style.top = (cv.offsetTop + cy - S / 2) + 'px';
+        return;
+      }
+      // çubuklu küre (JarvisKure yoksa yedek)
       var l = nok.map(function (p) { var x = p[0] * ca + p[2] * sa, z = -p[0] * sa + p[2] * ca, y = p[1] * cb - z * sb; z = p[1] * sb + z * cb; return [x, y, z, p[3]]; }).sort(function (u, v) { return u[2] - v[2]; });
       l.forEach(function (p) {
         var on = (p[2] + 1) / 2, rr = R * 0.9 * nb, x1 = cx + p[0] * rr, y1 = cy - p[1] * rr, uz = 1 + 0.17 * p[3] * (0.7 + 0.3 * Math.sin(t * 3 + p[3] * 9)), x2 = cx + p[0] * rr * uz, y2 = cy - p[1] * rr * uz;

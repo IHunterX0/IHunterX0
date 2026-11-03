@@ -30,6 +30,17 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Ana sayfa kadranı, pomodoro, reels v5 (r59)
+- `www/kadran.js`: ana sayfa yalnız Carvis panosu (kitap kartları/halkası, SES ASİSTANI paneli, sol üst nokta ve kaydırma gizli).
+  Dürbünün dış çemberinde kasa kadranı: sola çevir/dokun → küçük çark (`U.kisaYolCarki`: kitaplar + reels, makale, kartlar, test, tahmin, plan),
+  sağa çevir → büyük menü (`U.menuAc`). Dönüş SVG `transform` özniteliğiyle (CSS transform-box tarayıcıda yanlış merkez veriyordu).
+- Çubuklu küre her yerde JarvisKure ile değiştirildi (holo.js projektörü, app16 sahneCiz → menü ve kitap halkası).
+- Pomodoro (`app12.js`): 4 dk (okumada 8 dk) dokunuş yoksa "Burada mısın?" (45 sn geri sayım, Carvis sorar); cevap yoksa durur,
+  yokken geçen süre sayaca geri eklenir ve günlük çalışma süresinden düşülür.
+- Reels: TEK HİKÂYE kuralı (merkeziSoru), göremediğini göster → adım adım → grafikle kanıt → wiki kartı → "olmasaydı ne olurdu" →
+  günlük hayat fun fact; kontrol turu bunları denetler. `wiki` öğesi: tr/en Vikipedi REST özeti, görsel yalnız Commons'tansa.
+  Vücut v2: iskelet, kaslar, damar/sinir ağaçları, 37 yapı (animasyon.js `ORGAN`).
+
 ## Sınav türü, komite, kota (r58)
 - Komite sınavları (`www/sinav.js`): Plan sayfasında tarih + tür; en yakın komite tüm derslerin sınav tarihi olur. `U.siradakiSinav()`.
 - Vize/final: `U.sinavAyrimi` (bölüm başına kesin binom testi, genel vize payına göre) + `U.ayrimSinama(kitap, T)` (son 3 yılda ayrı veri

@@ -108,7 +108,7 @@
       return ayarlar().then(function (a) {
         if (dk) U.depoGuncelle('plan', function (v) { v.pomodoro = Object.assign({}, VARSAYILAN, v.pomodoro || {}, { calis: Math.max(5, Math.min(180, +dk)) }); }, 300);
         var c = dk ? +dk : a.pomodoro.calis;
-        Object.assign(Saat, { calisiyor: true, duraklatildi: false, mod: 'calis', bitis: Date.now() + c * 60000, hedef: hedef || Saat.hedef || null, tekrarBekliyor: false });
+        Object.assign(Saat, { calisDk: c, calisiyor: true, duraklatildi: false, mod: 'calis', bitis: Date.now() + c * 60000, hedef: hedef || Saat.hedef || null, tekrarBekliyor: false });
         if (!Saat.ilk || Date.now() - Saat.ilk > 12 * 3600000) { Saat.sayac = 0; Saat.ilk = Date.now(); }
         sonDakika = Date.now(); sakla(); cipCiz();
         if (!oto && Saat.hedef && Saat.hedef.kitap != null && Saat.hedef.sira != null && U.okuHash) U.git(U.okuHash(Saat.hedef.kitap, Saat.hedef.sira));
@@ -129,7 +129,45 @@
   /* ---- Otomatik pomodoro (kullanıcı, 2026-11-02: "kendi kendine çalışsın, manuel kurmayayım") ----
      Çalışma ekranı açılınca (okuma, kartlar, test, saray, 3B anatomi) başlar; 4 dk hareketsizlikte ya da uygulamadan çıkınca
      duraklar, ilk dokunuşta/dönüşte sürer; 25 dk hiç dönülmezse biter. Molalar kendi akışında. Ayar: "Otomatik başlat / duraklat". */
-  var Oto = { sonHareket: Date.now(), otoDurdu: false, gizliBas: 0, disarida: 0 };
+  var Oto = { sonHareket: Date.now(), otoDurdu: false, gizliBas: 0, disarida: 0, soruyor: false };
+  var bmCss = document.createElement('style');
+  bmCss.textContent = '.bm-kutu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1200;width:min(360px,86vw);padding:22px 20px 18px;border-radius:24px;text-align:center;color:#e9fffb;' +
+    'background:radial-gradient(120% 100% at 50% 0%,rgba(94,240,220,.16),rgba(2,12,16,.92) 70%);box-shadow:0 0 0 1px rgba(110,255,235,.5),0 0 60px rgba(94,240,220,.3);animation:bmGir .4s cubic-bezier(.2,.9,.2,1.2)}' +
+    '@keyframes bmGir{from{opacity:0;transform:translate(-50%,-46%) scale(.9)}}.bm-kutu h3{margin:6px 0 4px;font-size:22px;letter-spacing:.04em;text-shadow:0 0 14px rgba(94,240,220,.7)}.bm-kutu p{margin:0 0 14px;color:#bfe9e3;font-size:14px}' +
+    '.bm-halka{width:84px;height:84px;margin:0 auto}.bm-halka circle{transition:stroke-dashoffset 1s linear}.bm-kutu .dugme{margin:4px}';
+  document.head.appendChild(bmCss);
+  function buradaMisin(bos) {
+    Oto.soruyor = true;
+    var SURE = 45, kalan = SURE, C = 2 * Math.PI * 36;
+    var halka = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); halka.setAttribute('viewBox', '0 0 84 84'); halka.setAttribute('class', 'bm-halka');
+    halka.innerHTML = '<circle cx="42" cy="42" r="36" fill="none" stroke="rgba(94,240,220,.15)" stroke-width="5"/><circle cx="42" cy="42" r="36" fill="none" stroke="#5ef0dc" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="0" transform="rotate(-90 42 42)" style="filter:drop-shadow(0 0 6px #5ef0dc)"/><text x="42" y="49" text-anchor="middle" fill="#effffc" style="font:300 20px monospace">' + SURE + '</text>';
+    var kutu = el('div', { class: 'bm-kutu', role: 'alertdialog', 'aria-label': 'Burada mısın?' }, [halka, el('h3', { text: 'Burada mısın?' }),
+      el('p', { text: Math.round(bos / 60000) + ' dakikadır ekrana dokunmadın. Cevap gelmezse pomodoro durur ve bu süre çalışmaya sayılmaz.' })]);
+    var evet = el('button', { class: 'dugme ana', type: 'button', text: '✋ Buradayım' }), mola = el('button', { class: 'dugme', type: 'button', text: '☕ Mola ver' });
+    kutu.appendChild(evet); kutu.appendChild(mola); document.body.appendChild(kutu);
+    try { if (window.Carvis && window.Carvis.soyle && !window.Carvis.konusuyor && localStorage.getItem('bm_ses') !== '0') window.Carvis.soyle('Burada mısın?'); } catch (e) {}
+    var z = setInterval(function () {
+      kalan--; var c2 = halka.querySelectorAll('circle')[1]; c2.setAttribute('stroke-dashoffset', String(C * (1 - kalan / SURE))); halka.querySelector('text').textContent = String(Math.max(0, kalan));
+      if (kalan <= 0) bitir(false);
+    }, 1000);
+    function bitir(burada) {
+      clearInterval(z); kutu.remove(); Oto.soruyor = false;
+      if (burada) { Oto.sonHareket = Date.now(); toast('⏱ Devam.'); return; }
+      if (!Saat.calisiyor || Saat.duraklatildi) return;
+      // yokken geçen süre (son hareketten bu yana) sayaca geri eklenir
+      var yok = Date.now() - Oto.sonHareket;
+      Oto.otoDurdu = true; Pomodoro.duraklat();
+      if (Saat.duraklatildi && Saat.kalanMs != null) { Saat.kalanMs = Math.min(Saat.kalanMs + yok, ((Saat.calisDk || 25) * 60000)); sakla(); cipCiz(); }
+      // bugünkü çalışma süresinden de düş (dakika dakika sayılmıştı)
+      var dusDk = Math.floor(yok / 60000); if (dusDk > 0) { var ders = Saat.hedef && Saat.hedef.kitap ? Saat.hedef.kitap : Durum.aktifKitap ? Durum.aktifKitap.id : 'genel';
+        U.depoGuncelle('sure', function (v) { var g = v[bugun()] = v[bugun()] || {}; g[ders] = Math.max(0, Math.round(((g[ders] || 0) - dusDk) * 10) / 10); }, 300); }
+      toast('⏸ Pomodoro durdu (' + Math.round(yok / 60000) + ' dk yokken geçen süre sayılmadı). Dokununca devam eder.');
+    }
+    evet.addEventListener('click', function () { bitir(true); });
+    mola.addEventListener('click', function () { clearInterval(z); kutu.remove(); Oto.soruyor = false; Oto.otoDurdu = false; if (Saat.calisiyor && !Saat.duraklatildi) Pomodoro.duraklat(); toast('☕ Mola: hazır olunca saatten devam et.'); });
+    // dokunma = buradayım (kutunun dışına dokunsa da)
+    setTimeout(function () { document.addEventListener('pointerdown', function d(e) { if (!kutu.isConnected) return document.removeEventListener('pointerdown', d, true); if (e.target.closest('.bm-kutu')) return; document.removeEventListener('pointerdown', d, true); bitir(true); }, true); }, 300);
+  }
   var CALISMA_EKRANI = /^#(oku-|kartlar|test|saray-|lab-anatomi|lab-molekul|lab-hareket)/;
   function otoAcik() { return ayarlar().then(function (a) { return a.pomodoro.otoBaslat !== false; }); }
   function calismaHedefi() { var kj = Durum.aktifKitap, b = Durum.aktifBolum; return kj && b && /^#oku-/.test(location.hash) ? { kitap: kj.id, sira: b.sira, ad: kj.baslik.replace(/^1001\s*/, '') + ' · ' + (b.kisa || b.baslik) } : null; }
@@ -165,7 +203,10 @@
       if (!acik) return;
       var bos = Date.now() - Oto.sonHareket, carvisAcik = !!(window.Carvis && window.Carvis.acik);
       if (carvisAcik) { Oto.sonHareket = Date.now(); return; }
-      if (Saat.mod === 'calis' && !Saat.duraklatildi && bos > 4 * 60000) { Oto.otoDurdu = true; Pomodoro.duraklat(); }
+      // kullanıcı, 2026-11-03: "ekrana uzun süre dokunmazsam burada mısın diye sorsun, durdursun" — önce sorar (45 sn), cevap yoksa
+      // durdurur ve yokken geçen süreyi çalışmaya saymaz. Okuma ekranında eşik daha uzun (uzun paragraf okurken dokunmamak doğal).
+      var esik = (/^#oku-/.test(location.hash) ? 8 : 4) * 60000;
+      if (Saat.mod === 'calis' && !Saat.duraklatildi && bos > esik && !Oto.soruyor) buradaMisin(bos);
       if (Saat.duraklatildi && Oto.otoDurdu && (bos > 25 * 60000 || (Oto.disarida && Date.now() - Oto.disarida > 25 * 60000))) { Oto.otoDurdu = false; Oto.disarida = 0; Pomodoro.durdur(); }
     });
   }, 15000);

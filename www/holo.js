@@ -81,6 +81,11 @@
   var altyaziEl = el('div', { class: 'h-altyazi', 'aria-hidden': 'true' });
   var kapat = el('button', { class: 'h-kapat', type: 'button', 'aria-label': 'Küçült', text: '✕', onclick: function () { Holo.gizle(); if (Holo.onKapat) Holo.onKapat(); } });
   [cv, svg, ust, soruEl, durumEl, kartlarEl, detayEl, altyaziEl, kapat].forEach(function (x) { kok.appendChild(x); });
+  // çubuklu küre yerine yeni Carvis tasarımı (JarvisKure): ayrı tuval, kürenin yerine konur
+  var jk = el('canvas', { 'aria-hidden': 'true', style: 'position:absolute;pointer-events:none' }), jkO = null;
+  kok.insertBefore(jk, svg);
+  function jkKur() { if (!jkO && window.JarvisKure) jkO = new window.JarvisKure(jk, { serit: 3, iplik: 6, nokta: 140, kosul: function () { return kok.classList.contains('acik'); } }); return jkO; }
+  function jkYerlestir() { if (!jkKur()) return; var S = Math.round(D.R * 2.7); jk.style.width = S + 'px'; jk.style.height = S + 'px'; jk.style.left = (D.cx - S / 2) + 'px'; jk.style.top = (D.cy - S / 2) + 'px'; jkO.boyut(); }
   function tak() { if (!kok.parentNode && document.body) document.body.appendChild(kok); }
   if (document.body) tak(); else document.addEventListener('DOMContentLoaded', tak);
 
@@ -102,13 +107,14 @@
       durumEl.style.left = D.cx + 'px'; durumEl.style.top = (D.cy + D.R * 2.25) + 'px';
       kapat.style.cssText = 'top:' + Math.max(8, D.cy - D.R * 1.6) + 'px;right:' + Math.max(8, D.w - D.cx - D.R * 1.5) + 'px';
       kartlarEl.style.cssText = 'display:none'; detayEl.style.cssText = '';
-      oklariCiz(); return;
+      jkYerlestir(); oklariCiz(); return;
     }
     kapat.style.cssText = '';
     D.cx = genis ? D.w * (detayAcik() ? 0.17 : dolu ? 0.3 : 0.5) : D.w / 2;
     D.cy = genis ? D.h * 0.5 : D.h * (dolu ? (detayAcik() ? 0.13 : 0.27) : 0.45);
     D.R = Math.min(D.w, D.h) * (genis ? (detayAcik() ? 0.12 : 0.17) : (detayAcik() ? 0.08 : 0.16));
     durumEl.style.left = D.cx + 'px'; durumEl.style.top = (D.cy + D.R * 1.75) + 'px';
+    jkYerlestir();
     if (genis) {
       kartlarEl.style.cssText = 'right:4%;top:50%;transform:translateY(-50%);width:min(430px,46vw)' + (detayAcik() ? ';display:none' : '');
       detayEl.style.cssText = 'left:34%;right:2.5%;top:64px;bottom:76px';
@@ -135,6 +141,7 @@
     projektor(c, t);
     c.globalAlpha = 0.86 + 0.14 * Math.random() * (Math.random() < 0.06 ? 1 : 0.25); // hologram titreşimi
     var ca = Math.cos(D.aci), sa = Math.sin(D.aci), ct = Math.cos(0.38), st = Math.sin(0.38), R = D.R;
+    if (jkO) { c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; return; }
     for (var k = 0; k < 3; k++) { c.beginPath(); c.ellipse(D.cx, D.cy, R * (1.32 + k * 0.17), R * (0.34 + k * 0.05), D.aci * (k % 2 ? -0.6 : 0.4) + k, 0, 6.283); c.strokeStyle = 'rgba(79,224,255,' + (0.12 + 0.05 * D.enerji) + ')'; c.lineWidth = 1; c.stroke(); }
     var g = c.createRadialGradient(D.cx, D.cy, 0, D.cx, D.cy, R * 0.95);
     g.addColorStop(0, 'rgba(160,245,255,' + (0.35 + D.enerji * 0.5) + ')'); g.addColorStop(0.35, 'rgba(79,224,255,' + (0.12 + D.enerji * 0.2) + ')'); g.addColorStop(1, 'rgba(79,224,255,0)');

@@ -30,6 +30,8 @@
     '.an-vucut svg{width:100%;height:100%;overflow:visible}',
     '.an-vucut .org{transition:fill-opacity .4s,stroke-width .4s}',
     '.an-vucut .org.on{animation:anOrgan 1.1s ease-in-out infinite}',
+    '.an-vucut .org.on[fill="none"]{animation:anOrganCizgi 1.1s ease-in-out infinite}',
+    '@keyframes anOrganCizgi{0%,100%{stroke-opacity:.5;stroke-width:1.6;filter:drop-shadow(0 0 3px currentColor)}50%{stroke-opacity:1;stroke-width:2.6;filter:drop-shadow(0 0 10px currentColor)}}',
     '@keyframes anOrgan{0%,100%{fill-opacity:.35;filter:drop-shadow(0 0 4px currentColor)}50%{fill-opacity:.8;filter:drop-shadow(0 0 14px currentColor)}}',
     '.an-lab{position:absolute;transform:translate(-50%,-50%);border-radius:22px;overflow:hidden;box-shadow:0 0 0 1px rgba(110,255,235,.4),0 0 40px rgba(94,240,220,.25);background:radial-gradient(circle,rgba(10,40,48,.6),rgba(2,8,12,.85))}',
     '.an-lab canvas{width:100%;height:100%;display:block}',
@@ -79,6 +81,12 @@
     '.an-fadim{font:700 clamp(17px,3vw,26px) var(--f-kod,monospace);color:#d8fff8}.an-fadim.son{color:#ffd38a;font-size:clamp(22px,4.2vw,36px);text-shadow:0 0 18px rgba(255,211,138,.7)}',
     '.an-molekul{position:absolute;transform:translate(-50%,-50%);border-radius:22px;overflow:hidden;background:radial-gradient(circle,rgba(20,70,80,.5),rgba(2,8,12,.2) 70%);box-shadow:0 0 0 1px rgba(110,255,235,.35),0 0 40px rgba(94,240,220,.2)}',
     '.an-molekul small{position:absolute;left:8px;bottom:6px;z-index:2;font:500 9.5px var(--f-kod,monospace);color:#cfe;background:rgba(0,0,0,.5);padding:2px 6px;border-radius:6px}',
+    '.an-wiki{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,rgba(240,248,250,.97),rgba(220,236,240,.95));color:#0d1b20;box-shadow:0 0 0 1px rgba(110,255,235,.6),0 0 40px rgba(94,240,220,.3);transform-style:preserve-3d}',
+    '.an-wiki .gor{flex:1;min-height:0;overflow:hidden;background:#fff}.an-wiki .gor img{width:100%;height:100%;object-fit:contain}',
+    '.an-wiki b{display:block;padding:8px 14px 0;font:800 clamp(16px,2.8vw,22px) Georgia,serif}.an-wiki p{margin:4px 14px 6px;font:500 clamp(13px,2.1vw,16px)/1.4 Georgia,serif;color:#24363b}',
+    '.an-wiki.yazi{height:auto!important;padding:10px 0 4px}.an-wiki.yazi .gor{display:none}.an-wiki.yazi p{font-size:clamp(16px,2.8vw,21px)}',
+    '.an-wiki small{padding:0 14px 8px;font:500 10px var(--f-kod,monospace);color:#5d7479}',
+    '.an-wiki .rozet{position:absolute;right:10px;top:10px;z-index:2;font:800 10px var(--f-kod,monospace);letter-spacing:.1em;color:#fff;background:#0d1b20;padding:3px 8px;border-radius:999px}',
     '.an-zincir{position:absolute;left:50%;transform:translateX(-50%);width:min(82%,520px);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:3}',
     '.an-zadim{width:100%;text-align:center;padding:11px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(94,240,220,.12),rgba(0,0,0,.25));box-shadow:0 0 0 1px var(--r);color:#f2fffd;font:700 clamp(15px,2.6vw,21px)/1.3 var(--f-baslik,system-ui);text-shadow:0 0 10px rgba(0,0,0,.6)}',
     '.an-zok{font-size:22px;line-height:1;text-shadow:0 0 10px currentColor}',
@@ -100,47 +108,82 @@
   ].join('\n');
   document.head.appendChild(st);
 
-  /* ---------- holografik insan vücudu (önden; hastanın sağı = görüntünün solu) ---------- */
+  /* ---------- holografik insan vücudu v2 (kullanıcı, 2026-11-03: "insan vücudu daha detaylı olsun, çok ucuz duruyor; tam anatomik
+     olmaması sorun değil"). Önden görünüm; hastanın sağı = görüntünün solu. Katmanlar: deri silueti → iskelet → kaslar → damar ve sinir
+     ağaçları → organlar. Odak organ nabız gibi parlar; dokununca görevi çıkar. Koordinat: 200 × 520. */
+  function ayna(d) { return d.replace(/(-?\d+(?:\.\d+)?)(\s+)(-?\d+(?:\.\d+)?)/g, function (m, x, sp, y) { return (200 - +x).toFixed(1).replace(/\.0$/, '') + sp + y; }); }
+  function cift(d) { return d + ' ' + ayna(d); }
   var ORGAN = {
-    beyin: { d: 'M74 30 C74 12 126 12 126 30 C134 36 132 56 120 60 C112 66 88 66 80 60 C68 56 66 36 74 30 Z', r: 'mor', ad: 'beyin' },
+    beyin: { d: 'M74 30 C72 12 128 12 126 30 C134 38 132 56 120 60 C110 66 90 66 80 60 C68 56 66 38 74 30 Z', r: 'mor', ad: 'beyin',
+      ic: 'M80 26 C86 22 90 30 96 24 M104 24 C110 30 114 22 120 26 M78 38 C84 34 90 42 98 36 M102 36 C110 42 116 34 122 38 M80 50 C88 46 94 54 100 48 C106 54 112 46 120 50 M100 16 L100 60' },
+    beyincik: { d: 'M88 60 C92 66 108 66 112 60 C108 70 92 70 88 60 Z', r: 'mor', ad: 'beyincik' },
     goz: { d: 'M86 52 a4 3 0 1 0 8 0 a4 3 0 1 0 -8 0 M106 52 a4 3 0 1 0 8 0 a4 3 0 1 0 -8 0', r: 'mavi', ad: 'göz' },
-    tiroid: { d: 'M90 92 C94 86 106 86 110 92 C106 98 94 98 90 92 Z', r: 'turuncu', ad: 'tiroid' },
-    akciger_sag: { d: 'M66 118 C66 104 90 100 94 112 L94 176 C84 182 66 180 62 170 Z', r: 'mavi', ad: 'sağ akciğer' },
-    akciger_sol: { d: 'M134 118 C134 104 110 100 106 112 L106 176 C116 182 134 180 138 170 Z', r: 'mavi', ad: 'sol akciğer' },
-    kalp: { d: 'M100 138 C96 126 110 122 114 132 C118 124 130 130 124 142 C120 152 110 160 104 164 C100 156 94 146 100 138 Z', r: 'kirmizi', ad: 'kalp' },
-    aort: { d: 'M108 130 C104 112 98 112 100 124 L100 250', r: 'kirmizi', ad: 'aort', cizgi: true },
-    karaciger: { d: 'M62 186 C70 176 108 176 112 186 C108 204 82 210 64 204 C58 198 58 192 62 186 Z', r: 'turuncu', ad: 'karaciğer' },
-    mide: { d: 'M112 186 C124 178 140 186 136 202 C132 214 118 216 112 206 C108 198 108 192 112 186 Z', r: 'sari', ad: 'mide' },
-    dalak: { d: 'M140 190 C148 188 150 204 142 208 C136 204 136 194 140 190 Z', r: 'mor', ad: 'dalak' },
-    pankreas: { d: 'M90 214 C100 208 124 208 132 214 C124 220 100 222 90 218 Z', r: 'sari', ad: 'pankreas' },
-    bobrek_sag: { d: 'M74 214 C66 216 66 236 76 238 C82 236 82 218 74 214 Z', r: 'mor', ad: 'sağ böbrek' },
-    bobrek_sol: { d: 'M126 214 C134 216 134 236 124 238 C118 236 118 218 126 214 Z', r: 'mor', ad: 'sol böbrek' },
-    bagirsak: { d: 'M74 240 C74 232 126 232 126 240 L126 270 C126 280 74 280 74 270 Z M84 248 h32 M84 258 h32 M84 266 h32', r: 'turuncu', ad: 'bağırsaklar' },
-    mesane: { d: 'M90 284 C90 276 110 276 110 284 C110 294 90 294 90 284 Z', r: 'sari', ad: 'mesane' },
-    omurilik: { d: 'M100 64 L100 270', r: 'sari', ad: 'omurilik', cizgi: true },
-    kafatasi: { d: 'M70 36 C70 2 130 2 130 36 C132 58 120 74 100 76 C80 74 68 58 70 36 Z', r: 'beyaz', ad: 'kafatası', cizgi: true },
-    humerus: { d: 'M50 104 L40 186', r: 'beyaz', ad: 'humerus', cizgi: true },
-    radius_ulna: { d: 'M40 192 L32 262 M44 192 L38 262', r: 'beyaz', ad: 'radius-ulna', cizgi: true },
-    femur: { d: 'M82 290 L80 392 M118 290 L120 392', r: 'beyaz', ad: 'femur', cizgi: true },
-    tibia: { d: 'M80 400 L80 492 M120 400 L120 492', r: 'beyaz', ad: 'tibia', cizgi: true },
+    tiroid: { d: 'M90 94 C93 88 99 90 100 94 C101 90 107 88 110 94 C106 100 94 100 90 94 Z', r: 'turuncu', ad: 'tiroid' },
+    trakea: { d: 'M98 84 L98 116 M102 84 L102 116 M98 88 h4 M98 93 h4 M98 98 h4 M98 103 h4 M98 108 h4 M98 113 h4', r: 'beyaz', ad: 'trakea', cizgi: true },
+    akciger_sag: { d: 'M66 124 C64 108 86 100 95 114 L96 176 C86 184 66 182 61 172 C60 156 62 138 66 124 Z', r: 'mavi', ad: 'sağ akciğer',
+      ic: 'M64 146 C74 142 84 146 95 140 M62 160 C72 156 84 160 95 156 M98 116 C92 124 86 130 78 138 M86 130 C84 144 80 154 74 162 M90 126 C92 140 90 156 86 168' },
+    akciger_sol: { d: 'M134 124 C136 108 114 100 105 114 L106 128 C112 132 116 142 114 154 L106 176 C116 184 134 182 139 172 C140 156 138 138 134 124 Z', r: 'mavi', ad: 'sol akciğer',
+      ic: 'M138 150 C128 146 118 152 112 150 M102 116 C108 124 114 130 122 138 M114 130 C116 144 120 154 126 162' },
+    kalp: { d: 'M101 138 C96 126 110 121 115 131 C119 123 132 129 126 143 C121 153 111 161 105 166 C100 157 94 147 101 138 Z', r: 'kirmizi', ad: 'kalp',
+      ic: 'M108 132 C110 142 108 152 105 164 M101 146 C108 148 116 146 124 140' },
+    aort: { d: 'M108 132 C106 116 96 112 94 124 L100 132 L100 252', r: 'kirmizi', ad: 'aort', cizgi: true },
+    diyafram: { d: 'M60 184 C74 172 88 176 100 182 C112 176 126 172 140 184', r: 'teal', ad: 'diyafram', cizgi: true },
+    karaciger: { d: 'M60 188 C70 178 110 178 116 188 C112 206 86 214 66 208 C58 202 57 194 60 188 Z', r: 'turuncu', ad: 'karaciğer', ic: 'M92 182 C90 194 88 204 86 210' },
+    safra_kesesi: { d: 'M90 206 C88 212 92 218 96 214 C96 210 94 206 90 206 Z', r: 'yesil', ad: 'safra kesesi' },
+    mide: { d: 'M114 186 C126 178 142 186 138 202 C134 216 116 220 108 210 C104 204 110 198 116 198 C122 198 124 192 114 186 Z', r: 'sari', ad: 'mide' },
+    dalak: { d: 'M141 190 C150 188 152 206 143 210 C137 206 137 194 141 190 Z', r: 'mor', ad: 'dalak' },
+    pankreas: { d: 'M88 216 C96 210 122 208 134 214 C126 222 100 224 88 220 Z', r: 'sari', ad: 'pankreas' },
+    adrenal: { d: cift('M70 210 C72 204 80 204 80 210 Z'), r: 'turuncu', ad: 'böbreküstü bezleri' },
+    bobrek_sag: { d: 'M74 212 C64 214 64 236 76 239 C83 237 79 228 82 224 C80 218 80 214 74 212 Z', r: 'mor', ad: 'sağ böbrek' },
+    bobrek_sol: { d: 'M126 212 C136 214 136 236 124 239 C117 237 121 228 118 224 C120 218 120 214 126 212 Z', r: 'mor', ad: 'sol böbrek' },
+    ureter: { d: 'M80 228 C84 250 88 270 94 284 M120 228 C116 250 112 270 106 284', r: 'sari', ad: 'üreterler', cizgi: true },
+    ince_bagirsak: { d: 'M84 236 C78 240 82 248 90 246 C98 244 104 248 98 254 C92 258 84 256 84 262 C84 270 96 268 104 264 C112 260 118 266 112 272 C106 276 96 274 92 278 M96 240 C104 236 114 238 116 246 C118 254 108 256 106 250', r: 'turuncu', ad: 'ince bağırsak', cizgi: true },
+    kolon: { d: 'M74 274 L74 232 C74 226 80 224 86 226 L116 226 C122 224 128 228 126 236 L126 270 C126 280 118 284 110 282 C104 280 102 286 104 290', r: 'turuncu', ad: 'kalın bağırsak', cizgi: true },
+    bagirsak: { d: 'M74 232 C74 226 126 226 126 232 L126 274 C126 284 74 284 74 274 Z', r: 'turuncu', ad: 'bağırsaklar', hayalet: true },
+    mesane: { d: 'M90 286 C90 278 110 278 110 286 C110 296 90 296 90 286 Z', r: 'sari', ad: 'mesane' },
+    omurilik: { d: 'M100 62 L100 270', r: 'sari', ad: 'omurilik', cizgi: true },
+    sinirler: { d: cift('M98 104 C80 106 62 110 50 122 C46 150 42 180 40 220 C38 240 36 252 34 262 M98 268 C92 284 86 296 84 312 C84 360 84 400 82 440 C82 470 80 486 80 498 M98 140 C88 142 76 144 66 146 M98 160 C88 162 76 164 64 166'), r: 'sari', ad: 'sinirler', cizgi: true },
+    kafatasi: { d: 'M70 36 C70 2 130 2 130 36 C132 58 120 74 100 76 C80 74 68 58 70 36 Z M78 62 Q100 88 122 62', r: 'beyaz', ad: 'kafatası', cizgi: true },
+    klavikula: { d: cift('M98 100 Q80 95 58 104'), r: 'beyaz', ad: 'klavikula', cizgi: true },
+    kaburga: { d: (function () { var d = 'M97 106 L97 166 M103 106 L103 166'; for (var i = 0; i < 10; i++) { var y = 108 + i * 7.2, a = 34 - Math.max(0, i - 6) * 3, b = a - 2; d += ' ' + cift('M98 ' + y + ' C' + (98 - b * 0.5) + ' ' + (y - 3) + ' ' + (98 - a) + ' ' + (y + 2) + ' ' + (98 - a + 2) + ' ' + (y + 12)); } return d; })(), r: 'beyaz', ad: 'kaburgalar', cizgi: true },
+    pelvis: { d: 'M66 262 C58 280 74 302 92 302 L108 302 C126 302 142 280 134 262 C126 274 112 280 100 280 C88 280 74 274 66 262 Z M84 288 a5 6 0 1 0 0.1 0 M116 288 a5 6 0 1 0 0.1 0', r: 'beyaz', ad: 'pelvis', cizgi: true },
+    humerus: { d: cift('M52 108 L42 188'), r: 'beyaz', ad: 'humerus', cizgi: true },
+    radius_ulna: { d: cift('M41 192 L33 258 M45 192 L39 258 M30 262 L28 276 M34 262 L33 278 M38 262 L38 278 M42 262 L43 276'), r: 'beyaz', ad: 'radius-ulna', cizgi: true },
+    femur: { d: cift('M84 300 L82 392'), r: 'beyaz', ad: 'femur', cizgi: true },
+    tibia: { d: cift('M82 404 L82 490 M88 406 L87 488 M74 496 L92 498'), r: 'beyaz', ad: 'tibia-fibula', cizgi: true },
     biceps: { d: 'M150 112 C162 128 164 160 156 180 C150 168 146 130 150 112 Z', r: 'kirmizi', ad: 'biceps' },
     kuadriseps: { d: 'M124 296 C138 320 140 370 128 392 C120 370 118 320 124 296 Z', r: 'kirmizi', ad: 'kuadriseps' },
-    kalp_damar: { d: 'M100 164 C80 200 60 260 46 300 M104 164 C124 200 140 260 152 300', r: 'kirmizi', ad: 'damarlar', cizgi: true }
+    kalp_damar: { d: cift('M94 124 C86 116 70 112 56 112 C48 140 44 170 42 200 C40 230 38 248 36 260 M96 124 L92 92 M100 250 C94 266 88 282 86 300 C84 340 84 380 84 420 C84 450 83 474 82 494'), r: 'kirmizi', ad: 'atardamarlar', cizgi: true },
+    venler: { d: cift('M98 132 L98 96 M98 132 C90 122 74 116 60 116 C52 146 48 176 46 206 C44 232 42 250 40 262 M98 250 C92 266 92 282 90 300 C88 340 88 380 88 420 C88 452 87 476 86 494'), r: 'mavi', ad: 'toplardamarlar', cizgi: true }
   };
+  // yalnız süs (odaklanmaz): kas konturları
+  var KAS = cift('M100 112 C88 110 70 112 60 122 C66 136 84 142 100 140 M58 104 C46 108 44 124 48 136 C54 128 60 118 64 108 M92 190 L92 282 M86 200 L114 200 M86 222 L114 222 M86 244 L114 244 M86 264 L114 264 M70 196 C66 220 68 250 76 272 M50 122 C56 140 56 160 50 180 M74 300 C70 330 72 360 78 390 M90 300 C94 330 94 360 88 390 M80 410 C74 430 74 450 80 470');
   var GOVDE = 'M100 4 C122 4 132 20 130 42 C128 62 118 76 108 80 L110 92 C130 96 150 98 160 110 C170 150 172 200 166 262 L156 264 C158 220 156 168 150 132 L144 130 C146 180 144 230 140 282 C138 330 136 390 132 500 L108 500 L104 300 L96 300 L92 500 L68 500 C64 390 62 330 60 282 C56 230 54 180 56 130 L50 132 C44 168 42 220 44 264 L34 262 C28 200 30 150 40 110 C50 98 70 96 90 92 L92 80 C82 76 72 62 70 42 C68 20 78 4 100 4 Z';
+  var KATMAN = { iskelet: /^(kafatasi|klavikula|kaburga|pelvis|humerus|radius_ulna|femur|tibia)$/, ag: /^(kalp_damar|venler|sinirler|omurilik|aort)$/ };
   function vucutKur(odaklar, renkOn) {
     var s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 200 520');
-    var h = '<defs><linearGradient id="anVg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ef0dc" stop-opacity=".14"/><stop offset="1" stop-color="#46c8ff" stop-opacity=".03"/></linearGradient></defs>' +
-      '<path d="' + GOVDE + '" fill="url(#anVg)" stroke="#5ef0dc" stroke-opacity=".7" stroke-width="1.2" style="filter:drop-shadow(0 0 6px #5ef0dc)"/>';
-    for (var y = 20; y < 500; y += 14) h += '<line x1="30" x2="170" y1="' + y + '" y2="' + y + '" stroke="#5ef0dc" stroke-opacity=".05"/>';
+    var h = '<defs><linearGradient id="anVg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ef0dc" stop-opacity=".16"/><stop offset="1" stop-color="#46c8ff" stop-opacity=".04"/></linearGradient>' +
+      '<radialGradient id="anVi" cx=".5" cy=".35" r=".6"><stop offset="0" stop-color="#9ffff0" stop-opacity=".12"/><stop offset="1" stop-color="#5ef0dc" stop-opacity="0"/></radialGradient></defs>' +
+      '<path d="' + GOVDE + '" fill="url(#anVg)" stroke="#5ef0dc" stroke-opacity=".75" stroke-width="1.2" style="filter:drop-shadow(0 0 6px #5ef0dc)"/>' +
+      '<path d="' + GOVDE + '" fill="url(#anVi)"/>';
+    for (var y = 14; y < 500; y += 9) h += '<line x1="28" x2="172" y1="' + y + '" y2="' + y + '" stroke="#5ef0dc" stroke-opacity=".045"/>';
+    h += '<path d="' + KAS + '" fill="none" stroke="#ff9a9a" stroke-opacity=".16" stroke-width=".8"/>';
     s.innerHTML = h;
-    Object.keys(ORGAN).forEach(function (k) {
-      var o = ORGAN[k], p = document.createElementNS(NS, 'path'), c = renk(o.r);
-      p.setAttribute('d', o.d); p.setAttribute('class', 'org'); p.setAttribute('data-org', k); p.style.color = c;
-      if (o.cizgi) { p.setAttribute('fill', 'none'); p.setAttribute('stroke', c); p.setAttribute('stroke-width', k === 'omurilik' || k === 'aort' ? 2 : 2.4); p.setAttribute('stroke-opacity', '.55'); p.setAttribute('stroke-linecap', 'round'); }
-      else { p.setAttribute('fill', c); p.setAttribute('fill-opacity', '.18'); p.setAttribute('stroke', c); p.setAttribute('stroke-width', '1'); p.setAttribute('stroke-opacity', '.75'); }
-      s.appendChild(p);
+    // sıra: iskelet → damar/sinir ağı → organlar (organlar üstte, dokunulabilir)
+    var sira = Object.keys(ORGAN).sort(function (a, b) { function k(x) { return KATMAN.iskelet.test(x) ? 0 : KATMAN.ag.test(x) ? 1 : 2; } return k(a) - k(b); });
+    sira.forEach(function (k) {
+      var o = ORGAN[k], c = renk(o.r), g = document.createElementNS(NS, 'g');
+      var p = document.createElementNS(NS, 'path'); p.setAttribute('d', o.d); p.setAttribute('class', 'org'); p.setAttribute('data-org', k); p.style.color = c;
+      if (o.hayalet) { p.setAttribute('fill', 'transparent'); p.setAttribute('stroke', 'none'); }
+      else if (o.cizgi) { var isk = KATMAN.iskelet.test(k); p.setAttribute('fill', 'none'); p.setAttribute('stroke', c); p.setAttribute('stroke-width', isk ? 1.1 : k === 'omurilik' || k === 'aort' ? 2 : 1.3); p.setAttribute('stroke-opacity', isk ? '.32' : '.5'); p.setAttribute('stroke-linecap', 'round'); }
+      else { p.setAttribute('fill', c); p.setAttribute('fill-opacity', '.2'); p.setAttribute('stroke', c); p.setAttribute('stroke-width', '1'); p.setAttribute('stroke-opacity', '.8'); }
+      g.appendChild(p);
+      if (o.ic) { var ic = document.createElementNS(NS, 'path'); ic.setAttribute('d', o.ic); ic.setAttribute('fill', 'none'); ic.setAttribute('stroke', c); ic.setAttribute('stroke-opacity', '.45'); ic.setAttribute('stroke-width', '.7'); ic.style.pointerEvents = 'none'; g.appendChild(ic); }
+      s.appendChild(g);
     });
+    // omurga segmentleri
+    var om = ''; for (var v = 84; v < 280; v += 6.5) om += '<rect x="96.5" y="' + v.toFixed(1) + '" width="7" height="4.6" rx="1.4"/>';
+    var og = document.createElementNS(NS, 'g'); og.setAttribute('fill', 'none'); og.setAttribute('stroke', '#effffc'); og.setAttribute('stroke-opacity', '.22'); og.setAttribute('stroke-width', '.6'); og.innerHTML = om; s.insertBefore(og, s.querySelector('g'));
     (odaklar || []).forEach(function (k) { var p = s.querySelector('[data-org="' + k + '"]'); if (p) { p.classList.add('on'); if (renkOn) { p.style.color = renk(renkOn); } } });
     return s;
   }
@@ -179,7 +222,7 @@
     dalak: 'Yaşlı eritrositleri temizler, bağışıklık süzgeci.', pankreas: 'Ekzokrin enzimler + endokrin insülin/glukagon.', bobrek_sag: 'Kanı süzer: günde ~180 L filtrat, ~1.5 L idrar.',
     bobrek_sol: 'Süzme, geri emilim, sekresyon; RAAS ve EPO.', bagirsak: 'Emilim yüzeyi: villuslar ve mikrovilluslar.', mesane: 'İdrar deposu; detrusor kası boşaltır.',
     omurilik: 'Beyin ile vücut arasındaki iletim yolu + refleks merkezi.', kafatasi: 'Beyni koruyan kemik kutu.', humerus: 'Üst kolun tek kemiği; n. radialis oluğu.',
-    radius_ulna: 'Ön kol kemikleri; pronasyon-supinasyon.', femur: 'Vücudun en uzun kemiği.', tibia: 'Bacağın yük taşıyan kemiği.',
+    radius_ulna: 'Ön kol kemikleri; pronasyon-supinasyon.', beyincik: 'Denge, koordinasyon, motor öğrenme.', trakea: 'Hava yolu; C şeklinde kıkırdak halkalar.', diyafram: 'Ana solunum kası; kasılınca göğüs genişler (n. phrenicus).', safra_kesesi: 'Safrayı depolar ve yoğunlaştırır; yağ sindirimi.', adrenal: 'Kortizol, aldosteron, adrenalin.', ureter: 'İdrarı böbrekten mesaneye peristaltizmle taşır.', ince_bagirsak: 'Sindirimin ve emilimin çoğu burada (duodenum, jejunum, ileum).', kolon: 'Su ve elektrolit emilimi; dışkı oluşumu.', sinirler: 'Periferik sinirler: pleksuslar ve n. ischiadicus.', klavikula: 'Kolu gövdeye bağlayan tek kemik köprü.', kaburga: 'Göğüs kafesi: kalp ve akciğerleri korur, solunuma katılır.', pelvis: 'Leğen kemiği: gövdeyi bacaklara aktarır, organları taşır.', venler: 'Kanı kalbe geri taşır (vena cava).', femur: 'Vücudun en uzun kemiği.', tibia: 'Bacağın yük taşıyan kemiği.',
     biceps: 'Dirsek fleksiyonu ve supinasyon (n. musculocutaneus).', kuadriseps: 'Diz ekstansiyonu (n. femoralis).', kalp_damar: 'Arterler kanı dokulara taşır.'
   };
 
@@ -247,6 +290,33 @@
     });
   }
   function gorselBul(ara, kullanilan, ders) { return semaBul(ara, kullanilan, ders).then(function (g) { return g || commonsBul(ara); }); }
+
+  /* ---------- Vikipedi kartı (kullanıcı, 2026-11-03: "vikipediadan falan göstersin") ----------
+     REST özet uç noktası (CORS açık); önce Türkçe, yoksa İngilizce. Görsel YALNIZ Wikimedia Commons'ta barındırılıyorsa gösterilir
+     (özgür lisans; en.wikipedia'daki adil kullanım görselleri gösterilmez). Metin CC BY-SA, kaynak satırı kartta. */
+  var wikiBellek = {};
+  function wikiBul(baslik, dil) {
+    baslik = String(baslik || '').trim(); if (!baslik) return Promise.resolve(null);
+    var an = (dil || 'tr') + '|' + baslik.toLowerCase(); if (wikiBellek[an]) return wikiBellek[an];
+    var D = U.Depo;
+    function getir(d) {
+      return fetch('https://' + d + '.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(baslik.replace(/ /g, '_')), { headers: { 'Api-User-Agent': 'CarvisCalisma/1.0 (kisisel ders uygulamasi)' } })
+        .then(function (r) { if (!r.ok) throw new Error('wiki ' + r.status); return r.json(); })
+        .then(function (j) {
+          if (!j || j.type === 'disambiguation' || !j.extract) throw new Error('yok');
+          var img = (j.thumbnail && j.thumbnail.source) || (j.originalimage && j.originalimage.source) || '';
+          if (!/upload\.wikimedia\.org\/wikipedia\/commons\//.test(img)) img = '';
+          return { baslik: j.title, ozet: String(j.extract).slice(0, 300), gorsel: img, dil: d, url: (j.content_urls && j.content_urls.mobile && j.content_urls.mobile.page) || '' };
+        });
+    }
+    return wikiBellek[an] = (D ? D.oku('wk|' + an) : Promise.resolve({})).then(function (v) {
+      if (v && v.w !== undefined) return v.w;
+      var sira = dil === 'en' ? ['en', 'tr'] : ['tr', 'en'];
+      return getir(sira[0]).catch(function () { return getir(sira[1]); }).then(function (w) {
+        if (D && U.depoGuncelle) U.depoGuncelle('wk|' + an, function (d) { d.w = w; }, 100); return w;
+      });
+    }).catch(function () { delete wikiBellek[an]; return null; });
+  }
 
   /* ---------- senaryo onarımı: taşma, çakışma, eksik alanlar ---------- */
   function duzelt(j) {
@@ -413,6 +483,19 @@
         lk.appendChild(lcv); katman.appendChild(lk); G.set(lk, { opacity: 0 });
         tl.fromTo(lk, { opacity: 0, scale: 0.4, filter: 'blur(10px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'back.out(1.4)', onStart: function () { if (U.hucreOynat && !lk.dataset.b) { lk.dataset.b = 1; var oy = U.hucreOynat(lcv, g.surec); if (oy) E.labs.push(oy); } } }, t0);
         if (g.etiket) { var le = el('div', { class: 'an-o an-etiket', style: 'left:' + px(g.x) + ';top:calc(' + px(sayi(g.y, 0.5) - lh / 2) + ' - 14px)' }, [g.etiket]); katman.appendChild(le); G.set(le, { opacity: 0 }); tl.to(le, { opacity: 1, duration: 0.4 }, t0 + 0.4); }
+        return;
+      }
+      if (g.tip === 'wiki') {
+        var ww = kl(sayi(g.g, 0.9)), wh = kl(sayi(g.y2, 0.5));
+        var wk = el('div', { class: 'an-wiki', style: 'left:' + px(g.x) + ';top:' + px(g.y) + ';width:' + ww * 100 + '%;height:' + wh * 100 + '%' }), wimg = el('div', { class: 'gor' }), wbas = el('b'), wmet = el('p'), wat = el('small');
+        wk.appendChild(el('span', { class: 'rozet', text: 'W · VİKİPEDİ' })); wk.appendChild(wimg); wk.appendChild(wbas); wk.appendChild(wmet); wk.appendChild(wat); katman.appendChild(wk); G.set(wk, { opacity: 0 });
+        wikiBul(g.baslik || g.ara, g.dil).then(function (w) {
+          if (!w) { wk.remove(); return; }
+          wbas.textContent = w.baslik; var cumle = (w.ozet.match(/^.*?[.!?](\s.*?[.!?])?(?=\s|$)/) || [w.ozet])[0]; wmet.textContent = cumle.slice(0, 240);
+          wat.textContent = (w.dil === 'tr' ? 'tr' : 'en') + '.wikipedia.org · CC BY-SA' + (w.gorsel ? ' · görsel: Wikimedia Commons' : '');
+          if (w.gorsel) { var im = new Image(); im.alt = w.baslik; im.src = w.gorsel; wimg.appendChild(im); G.fromTo(im, { scale: 1.02 }, { scale: 1.14, duration: sure + 2, ease: 'none' }); } else wk.classList.add('yazi');
+        });
+        tl.fromTo(wk, { opacity: 0, y: 30, rotationX: 25 }, { opacity: 1, y: 0, rotationX: 0, duration: 0.6, ease: 'power3.out' }, t0);
         return;
       }
       if (g.tip === 'gorsel') {
@@ -745,6 +828,8 @@
     var lab = U.hucreSurecleri ? U.hucreSurecleri().map(function (x) { return x.id + ' (' + x.ad + ')'; }).join('; ') : '';
     return [
       'BU TEK PARÇA AKAN BİR VİDEO (reels), slayt değil: sahneler birbirine akar; bir sahnede kurulan görüntü (özellikle vücut) sonraki sahnede kamera hareketiyle sürer. Ekran dikey; koordinatlar 0..1 (x sağa, y aşağı). Alt %22 altyazıya ayrılmış: oraya öğe koyma. Öğeleri üst üste bindirme.',
+      'TEK HİKÂYE (en önemli kural): reel TEK bir merkezî soruyu cevaplar (ör. "Glikojen nasıl yapılır?"). Her sahne bir öncekinin doğurduğu soruyla başlar ("Peki bu neden önemli?", "Ya bu olmasaydı?"). Birbirinden kopuk bilgi sıralama; kitaptaki en önemli TEK mekanizmayı derinlemesine anlat.',
+      'GÖREMEDİĞİNİ GÖSTER: önce olayın kendisini canlandır (lab simülasyonu, vücutta zoom, akis/molekul animasyonu), sonra açıkla, sonra grafikle kanıtla.',
       'ANLATICI Patrick Jane (The Mentalist): sakin, kendinden emin, muzip; izleyicinin aklından geçeni okur ("Herkes … sanır. Değil.", "Şimdi bak…", "İşin hilesi şu:"). Her sahnede 1-2 kısa cümle (en çok 24 kelime). Sahnedeki görüntüyü ANLAT ("şu sarı eğri…", "kalbin sol tarafına bak").',
       'YAZI AZ, GÖRÜNTÜ ÇOK: ekrana yazı yalnız kancada ve en önemli 1-2 terimde (en çok 5 kelime). Bilgiyi anlatım + animasyon taşır. Her sahnede EN AZ BİR görsel öğe (vucut, lab, gorsel, grafik, zincir, karsilastir, akis, sekil) olsun.',
       '"sahneler": 9-13 sahne, her biri 3.5-6 sn. Sahne: {"anlatim":"…","sure":4.5,"arka":"vucut|hucre|kan|beyin|kalp|uzay|koridor","gecis":"dal|kaydir|parla","ogeler":[…],"kamera":[{"hedef":"organ ya da {x,y}","zoom":1.5-4,"t":0.6,"sure":1.3,"not":"zoomdan sonra çıkan 1 kısa cümle: organ burada ne yapıyor"}],"kameraSifirla":saniye,"aciklamalar":{"ogeId":"dokununca çıkan 1 cümle"}}',
@@ -752,6 +837,7 @@
       ' {"tip":"vucut","odak":["kalp"],"renk":"kirmizi"} — holografik insan vücudu; odak organ parlar ve etiketlenir. Arka arkaya iki sahnede vucut kullanırsan aynı vücut kalır, kamera kaldığı yerden devam eder (kesintisiz). Organlar: ' + Object.keys(ORGAN).join(', ') + '.',
       ' {"tip":"lab","surec":"…","x":0.5,"y":0.4,"g":0.9,"y2":0.5,"etiket":"kısa"} — hücre düzeyi CANLI simülasyon. Süreçler: ' + lab,
       ' {"tip":"gorsel","ara":"2-4 İngilizce anatomi/fizyoloji ders kitabı terimi (ör. \'nephron\', \'cardiac muscle action potential\', \'brachial plexus\', \'humerus\', \'synapse\')","x":0.5,"y":0.46,"g":0.92,"y2":0.56,"etiket":"kısa"} — GERÇEK ders kitabı şeması (gömülü OpenStax kütüphanesi), yavaşça yakınlaşır. HER REEL\'DE EN AZ 2 SAHNEDE kullan (anatomide 3); terimleri ders kitabı figür başlığı gibi yaz.',
+      ' {"tip":"wiki","baslik":"Vikipedi sayfa adı (Türkçe varsa Türkçe; ör. \'Uridin difosfat glukoz\', \'Glikojen\')","dil":"tr|en","x":0.5,"y":0.44,"g":0.9,"y2":0.56} — gerçek Vikipedi kartı (görsel + ilk cümle). Her reel\'de 1 kez, kavram ilk kez tanıtılırken.',
       ' {"tip":"grafik","noktalar":[[0,-70],[1,-70],[1.5,30],[3,-80],[5,-70]],"birim":"mV","xEtiket":"ms","esik":{"deger":-55,"metin":"eşik"},"isaretler":[{"x":1.5,"metin":"tepe +30"}],"x":0.12,"y":0.2,"g":0.8,"y2":0.44,"renk":"sari","sure":2.6} — gerçek veri noktaları (x gerçek birim, y gerçek değer); eksenler, eşik çizgisi ve anlık değer otomatik çizilir.',
       ' {"tip":"karar","adimlar":[{"soru":"Veri türü?","secenekler":["Sürekli","Kategorik"],"secilen":0},{"soru":"Normal dağılıyor mu?","secenekler":["Evet","Hayır"],"secilen":0},{"soru":"Kaç grup?","secenekler":["2","3+"],"secilen":0},{"soru":"Gruplar?","secenekler":["Bağımsız","Eşleştirilmiş"],"secilen":0}],"sonuc":"Bağımsız örneklem t-testi","neden":"iki bağımsız grubun ortalaması, normal dağılım","y":0.06,"renk":"sari"} — karar ağacı: hangi yöntem/test NEDEN seçilir; seçilen yol adım adım yanar.',
       ' {"tip":"dagilim","ort":120,"ss":15,"carpiklik":0,"birim":"mmHg","golge":[{"bas":150,"son":null,"metin":"hipertansif","renk":"kirmizi"}],"cizgiler":[{"x":150,"metin":"sınır"}],"y":0.2,"y2":0.4,"etiket":".."} — dağılım eğrisi; gölgeli alanın yüzdesi otomatik hesaplanır (sen yüzde yazma).',

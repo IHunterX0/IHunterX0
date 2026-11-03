@@ -41,7 +41,7 @@
   var bellek = {};
   function icerik(it) {
     if (bellek[it.id]) return bellek[it.id];
-    var anahtar = 'reel7|' + it.id;
+    var anahtar = 'reel8|' + it.id;
     return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
       if (v && v.j && v.j.sahneler) { if (U.Animasyon.onYukle) U.Animasyon.onYukle(v.j); return v.j; }
       return Kitaplik.bolumAc(it.kitap, it.sira).then(function (bolum) {
@@ -63,7 +63,7 @@
             j.ders = it.kitap;
             if (U.Animasyon && U.Animasyon.duzelt) U.Animasyon.duzelt(j);
             if (j.saray && j.saray.duraklar) { j.mekan = j.saray.mekan; j.duraklar = j.saray.duraklar.slice(0, 6); } else j.duraklar = [];
-            j.soru = j.soru || (j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0]) || null;
+            j.soru = (j.soru && j.soru.siklar ? j.soru : null) || (j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0]) || null;
             U.depoGuncelle(anahtar, function (d) { d.j = j; d.t = Date.now(); }, 200);
             if (U.Animasyon.onYukle) U.Animasyon.onYukle(j);
             return j;
@@ -74,8 +74,11 @@
 
   function akisMetni(ders) {
     var ortak = 'Akış (GERÇEK REELS, flashcard DEĞİL): 1) KANCA — Patrick Jane izleyicinin yanlış bildiğini yakalar ("Herkes … sanır."), büyük yazı + ikon ';
-    if (ders === 'anatomi' || !ders) return ortak + '2) VÜCUDA DAL — holografik vücutta ilgili yapıya kamera ile zoom 3) GERÇEK ŞEMA (gorsel) ile yapının ayrıntısı 4) seyir/ilişki: akis, ok, hücre düzeyi lab 5) orta soru 6) HAFIZA SARAYI 1-2 sahne (arka "koridor"; abartılı imge ikonu) 7) klinik bağlantı (yaralanırsa ne olur — vücutta geri zoom) 8) final soru + "akılda kalsın" tek cümle.';
-    return ortak + '2) BAĞLAM — bu kavram vücutta/klinikte nerede karşına çıkar (vucut + zoom, gorsel ya da gerçekçi bir hasta/çalışma senaryosu) 3) MEKANİZMA ya da HESAP — derse özgü araçlarla adım adım (aşağıdaki DERS rehberine uy) 4) SAYILAR — grafik/dagilim/formul ile gerçek değerler 5) orta soru 6) karıştırılan kavramlar: karsilastir 7) HAFIZA SARAYI 1 sahne (arka "koridor") 8) klinik/sınav tuzağı 9) final soru + "akılda kalsın" tek cümle.';
+    // kullanıcı, 2026-11-03: "birbiriyle çok alakasız bilgiler veriliyor; visualize what you can't see: ilk olayın nasıl olduğunu göstersin,
+    // sonra grafikler üzerinden anlatsın, Vikipedi'den göstersin, günlük hayattan fun fact; 'UTP olmasaydı … sekteye uğrardı' gibi"
+    var ana = 'TEK HİKÂYE: önce bu konunun tek merkezî sorusunu seç ve "merkeziSoru" alanına yaz; bütün sahneler o soruya hizmet etsin, her sahne bir öncekine bağlansın. ';
+    if (ders === 'anatomi' || !ders) return ana + ortak + '2) GÖREMEDİĞİNİ GÖSTER — vücutta ilgili yapıya kamera ile zoom, yapı "iş başında" (akis/ok/lab ile ne yaptığını canlandır) 3) GERÇEK ŞEMA (gorsel) ve VİKİPEDİ kartı (wiki) ile yapıyı tanıt 4) seyir/ilişkiler adım adım 5) orta soru 6) OLMASAYDI NE OLURDU? — yaralanma/felç: hangi hareket gider (vücutta geri zoom) 7) GÜNLÜK HAYAT fun fact (spor, gündelik hareket, bilinen bir olay) 8) HAFIZA SARAYI 1 sahne (arka "koridor") 9) final soru + "akılda kalsın" tek cümle.';
+    return ana + ortak + '2) GÖREMEDİĞİNİ GÖSTER — olayın kendisini canlandır (lab, molekul, akis, vucut zoom): önce izleyici olayı görsün 3) ADIM ADIM mekanizma (zincir ya da karar) 4) GRAFİKLE KANIT — gerçek sayılarla grafik/dagilim/formul (derse göre) 5) VİKİPEDİ kartı (wiki) — kavramın gerçek görseli ve tanımı 6) orta soru 7) OLMASAYDI NE OLURDU? — ör. "UTP olmasaydı glikojen sentezi dururdu → kas ve karaciğer depoları boş kalırdı" (karşı-olgusal, mekanizmaya bağla) 8) GÜNLÜK HAYAT fun fact — maraton, kahve, alkol, oruç, spor gibi tanıdık bir durumla bağla 9) karıştırılan kavram (karsilastir) ya da klinik tuzak 10) final soru + "akılda kalsın" tek cümle.';
   }
   /* İkinci kontrol turu (kullanıcı, 2026-11-03: "ikinci kontrol iyi olur"): ilk taslağı eleştirel bir editör gözden geçirip düzeltir.
      Başarısız olursa ya da sonuç bozuksa ilk taslak kullanılır (akış takılmaz). Önden hazırlandığı için izlerken beklenmez. */
@@ -86,7 +89,9 @@
       'KONTROL LİSTESİ:\n1) Kitap metniyle çelişen ya da uydurma bilgi/sayı → kitaba göre düzelt.\n2) Her sahnede en az bir görsel öğe (vucut, lab, gorsel, grafik, dagilim, tablo, formul, molekul, zincir, karsilastir, akis, sekil). Yalnız yazıdan oluşan sahneyi görsele çevir (kanca hariç).\n' +
       '3) Grafik noktaları gerçekçi ve fizyolojik/istatistiksel olarak doğru; eksen birimi var. formul ve tablo sayıları birbiriyle tutarlı, hesap doğru.\n4) Koordinatlar 0..1, öğeler üst üste binmiyor, alt %22 boş.\n5) Kanca gerçekten merak uyandırıyor; anlatım Patrick Jane tonunda, her sahnede en çok 24 kelime, görüntüyü anlatıyor.\n' +
       '6) Soru sahneleri: tek doğru cevap, "dogru" indeksi gerçekten doğru şık, çeldiriciler makul.\n7) gorsel.ara İngilizce ders kitabı figür başlığı gibi (ör. "brachial plexus", "Michaelis-Menten", "normal distribution"). Ders: ' + it.kitapAd + '. En az 2 gorsel sahnesi.\n' +
-      '8) organ / lab surec / molekul id\'leri kurallardaki listelerden; olmayanı listeden en yakınıyla değiştir.\n9) Sahne sayısı 9-13; akış kopmasın (vücut sahneleri art arda ise kamera devam etsin).\n\n' +
+      '8) organ / lab surec / molekul id\'leri kurallardaki listelerden; olmayanı listeden en yakınıyla değiştir.\n9) Sahne sayısı 9-13; akış kopmasın (vücut sahneleri art arda ise kamera devam etsin).\n' +
+      '10) TEK HİKÂYE: her sahne aynı merkezî soruya hizmet ediyor mu? Konudan sapan, öncekine bağlanmayan sahneyi çıkar ya da bağlantı cümlesiyle bağla. Olayın kendisi önce gösteriliyor mu (görselleştirme), sonra grafikle kanıt var mı?\n' +
+      '11) Birer tane OLMASAYDI NE OLURDU (karşı-olgusal), GÜNLÜK HAYAT fun fact ve wiki kartı sahnesi olsun; yoksa ekle (fun fact doğru ve doğrulanabilir olsun).\n\n' +
       'KURALLAR:\n' + U.Animasyon.SENARYO_KURALI + '\n\nKİTAP METNİ:\n"""\n' + String(metin || '').slice(0, 3500) + '\n"""\n\nTASLAK JSON:\n' + ham, { cache: false })
       .then(function (d) {
         if (!d || !Array.isArray(d.sahneler) || d.sahneler.length < Math.max(4, Math.floor(j.sahneler.length * 0.6))) return j;
