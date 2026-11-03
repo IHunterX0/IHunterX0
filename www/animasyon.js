@@ -63,6 +63,14 @@
     '.an-gorsel::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(94,240,220,.06) 0 1px,transparent 1px 4px),radial-gradient(ellipse at center,transparent 60%,rgba(2,12,16,.55))}',
     '.an-gorsel small{position:absolute;left:8px;bottom:6px;z-index:2;font:500 9.5px var(--f-kod,monospace);color:#fff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.an-gbaslik{position:absolute;left:0;right:0;top:0;z-index:2;padding:6px 12px;font:700 12px var(--f-kod,monospace);letter-spacing:.06em;color:#e9fffb;background:linear-gradient(180deg,rgba(2,14,18,.85),transparent);text-shadow:0 0 8px rgba(94,240,220,.6)}',
+    '.an-tablo{position:absolute;left:50%;transform:translateX(-50%);width:min(88%,560px);display:grid;gap:6px;z-index:3}',
+    '.an-thucre{padding:12px 8px;border-radius:12px;text-align:center;font:700 clamp(15px,2.8vw,22px) var(--f-kod,monospace);color:#f2fffd;background:rgba(94,240,220,.07);box-shadow:0 0 0 1px rgba(110,255,235,.3)}',
+    '.an-thucre.bas{background:transparent;box-shadow:none;color:#7fe8da;font-size:clamp(12px,2.1vw,16px);letter-spacing:.06em}',
+    '.an-formul{position:absolute;left:50%;transform:translateX(-50%);width:min(90%,620px);display:flex;flex-direction:column;align-items:center;gap:10px;z-index:3}',
+    '.an-fana{padding:14px 20px;border-radius:18px;font:800 clamp(20px,3.8vw,32px)/1.3 var(--f-kod,monospace);color:#fff;text-align:center;box-shadow:0 0 0 1px var(--r),0 0 30px rgba(94,240,220,.25);background:linear-gradient(135deg,rgba(94,240,220,.1),rgba(0,0,0,.3));text-shadow:0 0 14px var(--r)}',
+    '.an-fadim{font:700 clamp(17px,3vw,26px) var(--f-kod,monospace);color:#d8fff8}.an-fadim.son{color:#ffd38a;font-size:clamp(22px,4.2vw,36px);text-shadow:0 0 18px rgba(255,211,138,.7)}',
+    '.an-molekul{position:absolute;transform:translate(-50%,-50%);border-radius:22px;overflow:hidden;background:radial-gradient(circle,rgba(20,70,80,.5),rgba(2,8,12,.2) 70%);box-shadow:0 0 0 1px rgba(110,255,235,.35),0 0 40px rgba(94,240,220,.2)}',
+    '.an-molekul small{position:absolute;left:8px;bottom:6px;z-index:2;font:500 9.5px var(--f-kod,monospace);color:#cfe;background:rgba(0,0,0,.5);padding:2px 6px;border-radius:6px}',
     '.an-zincir{position:absolute;left:50%;transform:translateX(-50%);width:min(82%,520px);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:3}',
     '.an-zadim{width:100%;text-align:center;padding:11px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(94,240,220,.12),rgba(0,0,0,.25));box-shadow:0 0 0 1px var(--r);color:#f2fffd;font:700 clamp(15px,2.6vw,21px)/1.3 var(--f-baslik,system-ui);text-shadow:0 0 10px rgba(0,0,0,.6)}',
     '.an-zok{font-size:22px;line-height:1;text-shadow:0 0 10px currentColor}',
@@ -205,7 +213,9 @@
     return SEMA;
   }
   var ES = [[/neuromuscular junction|nmj|motor end ?plate/i, 'motor end plate innervation'], [/alveol/i, 'respiratory zone structures'], [/coronary arter/i, 'coronary circulation'], [/gas exchange/i, 'external internal respiration'], [/(cardiac|heart) conduction|sa node|sinoatrial/i, 'cardiac conduction system'], [/action potential/i, 'action potential graph']];
-  function semaBul(ara, kullanilan) {
+  var DERS_KITAP = { anatomi: ['OpenStax A&P 2e'], biyokimya: ['OpenStax Biology 2e', 'OpenStax A&P 2e'], biyoistatistik: ['OpenStax Introductory Statistics 2e'], biyofizik: ['OpenStax College Physics 2e', 'OpenStax A&P 2e'] };
+  function semaBul(ara, kullanilan, ders) {
+    var tercih = DERS_KITAP[ders] || [];
     ara = String(ara || ''); ES.forEach(function (e) { if (e[0].test(ara)) ara = e[1] + ' ' + ara; });
     var q = belirtec(ara); if (!q.length) return Promise.resolve(null);
     return semaDizin().then(function (l) {
@@ -216,13 +226,14 @@
         q.forEach(function (w) { var v = e._t.indexOf(w) >= 0 ? 3 : e._c.indexOf(w) >= 0 ? 1.4 : e._a.indexOf(w) >= 0 ? 0.6 : 0; if (v) tumu++; p += v; });
         if (tumu === q.length) p += 2;                 // bütün terimler geçiyor
         if (e._t.join(' ').indexOf(q.join(' ')) >= 0) p += 3; // başlıkta aynı sırayla
+        if (p && tercih.length) p += tercih.indexOf(e.k) === 0 ? 2.5 : tercih.indexOf(e.k) > 0 ? 1 : -1;
         if (p > enP) { enP = p; en = e; }
       });
       if (!en || enP < Math.max(2.5, q.length * 1.1)) return null;
-      return { url: 'sema/' + en.f, lisans: 'CC BY-NC-SA 4.0', yazar: 'OpenStax A&P 2e', baslik: en.t, dosya: en.f, w: en.w, h: en.h };
+      return { url: 'sema/' + en.f, lisans: 'CC BY-NC-SA 4.0', yazar: en.k || 'OpenStax', baslik: en.t, dosya: en.f, w: en.w, h: en.h };
     });
   }
-  function gorselBul(ara, kullanilan) { return semaBul(ara, kullanilan).then(function (g) { return g || commonsBul(ara); }); }
+  function gorselBul(ara, kullanilan, ders) { return semaBul(ara, kullanilan, ders).then(function (g) { return g || commonsBul(ara); }); }
 
   /* ---------- senaryo onarımı: taşma, çakışma, eksik alanlar ---------- */
   function duzelt(j) {
@@ -258,7 +269,7 @@
     });
     return j;
   }
-  function onYukle(j) { (j.sahneler || []).forEach(function (s) { (s.ogeler || []).forEach(function (g) { if (g && g.tip === 'gorsel' && g.ara) gorselBul(g.ara).then(function (r) { if (r) { var im = new Image(); im.src = r.url; } }); }); }); }
+  function onYukle(j) { (j.sahneler || []).forEach(function (s) { (s.ogeler || []).forEach(function (g) { if (g && g.tip === 'gorsel' && g.ara) gorselBul(g.ara, null, j.ders).then(function (r) { if (r) { var im = new Image(); im.src = r.url; } }); }); }); }
 
   /* ---------- oynatıcı: tek parça akan video ---------- */
   function sahneSuresi(s) { return s.tip === 'soru' ? 11 : Math.max(sayi(s.sure, 4.5), Math.min(14, String(s.anlatim || '').length / 14 + 0.8)); }
@@ -396,7 +407,7 @@
         var gk = el('div', { class: 'an-gorsel', style: 'left:' + px(g.x) + ';top:' + px(g.y) + ';width:' + gw * 100 + '%;height:' + gh * 100 + '%' }), atif = el('small');
         gk.appendChild(atif); katman.appendChild(gk); G.set(gk, { opacity: 0 });
         // aynı reel'de aynı şema iki kez çıkmasın: ara terimi + sahne sırasıyla önceden ayrılır
-        (g._gs || (g._gs = gorselBul(g.ara, kullanilan))).then(function (res) {
+        (g._gs || (g._gs = gorselBul(g.ara, kullanilan, senaryo.ders))).then(function (res) {
           if (!res) { gk.remove(); return; }
           if (res.dosya) kullanilan[res.dosya] = 1;
           var im = new Image(); im.alt = g.etiket || g.ara; im.src = res.url; gk.insertBefore(im, atif);
@@ -406,6 +417,40 @@
         });
         tl.fromTo(gk, { opacity: 0, scale: 0.9, filter: 'blur(8px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'power2.out' }, t0);
         if (g.etiket) { var ge = el('div', { class: 'an-o an-etiket', style: 'left:' + px(g.x) + ';top:calc(' + px(sayi(g.y, 0.5) - gh / 2) + ' - 14px)' }, [g.etiket]); katman.appendChild(ge); G.set(ge, { opacity: 0 }); tl.to(ge, { opacity: 1, duration: 0.4 }, t0 + 0.4); }
+        return;
+      }
+      if (g.tip === 'dagilim') { dagilimKur(g, t0, r, katman, sure); return; }
+      if (g.tip === 'tablo') {
+        var sat = (g.satirlar || []).filter(Array.isArray).slice(0, 6).map(function (x) { return x.slice(0, 5).map(String); }); if (!sat.length) return;
+        var sut = Math.max.apply(null, sat.map(function (x) { return x.length; }));
+        var tk = el('div', { class: 'an-tablo', style: 'top:' + px(sayi(g.y, 0.14)) + ';grid-template-columns:repeat(' + sut + ',1fr)' }), hucre = {};
+        var adimT = Math.max(0.12, Math.min(0.5, (sure - t0 - 1.5) / (sat.length * sut)));
+        sat.forEach(function (x, ri) { for (var ci = 0; ci < sut; ci++) {
+          var bas = (ri === 0 && g.baslikSatiri !== false) || (ci === 0 && g.baslikSutunu !== false);
+          var h = el('div', { class: 'an-thucre' + (bas ? ' bas' : ''), text: x[ci] || '' }); tk.appendChild(h); hucre[ri + ',' + ci] = h; G.set(h, { opacity: 0 });
+          tl.fromTo(h, { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.25, ease: 'back.out(2)' }, t0 + (ri * sut + ci) * adimT);
+        } });
+        katman.appendChild(tk);
+        var vt = t0 + sat.length * sut * adimT + 0.3;
+        (g.vurgu || []).slice(0, 6).forEach(function (v, k) { var h = hucre[(+v[0]) + ',' + (+v[1])]; if (!h) return; var c = renk(v[2] || 'sari');
+          tl.to(h, { boxShadow: '0 0 0 2px ' + c + ',0 0 26px ' + c, color: c, scale: 1.06, duration: 0.3 }, vt + k * 0.35); });
+        return;
+      }
+      if (g.tip === 'formul') {
+        var fk = el('div', { class: 'an-formul', style: 'top:' + px(sayi(g.y, 0.2)) + ';--r:' + r }), fm = el('div', { class: 'an-fana', text: String(g.metin || '') });
+        fk.appendChild(fm); katman.appendChild(fk); G.set(fm, { opacity: 0 });
+        tl.fromTo(fm, { opacity: 0, y: 16, filter: 'blur(8px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.5 }, t0);
+        var fa = (g.adimlar || []).slice(0, 4), fara = Math.max(0.5, Math.min(1.4, (sure - t0 - 1) / Math.max(1, fa.length)));
+        fa.forEach(function (a, k) { var d = el('div', { class: 'an-fadim' + (k === fa.length - 1 ? ' son' : ''), text: String(a) }); fk.appendChild(d); G.set(d, { opacity: 0 });
+          tl.fromTo(d, { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: 'power3.out' }, t0 + 0.7 + k * fara); });
+        return;
+      }
+      if (g.tip === 'molekul') {
+        var mw = kl(sayi(g.g, 0.8)), mh = kl(sayi(g.y2, 0.5)), E2 = D;
+        var mk = el('div', { class: 'an-molekul', style: 'left:' + px(g.x) + ';top:' + px(g.y) + ';width:' + mw * 100 + '%;height:' + mh * 100 + '%' }), mt = el('div', { style: 'position:absolute;inset:0' }), ma = el('small');
+        mk.appendChild(mt); mk.appendChild(ma); katman.appendChild(mk); G.set(mk, { opacity: 0 });
+        tl.fromTo(mk, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.5)', onStart: function () { if (mk.dataset.b) return; mk.dataset.b = 1; molekulKur(mt, ma, g, E2); } }, t0);
+        if (g.etiket) { var mle = el('div', { class: 'an-o an-etiket', style: 'left:' + px(g.x) + ';top:calc(' + px(sayi(g.y, 0.5) - mh / 2) + ' - 14px)' }, [g.etiket]); katman.appendChild(mle); G.set(mle, { opacity: 0 }); tl.to(mle, { opacity: 1, duration: 0.4 }, t0 + 0.4); }
         return;
       }
       if (g.tip === 'zincir') {
@@ -535,6 +580,68 @@
       });
       if (g.etiket) { var et3 = el('div', { class: 'an-o an-etiket', style: 'left:' + ((gx + gg / 2) / 10) + '%;top:calc(' + (gy / 10) + '% - 40px)' }, [g.etiket]); katman.appendChild(et3); G.set(et3, { opacity: 0 }); tl.to(et3, { opacity: 1, duration: 0.4 }, t0); }
     }
+    // olasılık dağılımı: normal ya da çarpık; gölgeli alan yüzdesi sayısal integralle hesaplanır (yapay zekâ uydurmasın)
+    function dagilimKur(g, t0, r, katman, sure) {
+      var gx = kl(sayi(g.x, 0.08)) * 1000, gy = kl(sayi(g.y, 0.22)) * 1000, gg = kl(sayi(g.g, 0.84)) * 1000, gh = kl(sayi(g.y2, 0.4)) * 1000;
+      var ort = sayi(g.ort, 0), ss = Math.max(1e-9, Math.abs(sayi(g.ss, 1))), alfa = Math.max(-1, Math.min(1, sayi(g.carpiklik, 0))) * 5, birim = g.birim ? ' ' + g.birim : '';
+      function Phi(z) { var t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
+      function f(x) { var z = (x - ort) / ss; return 2 * Math.exp(-z * z / 2) * Phi(alfa * z); }
+      var x0 = ort - 4 * ss, x1 = ort + 4 * ss, N = 160, P = [], ymax = 0;
+      for (var k = 0; k <= N; k++) { var xv = x0 + (x1 - x0) * k / N, yv = f(xv); P.push([xv, yv]); if (yv > ymax) ymax = yv; }
+      function X(v) { return gx + (v - x0) / (x1 - x0) * gg; } function Yy(v) { return gy + gh - v / (ymax * 1.08) * gh; }
+      var d = P.map(function (p, k) { return (k ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Yy(p[1]).toFixed(1); }).join(' ');
+      var eksen = svgEl('line', { x1: gx, x2: gx + gg, y1: gy + gh, y2: gy + gh, stroke: 'rgba(160,255,240,.5)', 'stroke-width': 1.5 }); G.set(eksen, { opacity: 0 }); tl.to(eksen, { opacity: 1, duration: 0.3 }, t0);
+      [-2, -1, 0, 1, 2].forEach(function (s) { var v = ort + s * ss; var t = el('div', { class: 'an-eksen x', style: 'left:' + X(v) / 10 + '%;top:calc(' + (gy + gh) / 10 + '% + 8px);transform:translateX(-50%)' }, [s === 0 ? (g.ortEtiket || 'μ') + '=' + (Math.round(v * 100) / 100) : (s > 0 ? '+' : '−') + Math.abs(s) + 'σ']); katman.appendChild(t); G.set(t, { opacity: 0 }); tl.to(t, { opacity: 1, duration: 0.3 }, t0 + 0.2); });
+      var pth = svgEl('path', { d: d, stroke: r, 'stroke-width': 5, fill: 'none', 'stroke-linejoin': 'round' }); pth.style.filter = 'drop-shadow(0 0 10px ' + r + ')';
+      var L = pth.getTotalLength ? pth.getTotalLength() : 3000; pth.setAttribute('stroke-dasharray', L); pth.setAttribute('stroke-dashoffset', L);
+      var gs = sayi(g.sure, 2); tl.to(pth, { attr: { 'stroke-dashoffset': 0 }, duration: gs, ease: 'power1.inOut' }, t0 + 0.2);
+      var toplamAlan = 0; for (var q = 1; q <= N; q++) toplamAlan += (P[q][1] + P[q - 1][1]) / 2 * (P[q][0] - P[q - 1][0]);
+      [].concat(g.golge || []).slice(0, 2).forEach(function (gl, j) {
+        if (!gl) return;
+        var a = gl.bas == null ? x0 : Math.max(x0, sayi(gl.bas, x0)), b = gl.son == null ? x1 : Math.min(x1, sayi(gl.son, x1)); if (b <= a) return;
+        var alan = 0, nok = [];
+        P.forEach(function (p) { if (p[0] >= a && p[0] <= b) nok.push(p); });
+        nok.unshift([a, f(a)]); nok.push([b, f(b)]);
+        for (var q2 = 1; q2 < nok.length; q2++) alan += (nok[q2][1] + nok[q2 - 1][1]) / 2 * (nok[q2][0] - nok[q2 - 1][0]);
+        var c = renk(gl.renk || (j ? 'kirmizi' : 'sari'));
+        var ad = 'M' + X(a) + ' ' + (gy + gh) + ' ' + nok.map(function (p) { return 'L' + X(p[0]).toFixed(1) + ' ' + Yy(p[1]).toFixed(1); }).join(' ') + ' L' + X(b) + ' ' + (gy + gh) + ' Z';
+        var ap = svgEl('path', { d: ad, fill: c, 'fill-opacity': 0.4, stroke: 'none' }); G.set(ap, { opacity: 0 });
+        var ts = t0 + 0.4 + gs + j * 0.9; tl.to(ap, { opacity: 1, duration: 0.6 }, ts);
+        var yuzde = alan / toplamAlan * 100, yz = (yuzde >= 1 ? yuzde.toFixed(1) : yuzde.toFixed(2)).replace('.', ',');
+        var et = el('div', { class: 'an-o an-isaret', style: '--r:' + c + ';left:' + X((a + b) / 2) / 10 + '%;top:calc(' + Yy(f((a + b) / 2)) / 10 + '% - 30px)' }, [(gl.metin ? gl.metin + ' ' : '') + '%' + yz]); katman.appendChild(et); G.set(et, { opacity: 0 });
+        tl.fromTo(et, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35 }, ts + 0.3);
+      });
+      (g.cizgiler || []).slice(0, 4).forEach(function (cz, j) {
+        var v = sayi(cz.x, ort); if (v < x0 || v > x1) return; var c = renk(cz.renk || 'beyaz');
+        var ln = svgEl('line', { x1: X(v), x2: X(v), y1: gy, y2: gy + gh, stroke: c, 'stroke-width': 2, 'stroke-dasharray': '8 6' }); G.set(ln, { opacity: 0 });
+        var et = el('div', { class: 'an-eksen', style: 'left:' + X(v) / 10 + '%;top:calc(' + gy / 10 + '% - 10px);transform:translate(-50%,-100%);color:' + c }, [(cz.metin || '') + ' ' + v + birim]); katman.appendChild(et); G.set(et, { opacity: 0 });
+        var ts = t0 + 0.6 + gs + j * 0.5; tl.to([ln, et], { opacity: 1, duration: 0.35 }, ts);
+      });
+      if (g.etiket) { var e3 = el('div', { class: 'an-o an-etiket', style: 'left:' + (gx + gg / 2) / 10 + '%;top:calc(' + gy / 10 + '% - 40px)' }, [g.etiket]); katman.appendChild(e3); G.set(e3, { opacity: 0 }); tl.to(e3, { opacity: 1, duration: 0.4 }, t0); }
+    }
+    // dönen 3B molekül (Molekül Lab kataloğu + 3Dmol.js); sahne bitince WebGL bağlamı bırakılır
+    function molekulKur(kap, atif, g, E) {
+      var MOL3D = 'https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js', v = null, dur = false;
+      E.labs.push({ durdur: function () { dur = true; try { if (v) { v.spin(false); v.clear(); } var c = kap.querySelector('canvas'), gl = c && (c.getContext('webgl2') || c.getContext('webgl')); var ex = gl && gl.getExtension('WEBGL_lose_context'); if (ex) ex.loseContext(); } catch (e) {} } });
+      if (!U.betik || !U.molKatalog) return;
+      Promise.all([U.betik(MOL3D, function () { return !!window.$3Dmol; }), U.molKatalog()]).then(function (r) {
+        if (dur) return;
+        var kat = r[1].molekuller || r[1], id = String(g.id || g.molekul || '').toLowerCase();
+        var m = kat.filter(function (x) { return x.id === id; })[0] || kat.filter(function (x) { return (x.ad || '').toLowerCase().indexOf(id) >= 0; })[0];
+        if (!m) { kap.parentNode.remove(); return; }
+        return fetch('lab/molekul/' + m.dosya).then(function (x) { return x.text(); }).then(function (veri) {
+          if (dur) return;
+          v = window.$3Dmol.createViewer(kap, { backgroundColor: 'black', backgroundAlpha: 0, antialias: true });
+          v.addModel(veri, m.bicim);
+          var st = g.stil || (m.bicim === 'pdb' ? 'cartoon' : 'cubuk');
+          if (st === 'cartoon') { v.setStyle({}, { cartoon: { color: 'spectrum' } }); v.setStyle({ hetflag: true }, { stick: { radius: 0.2 } }); v.setStyle({ resn: 'HOH' }, {}); }
+          else if (st === 'kure') v.setStyle({}, { sphere: { scale: 0.9 } });
+          else v.setStyle({}, { stick: { radius: 0.18 }, sphere: { scale: 0.22 } });
+          v.zoomTo(); v.zoom(0.9); v.render(); v.spin('y', 0.6);
+          atif.textContent = m.ad + ' · ' + (m.kaynak ? m.kaynak.ad + ' · ' + m.kaynak.lisans : '') + ' · 3Dmol.js';
+        });
+      }).catch(function () { try { kap.parentNode.remove(); } catch (e) {} });
+    }
     function soruKur(s, benim) {
       var kutu = el('div', { class: 'an-soru' }, [el('h4', { text: s.soru })]), cevaplandi = false, dogru = Math.max(0, Math.min(4, +s.dogru || 0));
       var halka = el('div', { class: 'an-geri' }, [el('i')]); kutu.appendChild(halka);
@@ -599,6 +706,13 @@
   U.Animasyon = { Oynatici: Oynatici, semaBul: semaBul, hazir: function () { return !!window.gsap; }, organlar: function () { return Object.keys(ORGAN); }, duzelt: duzelt, onYukle: onYukle, gorselBul: gorselBul, sure: function (j) { return (j.sahneler || []).reduce(function (a, s) { return a + (s ? sahneSuresi(s) : 0); }, 0); } };
 
   /* ---------- yapay zekâya verilecek senaryo kuralları ---------- */
+  var DERS_REHBER = {
+    anatomi: 'ANATOMİ: vucut + kamera zoom ve gorsel (ders kitabı şeması) ağırlıklı; kas/sinir/damar seyri için akis ve ok; klinik: hangi yaralanmada ne olur.',
+    biyokimya: 'BİYOKİMYA: molekul (dönen 3B yapı) + zincir (yolak adımları, enzim adları, ATP/NADH sayıları) + lab (glikoliz, krebs, hemoglobin-o2, dna-replikasyonu, transkripsiyon, ribozom) + grafik (Michaelis-Menten: [S]→v, Km, Vmax; O₂ dissosiyasyon eğrisi); formul ile Km/Vmax/ΔG; klinik: enzim eksikliği hastalıkları.',
+    biyoistatistik: 'BİYOİSTATİSTİK: her kavramı bir KLİNİK ÇALIŞMA örneğiyle anlat (ör. yeni tanı testi, ilaç denemesi). dagilim (normal eğri, ±σ, p değeri / güven aralığı alanı gölgeli), tablo (2×2: DP/YP/YN/DN, vurgu ile hücreleri yak), formul (duyarlılık, özgüllük, PPV, NNT, OR/RR adım adım sayıyla), grafik (ROC, saçılım-regresyon). gorsel: istatistik ders kitabı şeması. Sayılar tutarlı olsun (formuldeki hesap tablodaki sayılarla birebir).',
+    biyofizik: 'BİYOFİZİK: formul (Nernst, Goldman, Ohm V=IR, Poiseuille, Fick, Laplace) sayılarla adım adım + grafik (gerçek eğri: akım-voltaj, basınç-hacim, logaritmik bozunma) + lab (aksiyon-potansiyeli, na-k-pompasi, saltatorik) + vucut (fizik ilkesinin vücuttaki yeri: damar, kulak, göz, akciğer); gorsel: fizik ders kitabı şeması (ör. "ultrasound", "MRI", "eye lens", "Poiseuille flow").'
+  };
+  U.Animasyon.dersRehberi = function (ders) { return DERS_REHBER[ders] || ''; };
   U.Animasyon.senaryoKurali = function () {
     var lab = U.hucreSurecleri ? U.hucreSurecleri().map(function (x) { return x.id + ' (' + x.ad + ')'; }).join('; ') : '';
     return [
@@ -611,6 +725,10 @@
       ' {"tip":"lab","surec":"…","x":0.5,"y":0.4,"g":0.9,"y2":0.5,"etiket":"kısa"} — hücre düzeyi CANLI simülasyon. Süreçler: ' + lab,
       ' {"tip":"gorsel","ara":"2-4 İngilizce anatomi/fizyoloji ders kitabı terimi (ör. \'nephron\', \'cardiac muscle action potential\', \'brachial plexus\', \'humerus\', \'synapse\')","x":0.5,"y":0.46,"g":0.92,"y2":0.56,"etiket":"kısa"} — GERÇEK ders kitabı şeması (gömülü OpenStax kütüphanesi), yavaşça yakınlaşır. HER REEL\'DE EN AZ 2 SAHNEDE kullan (anatomide 3); terimleri ders kitabı figür başlığı gibi yaz.',
       ' {"tip":"grafik","noktalar":[[0,-70],[1,-70],[1.5,30],[3,-80],[5,-70]],"birim":"mV","xEtiket":"ms","esik":{"deger":-55,"metin":"eşik"},"isaretler":[{"x":1.5,"metin":"tepe +30"}],"x":0.12,"y":0.2,"g":0.8,"y2":0.44,"renk":"sari","sure":2.6} — gerçek veri noktaları (x gerçek birim, y gerçek değer); eksenler, eşik çizgisi ve anlık değer otomatik çizilir.',
+      ' {"tip":"dagilim","ort":120,"ss":15,"carpiklik":0,"birim":"mmHg","golge":[{"bas":150,"son":null,"metin":"hipertansif","renk":"kirmizi"}],"cizgiler":[{"x":150,"metin":"sınır"}],"y":0.2,"y2":0.4,"etiket":".."} — dağılım eğrisi; gölgeli alanın yüzdesi otomatik hesaplanır (sen yüzde yazma).',
+      ' {"tip":"tablo","satirlar":[["","Hasta","Sağlam"],["Test +","90","30"],["Test −","10","170"]],"vurgu":[[1,1,"yesil"],[2,1,"kirmizi"]],"y":0.12} — küçük tablo (2×2 vb.), hücreler sırayla belirir, vurgu hücreleri yanar.',
+      ' {"tip":"formul","metin":"Duyarlılık = DP / (DP + YN)","adimlar":["= 90 / (90 + 10)","= %90"],"y":0.5,"renk":"sari"} — formül ve sayılarla adım adım çözüm.',
+      ' {"tip":"molekul","id":"atp","stil":"cubuk|kure|cartoon","x":0.5,"y":0.42,"g":0.8,"y2":0.5,"etiket":"ATP"} — dönen 3B molekül. Mevcut: glukoz, fruktoz, galaktoz, riboz, deoksiriboz, sukroz, laktoz, maltoz, palmitik, oleik, linoleik, arasidonik, tripalmitin, fosfatidilkolin, kolesterol, glisin, histidin, sistein, triptofan, prolin, glisilglisin, atp, adenin, guanin, sitozin, timin, urasil, hemoglobin, miyoglobin, dna, kollajen, albumin.',
       ' {"tip":"zincir","adimlar":["Na⁺ kanalı açılır","Na⁺ içeri","Depolarizasyon","K⁺ çıkar"],"y":0.1,"renk":"teal"} — neden→sonuç zinciri, adım adım belirir (mekanizmalar için en iyisi).',
       ' {"tip":"karsilastir","sol":{"baslik":"…","maddeler":["…"]},"sag":{"baslik":"…","maddeler":["…"]},"y":0.1} — karıştırılan iki kavram yan yana (ayırt etme).',
       ' {"tip":"yazi","metin":"en çok 5 kelime","x":0.5,"y":0.14,"giris":"patla|yaz|uc|belir"} · {"tip":"ikon","emoji":"tek emoji","x":..,"y":..,"boyut":1-2.8,"nabiz":true,"hareket":[{"x":..,"y":..,"t":..,"sure":1}]}',

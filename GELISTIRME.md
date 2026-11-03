@@ -31,12 +31,20 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
 ## Reels şema kütüphanesi (r54, internetsiz)
-- `www/sema/` (yalnız APK'da, repoda değil; ~56 MB): OpenStax *Anatomy & Physiology 2e* figürleri (718 adet, **CC BY-NC-SA 4.0** —
+- `www/sema/` (yalnız APK'da, repoda değil; ~115 MB, 2155 figür): OpenStax *Anatomy & Physiology 2e* (öneki s, tümü), *Biology 2e* (b; kimya, hücre,
+  metabolizma, genetik, sinir/endokrin/bağışıklık bölümleri), *Introductory Statistics 2e* (i; tümü), *College Physics 2e* (p; akışkanlar, ısı,
+  dalga/işitme, elektrik, manyetizma, optik/görme, kuantum, nükleer tıp). Hepsi **CC BY-NC-SA 4.0** —
   kişisel/ticari olmayan kullanım, her görselde atıf). `sema/dizin.json`: dosya, başlık, açıklama, bölüm, boyut.
-- Üretim: `git clone --depth 1 --filter=blob:none --sparse https://github.com/openstax/osbooks-anatomy-physiology` → `git sparse-checkout set modules collections`
-  → `python3 -I araclar/sema/sema_dizin.py <repo> dizin_ham.json` → `python3 -I araclar/sema/sema_indir.py dizin_ham.json <cikti>` (raw.githubusercontent'tan indirir, 900 px JPEG q80)
+- Üretim: `git clone --depth 1 --filter=blob:none --sparse https://github.com/openstax/<repo>` → `git -C <repo> sparse-checkout set modules collections`
+  → `python3 -I araclar/sema/sema_dizin.py <repo> <collection.xml> "<kitap etiketi>" ham.json "<bölüm;bölüm|hepsi>"`
+  → `python3 -I araclar/sema/sema_indir.py ham.json <cikti> <repo> <önek>` (raw.githubusercontent'tan, 900 px JPEG q80; dizin.json'a ekler)
   → `<cikti>/*` → `dec/assets/www/sema/`.
-- JS: `U.semaBul(ara)` (animasyon.js) İngilizce terimle başlık/açıklama üzerinde puanlı arama; bulunamazsa Wikimedia Commons API (tablette; sunucu IP'si 429 alıyor).
+- JS: `U.semaBul(ara, kullanilan, ders)` (animasyon.js; ders → kitap önceliği) İngilizce terimle başlık/açıklama üzerinde puanlı arama; bulunamazsa Wikimedia Commons API (tablette; sunucu IP'si 429 alıyor).
+
+## Reels senaryosu
+- Üretim iki tur: taslak (kitap metni + derse özel rehber `U.Animasyon.dersRehberi`) → **kontrol turu** (`kontrolEt`, reels.js): editör kontrol
+  listesiyle düzeltilmiş tam JSON; başarısız/bozuksa taslak kullanılır. Ardından `U.Animasyon.duzelt` (taşma, çakışma, görselsiz sahneye şema).
+- Derse özel öğeler: `dagilim` (yüzde sayısal integralle hesaplanır), `tablo`, `formul`, `molekul` (3Dmol + Molekül Lab kataloğu; sahne bitince WebGL bağlamı bırakılır).
 
 ## Carvis sesi — ZipVoice (r36, internetsiz)
 - Motor: sherpa-onnx **v1.13.8 resmî AAR** (JitPack `com/github/k2-fsa/sherpa-onnx/sherpa-onnx/v1.13.8/sherpa-onnx-v1.13.8.aar`): `jni/arm64-v8a/*.so` + `classes.jar` içindeki Kotlin TTS sınıfları (d8 → smali). HF csukuangfj2 "1.13.8" paketi daha yeni bir derlemeydi, JNI alanları uymadı ve uygulamayı çökertti (r37–r39).

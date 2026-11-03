@@ -41,7 +41,7 @@
   var bellek = {};
   function icerik(it) {
     if (bellek[it.id]) return bellek[it.id];
-    var anahtar = 'reel5|' + it.id;
+    var anahtar = 'reel6|' + it.id;
     return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
       if (v && v.j && v.j.sahneler) { if (U.Animasyon.onYukle) U.Animasyon.onYukle(v.j); return v.j; }
       return Kitaplik.bolumAc(it.kitap, it.sira).then(function (bolum) {
@@ -50,13 +50,17 @@
         var ornek = (it.aile || []).slice(0, 2).map(function (f) { var vv = (f.q.varyantlar || [])[0]; return vv ? vv.govde : ''; }).filter(Boolean).join(' | ');
         return Y.sample.json('Bir tıp öğrencisi için ~60-80 saniyelik, KAYDIRARAK izlenen, ANİMASYONLU ve ETKİLEŞİMLİ bir "reels" dersi yaz. Konu: ' + it.kitapAd + ' · ' + it.bolum + ' · ' + it.konu + '.\n' +
           'YALNIZ aşağıdaki kitap metnine dayan; sayılar ve terimler doğru olsun. Türkçe, kısa cümleler.' + (ornek ? ' Bu konudan çıkmış sorular: ' + ornek.slice(0, 600) : '') + '\n' +
-          'Akış (GERÇEK REELS, flashcard DEĞİL): 1) KANCA — Patrick Jane izleyicinin yanlış bildiğini yakalar ("Herkes … sanır."), büyük yazı + ikon 2) VÜCUDA DAL — holografik vücutta ilgili organa kamera ile zoom, organ ne iş yapıyor 3) HÜCREYE İN — lab simülasyonu ile mekanizma canlı oynar 4) GRAFİK/SAYAÇ — sayıları büyük grafikle göster 5) orta soru 6) HAFIZA SARAYI 1-2 sahne (arka "koridor"; abartılı imge ikonu) 7) klinik bağlantı (bu bozulursa hastada ne olur — vücutta organa geri zoom) 8) final soru + "akılda kalsın" tek cümle.\n' +
+          akisMetni(it.kitap) + '\n' + (U.Animasyon.dersRehberi ? U.Animasyon.dersRehberi(it.kitap) + '\n' : '') +
           U.Animasyon.SENARYO_KURALI + '\n' +
           'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"saray":{"mekan":"…","duraklar":[{"yer":"…","sembol":"emoji","imge":"abartılı imge","bilgi":"bilgi","anahtar":"1-3 kelime"}]},"ozet":"tek cümle","makaleSorgu":"…","gorselAra":["2-3 İngilizce ders kitabı şema terimi (ör. humerus, brachial plexus)"],"yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]}\n' +
           'makaleSorgu: bu konuyla ilgili YENİ araştırmaları bulmak için İngilizce Europe PMC sorgusu (2-4 terim, OR ile eş anlamlılar; klinik ya da mekanizma odaklı, ilginç olsun).\n' +
           'saray: 4-5 durak. yorumlar: 6 yorum; 3 tanesi patrick.jane (sınav tuzağı, karıştırılan çift, kestirme), 3 tanesi farklı öğrenci kullanıcı adlarıyla.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
           .then(function (j) {
             if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
+            return kontrolEt(j, metin, it);
+          })
+          .then(function (j) {
+            j.ders = it.kitap;
             if (U.Animasyon && U.Animasyon.duzelt) U.Animasyon.duzelt(j);
             if (j.saray && j.saray.duraklar) { j.mekan = j.saray.mekan; j.duraklar = j.saray.duraklar.slice(0, 6); } else j.duraklar = [];
             j.soru = j.soru || (j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0]) || null;
@@ -66,6 +70,29 @@
           });
       });
     }).catch(function (e) { delete bellek[it.id]; throw e; });
+  }
+
+  function akisMetni(ders) {
+    var ortak = 'Akış (GERÇEK REELS, flashcard DEĞİL): 1) KANCA — Patrick Jane izleyicinin yanlış bildiğini yakalar ("Herkes … sanır."), büyük yazı + ikon ';
+    if (ders === 'anatomi' || !ders) return ortak + '2) VÜCUDA DAL — holografik vücutta ilgili yapıya kamera ile zoom 3) GERÇEK ŞEMA (gorsel) ile yapının ayrıntısı 4) seyir/ilişki: akis, ok, hücre düzeyi lab 5) orta soru 6) HAFIZA SARAYI 1-2 sahne (arka "koridor"; abartılı imge ikonu) 7) klinik bağlantı (yaralanırsa ne olur — vücutta geri zoom) 8) final soru + "akılda kalsın" tek cümle.';
+    return ortak + '2) BAĞLAM — bu kavram vücutta/klinikte nerede karşına çıkar (vucut + zoom, gorsel ya da gerçekçi bir hasta/çalışma senaryosu) 3) MEKANİZMA ya da HESAP — derse özgü araçlarla adım adım (aşağıdaki DERS rehberine uy) 4) SAYILAR — grafik/dagilim/formul ile gerçek değerler 5) orta soru 6) karıştırılan kavramlar: karsilastir 7) HAFIZA SARAYI 1 sahne (arka "koridor") 8) klinik/sınav tuzağı 9) final soru + "akılda kalsın" tek cümle.';
+  }
+  /* İkinci kontrol turu (kullanıcı, 2026-11-03: "ikinci kontrol iyi olur"): ilk taslağı eleştirel bir editör gözden geçirip düzeltir.
+     Başarısız olursa ya da sonuç bozuksa ilk taslak kullanılır (akış takılmaz). Önden hazırlandığı için izlerken beklenmez. */
+  function kontrolEt(j, metin, it) {
+    if (!Y.sample || !Y.sample.json) return Promise.resolve(j);
+    var ham = JSON.stringify(j); if (ham.length > 24000) return Promise.resolve(j);
+    return Y.sample.json('Sen titiz bir tıp eğitimi video editörüsün. Aşağıdaki reels senaryosunu (JSON) kontrol et ve DÜZELTİLMİŞ TAM JSON\'u döndür (aynı alanlar: baslik, sahneler, saray, ozet, makaleSorgu, gorselAra, yorumlar; açıklama yazma).\n' +
+      'KONTROL LİSTESİ:\n1) Kitap metniyle çelişen ya da uydurma bilgi/sayı → kitaba göre düzelt.\n2) Her sahnede en az bir görsel öğe (vucut, lab, gorsel, grafik, dagilim, tablo, formul, molekul, zincir, karsilastir, akis, sekil). Yalnız yazıdan oluşan sahneyi görsele çevir (kanca hariç).\n' +
+      '3) Grafik noktaları gerçekçi ve fizyolojik/istatistiksel olarak doğru; eksen birimi var. formul ve tablo sayıları birbiriyle tutarlı, hesap doğru.\n4) Koordinatlar 0..1, öğeler üst üste binmiyor, alt %22 boş.\n5) Kanca gerçekten merak uyandırıyor; anlatım Patrick Jane tonunda, her sahnede en çok 24 kelime, görüntüyü anlatıyor.\n' +
+      '6) Soru sahneleri: tek doğru cevap, "dogru" indeksi gerçekten doğru şık, çeldiriciler makul.\n7) gorsel.ara İngilizce ders kitabı figür başlığı gibi (ör. "brachial plexus", "Michaelis-Menten", "normal distribution"). Ders: ' + it.kitapAd + '. En az 2 gorsel sahnesi.\n' +
+      '8) organ / lab surec / molekul id\'leri kurallardaki listelerden; olmayanı listeden en yakınıyla değiştir.\n9) Sahne sayısı 9-13; akış kopmasın (vücut sahneleri art arda ise kamera devam etsin).\n\n' +
+      'KURALLAR:\n' + U.Animasyon.SENARYO_KURALI + '\n\nKİTAP METNİ:\n"""\n' + String(metin || '').slice(0, 3500) + '\n"""\n\nTASLAK JSON:\n' + ham, { cache: false })
+      .then(function (d) {
+        if (!d || !Array.isArray(d.sahneler) || d.sahneler.length < Math.max(4, Math.floor(j.sahneler.length * 0.6))) return j;
+        ['saray', 'makaleSorgu', 'gorselAra', 'yorumlar', 'ozet', 'baslik'].forEach(function (k) { if (d[k] == null && j[k] != null) d[k] = j[k]; });
+        d.kontrol = 1; return d;
+      }, function () { return j; });
   }
 
   /* ---------- makale reels'i (kullanıcı, 2026-11-03: "arada makale şeyleri de çıksın, yz kendi eklesin") ----------
@@ -97,13 +124,16 @@
         if (v && v.j && v.j.sahneler) return v.j;
         return Y.sample.json('Bir tıp öğrencisi için bu YENİ ARAŞTIRMAYI ~45-60 saniyelik, kaydırarak izlenen, ANİMASYONLU bir reels olarak anlat.\n' +
           'YALNIZ aşağıdaki özete dayan; özette olmayan sayı ya da sonuç UYDURMA. Türkçe, kısa cümleler.\n' +
+          (U.Animasyon.dersRehberi ? U.Animasyon.dersRehberi(it.kitap) + '\n' : '') +
           'Akış: 1) KANCA — Jane: "Bunu kimse sana anlatmadı: …" (en çarpıcı bulgu) 2) arka plan: hangi organ/hücre süreci (vucut + kamera zoom ya da lab) 3) ne yaptılar (kısa) 4) ne buldular (özetteki sayılarla grafik/sayaç/zincir) 5) sınav ve klinik için anlamı (bildiğin ders bilgisiyle bağla) 6) bir SORU sahnesi 7) "akılda kalsın".\n' +
           U.Animasyon.SENARYO_KURALI + '\n' +
           'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]} (yorumlar: 4; 2 tanesi patrick.jane — bulguyu ders bilgisine bağlayan hap bilgi).\n\n' +
           'MAKALE: ' + m.baslik + ' — ' + (m.dergi || '') + ' ' + (m.yil || '') + '\nÖZET:  + m.ozet.slice(0, 3500) + ', { cache: false })
           .then(function (j) {
             if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
-            U.Animasyon.duzelt(j); j.duraklar = []; j.soru = j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0] || null;
+            return kontrolEt(j, 'MAKALE ÖZETİ: ' + m.ozet, { kitapAd: 'Yeni araştırma (' + (it.onceki ? it.onceki.kitapAd : '') + ')' });
+          }).then(function (j) {
+            j.ders = it.kitap; U.Animasyon.duzelt(j); j.duraklar = []; j.soru = j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0] || null;
             U.depoGuncelle(anahtar, function (d) { d.j = j; d.t = Date.now(); }, 200);
             return j;
           });
