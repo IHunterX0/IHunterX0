@@ -86,7 +86,7 @@
     var l = komiteler(); if (!l.length) return;
     U.depoGuncelle('plan', function (v) {
       v.komite = (v.komite || []).filter(function (k) { return k.kaynak !== 'pusula'; });
-      l.forEach(function (k) { if (!v.komite.some(function (x) { return x.tarih === k.tarih; })) v.komite.push({ id: 'pp-' + k.tarih, tarih: k.tarih, tur: k.tur, ad: k.kurul + ' ' + (k.tur === 'Vize' ? 'ara sınavı' : 'final sınavı'), kaynak: 'pusula' }); });
+      l.forEach(function (k) { if (!v.komite.some(function (x) { return x.tarih === k.tarih; })) v.komite.push({ id: 'pp-' + k.tarih, tarih: k.tarih, tur: k.tur, ad: k.kurul + ' komite ' + (k.tur === 'Vize' ? 'ara sınavı' : 'finali'), kaynak: 'pusula' }); });
       var yakin = v.komite.filter(function (k) { return k.tarih && gunFark(k.tarih) >= 0; }).sort(function (a, b) { return a.tarih < b.tarih ? -1 : 1; })[0];
       if (yakin && U.Kitaplik) { v.sinav = v.sinav || {}; Object.keys(KITAP).forEach(function (d) { v.sinav[KITAP[d]] = yakin.tarih; }); }
     }, 300);

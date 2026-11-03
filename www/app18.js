@@ -81,7 +81,7 @@
         en_cok_takilinan: Object.keys(kon).sort(function (a, b) { return kon[b] - kon[a]; }).slice(0, 6).map(function (x) { return x + ' (' + kon[x] + ')'; }),
         testler: testler.map(function (t) { return t.baslik + ': ' + t.sonuc.dogru + '/' + t.sonuc.n; }),
         gezilen_saraylar: saray.map(function (s) { return s.ad + ' (' + Object.keys(s.gezinti.bildi || {}).length + '/' + s.odalar.length + ' hatırlandı)'; }),
-        en_yakin_sinav: o && o.sinav ? o.sinav.kitap + ', ' + o.sinav.gun + ' gün' : null, seri_gun: o && o.pomodoro ? o.pomodoro.seri_gun : null,
+        en_yakin_sinav: o && o.sinav ? U.sinavAdi(o.sinav) + ', ' + o.sinav.gun + ' gün' : null, seri_gun: o && o.pomodoro ? o.pomodoro.seri_gun : null,
         siradaki_isler: o ? o.isler.slice(0, 4).map(function (x) { return x.ad; }) : []
       };
     });

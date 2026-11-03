@@ -401,6 +401,7 @@
       return Promise.all(l.map(function (k) { return Depo.oku('srs-' + k.id).then(function (v) { var g = gunNo(), n = 0; Object.keys(v).forEach(function (x) { if (x[0] !== '_' && v[x][3] <= g) n++; }); return n; }); }));
     }).then(function (ns) { return ns.reduce(function (a, b) { return a + b; }, 0); }).catch(function () { return 0; });
   }
+  U.sinavAdi = function (s) { return !s ? '' : s.etiket || ((s.kitap || '') + ' sınavı'); };
   U.calismaOnerisi = function () {
     var plan = U.planBugunListe ? U.planBugunListe().catch(function () { return null; }) : Promise.resolve(null);
     var eksik = U.eksikOzeti ? Promise.resolve(U.eksikOzeti(null)).catch(function () { return null; }) : Promise.resolve(null);
@@ -409,6 +410,9 @@
       var isler = [], plan = r[0], ek = r[1], vade = r[2], pm = r[3], ay = r[4] || {};
       // en yakın sınav
       var sinav = null; Object.keys(ay.sinav || {}).forEach(function (k) { var g = Math.round((new Date(ay.sinav[k] + 'T00:00:00') - new Date(bugunStr() + 'T00:00:00')) / 864e5); if (g >= 0 && (!sinav || g < sinav.gun)) sinav = { kitap: k, gun: g }; });
+      // komite sistemi (kullanıcı, 2026-11-03: "anatomi sınavı diye bir şey yok, komite finali var; tüm sınavlar aynı testte")
+      var kom = (ay.komite || []).filter(function (k) { return k && k.tarih && Math.round((new Date(k.tarih + 'T00:00:00') - new Date(bugunStr() + 'T00:00:00')) / 864e5) >= 0; }).sort(function (a, b) { return a.tarih < b.tarih ? -1 : 1; })[0];
+      if (kom) { var kg = Math.round((new Date(kom.tarih + 'T00:00:00') - new Date(bugunStr() + 'T00:00:00')) / 864e5); sinav = { kitap: (sinav && sinav.kitap) || 'anatomi', gun: kg, komite: true, tur: kom.tur, etiket: kom.ad || ('komite ' + (kom.tur === 'Vize' ? 'ara sınavı' : 'finali')) }; }
       if (vade) isler.push({ tur: 'kart', ad: vade + ' vadeli tekrar kartı', neden: 'Aralıklı tekrar: unutmadan hemen önce hatırlamak kalıcılığı en çok artıran adım. Güne bununla başla.', dk: Math.max(5, Math.round(vade * 0.4)), hash: 'kartlar' });
       (plan || []).filter(function (x) { return !x.tekrar; }).slice(0, 4).forEach(function (x) { isler.push({ tur: 'plan', ad: x.akademikGorev ? '🌍 ' + x.ad : (x.derin ? '🎓 ' : '') + x.kitapAd + ' · ' + x.ad, neden: 'Plan: ' + (x.neden || '') + (x.sinavaGun != null ? ' · sınava ' + x.sinavaGun + ' gün' : ''), dk: x.dk, kitap: x.kitap, sira: x.sira }); });
       ((ek && ek.zayif) || []).slice(0, 2).forEach(function (z) { isler.push({ tur: 'eksik', ad: 'Eksik kapat: ' + (z.kitapAd || z.kitap).replace(/^1001\s*/, '') + ' · ' + (z.bolum || ''), neden: z.bilmiyor + ' bilmiyorum, ' + z.yanlis + ' yanlış' + (z.konular && z.konular.length ? ' (' + z.konular.slice(0, 2).join(', ') + ')' : '') + '. Önce Zamanım yok özeti, sonra 5 soruluk test.', dk: 25, kitap: z.kitap, sira: z.sira, konu: (z.konular || [])[0] }); });
@@ -421,7 +425,7 @@
   };
   function oneriAraci() {
     return U.calismaOnerisi().then(function (o) {
-      return { en_yakin_sinav: o.sinav ? o.sinav.kitap + ', ' + o.sinav.gun + ' gün' : 'girilmemiş', bugun_calisilan_dk: o.pomodoro ? o.pomodoro.bugun_dakika : null, gunluk_hedef_dk: o.pomodoro ? o.pomodoro.gunluk_hedef_dk : null, seri_gun: o.pomodoro ? o.pomodoro.seri_gun : null,
+      return { en_yakin_sinav: o.sinav ? U.sinavAdi(o.sinav) + ', ' + o.sinav.gun + ' gün' + (o.sinav.komite ? ' (komite: bütün dersler aynı testte)' : '') : 'girilmemiş', bugun_calisilan_dk: o.pomodoro ? o.pomodoro.bugun_dakika : null, gunluk_hedef_dk: o.pomodoro ? o.pomodoro.gunluk_hedef_dk : null, seri_gun: o.pomodoro ? o.pomodoro.seri_gun : null,
         sirali_isler: o.isler.map(function (x, i) { return (i + 1) + '. ' + x.ad + ' (~' + x.dk + ' dk) — ' + x.neden; }) };
     });
   }
@@ -446,7 +450,7 @@
       var pm = o.pomodoro || {};
       kpi.appendChild(el('div', {}, [el('b', { text: (pm.bugun_dakika || 0) + '/' + (pm.gunluk_hedef_dk || 120) }), el('small', { text: 'bugün çalışılan dk / hedef' })]));
       kpi.appendChild(el('div', {}, [el('b', { text: '🔥 ' + (pm.seri_gun || 0) }), el('small', { text: 'gün seri' })]));
-      kpi.appendChild(el('div', {}, [el('b', { text: o.sinav ? o.sinav.gun + ' gün' : '—' }), el('small', { text: o.sinav ? 'en yakın sınav: ' + o.sinav.kitap : 'sınav tarihi gir (Plan)' })]));
+      kpi.appendChild(el('div', {}, [el('b', { text: o.sinav ? o.sinav.gun + ' gün' : '—' }), el('small', { text: o.sinav ? 'en yakın sınav: ' + U.sinavAdi(o.sinav) : 'sınav tarihi gir (Plan)' })]));
       kpi.appendChild(el('div', {}, [el('b', { text: String(o.vadeli || 0) }), el('small', { text: 'vadeli kart' })]));
       liste.innerHTML = '';
       if (!o.isler.length) liste.appendChild(el('p', { class: 'var-etiket', text: 'Önerecek iş yok: Plan sekmesinden sınav tarihi gir, birkaç test çöz; koç bunlardan beslenir.' }));

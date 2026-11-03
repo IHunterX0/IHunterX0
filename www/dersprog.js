@@ -80,7 +80,7 @@
     Kitaplik.bolumAc(A.kj.id, b.sira).then(function (bolum) {
       var kelime = Math.min(900, Math.max(150, bdk * 110));
       U.cevapCalistir(kutu, 'dersZY|' + A.kj.id + '|' + b.sira + '|' + kelime, function () {
-        return 'Bir tıp öğrencisinin ' + A.kj.baslik + ' sınavına az zamanı var; bu bölüme ' + bdk + ' dakika ayırabiliyor. Bölümü SINAV ODAKLI anlat. YALNIZ aşağıdaki kitap metnine dayan, uydurma. Türkçe, yaklaşık ' + kelime + ' kelime.\n' +
+        return 'Bir tıp öğrencisinin komite sınavına (' + A.kj.baslik + ' soruları da bu tek testte) az zamanı var; bu bölüme ' + bdk + ' dakika ayırabiliyor. Bölümü SINAV ODAKLI anlat. YALNIZ aşağıdaki kitap metnine dayan, uydurma. Türkçe, yaklaşık ' + kelime + ' kelime.\n' +
           (b.konular.length ? 'Çıkmış soru istatistiğine göre EN OLASI konular (öncelik ver, her birini ayrı başlıkta işle): ' + b.konular.map(function (k) { return k.konu + ' (%' + Math.round(k.ol * 100) + ')'; }).join('; ') + '\n' : '') +
           'Biçim: **Özün özü** (2 cümle) · her olası konu için **başlık** + 3-6 madde (mekanizma, sayı, ayırt edici bilgi) · **Klasik tuzaklar** (2-4 madde) · **Son 30 saniye** (3 madde ezber).\n\nKİTAP METNİ:\n"""\n' + (U.bolumOzu ? U.bolumOzu(bolum, 9000) : '') + '\n"""';
       }, { kj: A.kj, eylem: 'zamanimyok' });
@@ -112,7 +112,7 @@
     kap.innerHTML = ''; var y = el('div', { class: 'yukleniyor', text: 'Karıştırılan çiftler seçiliyor, sorular yazılıyor…' }); kap.appendChild(y);
     var hedef = A.bol.slice(0, 5);
     Promise.all(hedef.map(function (b) { return Kitaplik.bolumAc(A.kj.id, b.sira).then(function (bo) { return { b: b, m: U.bolumOzu ? U.bolumOzu(bo, 2200) : '' }; }).catch(function () { return { b: b, m: '' }; }); })).then(function (ms) {
-      return Y.sample.json('Bir tıp fakültesi ' + A.kj.baslik + ' sınavı için AYIRT ETME testi yaz: dersin en çok karıştırılan kavram çiftlerinden (ör. iki enzim, iki yolak, iki kas, iki sendrom) 10 soru. Amaç ayırt ettirmek: şıklarda çiftin iki tarafı da olsun, doğru cevap ayırt edici özelliğe dayansın. 5 şık (A-E), tek doğru, Türkçe, YALNIZ aşağıdaki metinlere dayan.\n' +
+      return Y.sample.json('Bir tıp fakültesi komite sınavının ' + A.kj.baslik + ' soruları için AYIRT ETME testi yaz: dersin en çok karıştırılan kavram çiftlerinden (ör. iki enzim, iki yolak, iki kas, iki sendrom) 10 soru. Amaç ayırt ettirmek: şıklarda çiftin iki tarafı da olsun, doğru cevap ayırt edici özelliğe dayansın. 5 şık (A-E), tek doğru, Türkçe, YALNIZ aşağıdaki metinlere dayan.\n' +
         'Yalnız JSON: {"sorular":[{"soru":"...","siklar":["...","...","...","...","..."],"dogru":0-4,"aciklama":"neden; ayırt edici nokta","konu":"X mi Y mi","bolum":"bölüm adı"}]}\n\n' +
         ms.map(function (x) { return 'BÖLÜM: ' + x.b.ad + (x.b.konular.length ? ' (olası: ' + x.b.konular.map(function (k) { return k.konu; }).join(', ') + ')' : '') + '\n"""\n' + x.m + '\n"""'; }).join('\n\n'), { cache: false });
     }).then(function (j) {

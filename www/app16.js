@@ -120,7 +120,7 @@
       U.calismaOnerisi().then(function (o) {
         hudUst.innerHTML = ''; hudAlt.innerHTML = '';
         var pm = o.pomodoro || {}, ilk = o.isler.filter(function (x) { return x.tur === 'plan'; })[0];
-        if (o.sinav) cip(hudUst, '📅', 'gün: ' + o.sinav.kitap + ' sınavı', o.sinav.gun, function () { U.git('plan'); });
+        if (o.sinav) cip(hudUst, '📅', 'gün: ' + U.sinavAdi(o.sinav), o.sinav.gun, function () { U.git('plan'); });
         cip(hudUst, '🔥', 'gün seri', pm.seri_gun || 0, function () { U.git('koc'); });
         cip(hudUst, '⏱', '/ ' + (pm.gunluk_hedef_dk || 120) + ' dk bugün', pm.bugun_dakika || 0, function () { U.saatAc && U.saatAc(); });
         if (o.vadeli) cip(hudAlt, '❖', 'vadeli kart', o.vadeli, function () { U.git('kartlar'); });

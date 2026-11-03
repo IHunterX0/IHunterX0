@@ -461,7 +461,7 @@
       var yay = gos.querySelector('.jv-yay'), yz = gos.querySelector('.jv-yuzde');
       yay.setAttribute('stroke-dasharray', (264 * oran).toFixed(0) + ' 264'); yz.textContent = Math.round(oran * 100) + '%';
       gosYazi.innerHTML = ''; gosYazi.appendChild(el('div', { text: 'BUGÜN ' + dk + ' / ' + hd + ' DK' }));
-      if (o.sinav) gosYazi.appendChild(el('div', { style: 'color:#ffcf7a', text: o.sinav.kitap.toLocaleUpperCase('tr') + ' SINAVI: ' + o.sinav.gun + ' GÜN' }));
+      if (o.sinav) gosYazi.appendChild(el('div', { style: 'color:#ffcf7a', text: U.sinavAdi(o.sinav).toLocaleUpperCase('tr') + ': ' + (o.sinav.gun === 0 ? 'BUGÜN' : o.sinav.gun + ' GÜN') }));
       if (pm.calisiyor) gosYazi.appendChild(el('div', { text: 'POMODORO: ' + (pm.mod === 'calis' ? 'ÇALIŞMA' : 'MOLA') + ' · ' + pm.kalan }));
     }).catch(function () { sirad.textContent = 'Durum alınamadı.'; });
   }

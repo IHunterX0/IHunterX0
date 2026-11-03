@@ -18,7 +18,7 @@
   U.siradakiSinav = function () {
     return Depo.oku('plan').then(function (v) {
       var k = siradaki(v || {});
-      if (k) return { tarih: k.tarih, tur: k.tur || 'Vize', gun: gunFark(k.tarih), ad: k.ad || ((k.tur || 'Vize') + ' komitesi'), komite: true };
+      if (k) return { tarih: k.tarih, tur: k.tur || 'Vize', gun: gunFark(k.tarih), ad: k.ad || ('komite ' + ((k.tur || 'Vize') === 'Vize' ? 'ara sınavı' : 'finali')), komite: true };
       return { tarih: null, tur: (v && v.sinavTuru) || 'hepsi', gun: null, ad: '' };
     }).catch(function () { return { tur: 'hepsi' }; });
   };

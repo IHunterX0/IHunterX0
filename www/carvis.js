@@ -523,11 +523,11 @@
       var s = new Date(), saat = s.getHours();
       var l = ['KULLANICI: ' + (Profil.ad ? 'adı ' + Profil.ad + '. ' : '') + (hitap() ? 'Ona "' + hitap() + '" diye hitap et (her cümlede değil, ara sıra). ' : '') + 'Üslup: ' + (TONLAR[Profil.ton] || TONLAR.jarvis),
         'Şu an: ' + s.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }) + ', saat ' + ('0' + saat).slice(-2) + ':' + ('0' + s.getMinutes()).slice(-2) + (saat >= 0 && saat < 5 ? ' (gece geç saat: gerekirse uykuyu nazikçe hatırlat)' : '') + '.'];
-      if (d) l.push('Çalışma durumu: bugün ' + d.dk + '/' + d.hedef + ' dk, ' + d.seri + ' gün seri' + (d.saat ? ', pomodoro: ' + d.saat : '') + (d.sinav ? ', en yakın sınav ' + d.sinav.kitap + ' (' + d.sinav.gun + ' gün)' : '') + (d.vadeli ? ', ' + d.vadeli + ' vadeli kart' : '') + (d.ilkIs ? ', sıradaki iş: ' + d.ilkIs : '') + '. Bunu yalnız ilgiliyse kullan.');
+      if (d) l.push('Çalışma durumu: bugün ' + d.dk + '/' + d.hedef + ' dk, ' + d.seri + ' gün seri' + (d.saat ? ', pomodoro: ' + d.saat : '') + (d.sinav ? ', en yakın sınav ' + U.sinavAdi(d.sinav) + ' (' + d.sinav.gun + ' gün' + (d.sinav.komite ? '; komite: anatomi, biyokimya, biyofizik, biyoistatistik aynı testte, ayrı ders sınavı yok' : '') + ')' : '') + (d.vadeli ? ', ' + d.vadeli + ' vadeli kart' : '') + (d.ilkIs ? ', sıradaki iş: ' + d.ilkIs : '') + '. Bunu yalnız ilgiliyse kullan.');
       // Akademik hedef (kullanıcı, 2026-11-02): 1. sınıf, yurt dışında PhD/akademik kariyer; sınav haftası tamamen sınava yönelik
       var kalan = d && d.sinav ? d.sinav.gun : null;
       l.push('HEDEF: Öğrenci tıpta 1. sınıf; hedefi yurt dışında PhD ve akademik kariyer. ' + (kalan != null && kalan <= 7
-        ? 'ŞU AN SINAV HAFTASI (' + d.sinav.kitap + ' sınavına ' + kalan + ' gün): yalnız sınava yönelik konuş — çıkmış soru mantığı, tuzaklar, kısa özet; akademik ayrıntıya girme.'
+        ? 'ŞU AN SINAV HAFTASI (' + U.sinavAdi(d.sinav) + ' için ' + kalan + ' gün): yalnız sınava yönelik konuş — çıkmış soru mantığı, tuzaklar, kısa özet; akademik ayrıntıya girme.'
         : 'Sınava ' + (kalan != null ? kalan + ' gün var' : 'tarih girilmemiş') + ': cevabı sınav bilgisiyle bitir ama DERİNLEŞTİR — mekanizma ve "neden", terimin İngilizcesi, konunun güncel araştırma bağlantısı ya da klasik bir deney/keşif (bilmiyorsan uydurma). Uygun düştüğünde küçük bir araştırma sorusu ya da İngilizce okuma önerisi yap.'));
       if (gz) l.push('GÖZLEMLER (gerçek veri; çıkarım yaparken yalnız bunlara ve sohbete dayan): ' + gz + '.');
       l.push(DUSUNME);
@@ -550,7 +550,7 @@
     var zs = saat < 5 ? 'İyi geceler' : saat < 12 ? 'Günaydın' : saat < 18 ? 'İyi günler' : 'İyi akşamlar';
     return calismaDurumu(2500).then(function (d) {
       var p = [zs + (h ? ' ' + h : '') + '.'];
-      if (d && d.sinav) p.push((d.sinav.kitap.charAt(0).toUpperCase() + d.sinav.kitap.slice(1)) + ' sınavına ' + d.sinav.gun + ' gün var.');
+      if (d && d.sinav) { var sa = U.sinavAdi(d.sinav); p.push(sa.charAt(0).toUpperCase() + sa.slice(1) + (d.sinav.gun === 0 ? ' bugün.' : 'ne ' + d.sinav.gun + ' gün var.')); }
       if (d && d.vadeli) p.push(d.vadeli + ' tekrar kartı seni bekliyor.');
       if (d && d.seri > 1) p.push(d.seri + ' gündür serini koruyorsun.');
       p.push(Profil.ton === 'resmi' ? 'Sizi dinliyorum.' : 'Dinliyorum.');
