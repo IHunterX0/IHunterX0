@@ -1498,3 +1498,13 @@
 
     return-void
 .end method
+
+.method public zvAyar(FFFI)V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {p1, p2, p3, p4}, Lcom/dogac/bin1/CarvisZv;->ayar(FFFI)V
+
+    return-void
+.end method

@@ -30,6 +30,8 @@ public final class CarvisZv {
     static OfflineTts tts;
     static float[] ornekSes; static int ornekSr; static String ornekMetin;
     static volatile boolean indiriliyor; static volatile int yuzde; static volatile String hata = "";
+    static volatile float perdeYt = 0f, basDb = 0f, parlakDb = 0f; static volatile int adim = 8;
+    public static void ayar(float perde, float bas, float parlak, int adimSayisi) { perdeYt = perde; basDb = bas; parlakDb = parlak; adim = Math.max(4, Math.min(12, adimSayisi)); }
     static volatile int nesil; // her konus/sus çağrısında artar; eski üretim/çalma kendini durdurur
     static volatile AudioTrack calan;
     static final Object yaziKilit = new Object();
@@ -95,7 +97,7 @@ public final class CarvisZv {
             if (tts != null) return;
             File d = dizin(c);
             if (model(c).length() != MODEL_BOYUT) throw new Exception("model indirilmedi");
-            File surum = new File(d, "varliklar.surum"); String sv = "4";
+            File surum = new File(d, "varliklar.surum"); String sv = "5";
             boolean guncel = false; try { FileInputStream f = new FileInputStream(surum); byte[] b = new byte[8]; int n = f.read(b); f.close(); guncel = n > 0 && new String(b, 0, n).equals(sv); } catch (Exception e) { }
             AssetManager am = c.getAssets();
             if (!guncel) {
@@ -163,10 +165,11 @@ public final class CarvisZv {
                         for (String s : l) {
                             if (benim != nesil) break;
                             GenerationConfig g = new GenerationConfig();
-                            g.speed = hiz <= 0 ? 1f : hiz; g.numSteps = 4; g.referenceAudio = ornekSes; g.referenceSampleRate = ornekSr; g.referenceText = ornekMetin;
+                            final float oran = (float) Math.pow(2.0, perdeYt / 12.0);
+                            g.speed = (hiz <= 0 ? 1f : hiz) / oran; g.numSteps = adim; g.referenceAudio = ornekSes; g.referenceSampleRate = ornekSr; g.referenceText = ornekMetin;
                             GeneratedAudio a;
                             synchronized (kilit) { a = tts.generateWithConfig(s, g); }
-                            hazir.put(new Object[] { a.samples, a.sampleRate });
+                            hazir.put(new Object[] { ton(a.samples, a.sampleRate, oran), a.sampleRate });
                         }
                     } catch (Throwable e) { try { hazir.put(e); } catch (Exception x) { } }
                     try { hazir.put(BITTI); } catch (Exception x) { }
@@ -184,6 +187,28 @@ public final class CarvisZv {
             MainActivity a = MainActivity.ornek;
             if (a != null) a.js("window.zvBitti&&window.zvBitti(" + JSONObject.quote(id) + "," + (hataMetni == null ? "null" : JSONObject.quote(hataMetni)) + ")");
         } }).start();
+    }
+
+    /** Perde (yeniden örnekleme: süre konuşma hızıyla telafi edildi) + bas/parlaklık ekolayzırı (RBJ peaking biquad). */
+    static float[] ton(float[] x, int sr, float oran) {
+        float[] y = x;
+        if (Math.abs(oran - 1f) > 0.003f) {
+            int n = (int) (x.length / oran); y = new float[n];
+            for (int i = 0; i < n; i++) { double p = i * (double) oran; int j = (int) p; double f = p - j; float a = x[Math.min(j, x.length - 1)], b = x[Math.min(j + 1, x.length - 1)]; y[i] = (float) (a + (b - a) * f); }
+        }
+        if (Math.abs(basDb) > 0.1f) y = tepe(y, sr, 180.0, 1.0, basDb);
+        if (Math.abs(parlakDb) > 0.1f) y = tepe(y, sr, 3200.0, 1.2, parlakDb);
+        float m = 0; for (float v : y) m = Math.max(m, Math.abs(v));
+        if (m > 0.98f) { float k = 0.98f / m; for (int i = 0; i < y.length; i++) y[i] *= k; }
+        return y;
+    }
+    static float[] tepe(float[] x, int sr, double f0, double q, double db) {
+        double A = Math.pow(10, db / 40), w = 2 * Math.PI * f0 / sr, al = Math.sin(w) / (2 * q), c = Math.cos(w);
+        double b0 = 1 + al * A, b1 = -2 * c, b2 = 1 - al * A, a0 = 1 + al / A, a1 = -2 * c, a2 = 1 - al / A;
+        b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+        float[] y = new float[x.length]; double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+        for (int i = 0; i < x.length; i++) { double v = b0 * x[i] + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = (float) v; }
+        return y;
     }
 
     /** Jarvis cilası: hafif presence vurgusu + yumuşak sıkıştırma + kısa yankı (iki gecikmeli kopya). efekt=0 → ham ses. */

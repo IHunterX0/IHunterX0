@@ -23,7 +23,9 @@
     function ayar(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
     z.durum = function () { try { return JSON.parse(K && K.zvDurum ? K.zvDurum() : '{}'); } catch (e) { return {}; } };
     z.acik = function () { if (!K || !K.zvKonus || ayar('zv_acik') !== '1') return false; var d = z.durum(); return !!d.model && !!d.ornek; };
-    z.efekt = function () { var v = parseFloat(ayar('zv_efekt')); return isNaN(v) ? 0.5 : v; };
+    z.efekt = function () { var v = parseFloat(ayar('zv_efekt')); return isNaN(v) ? 0 : v; };
+    z.sayi = function (k, vars) { var v = parseFloat(ayar(k)); return isNaN(v) ? vars : v; };
+    z.uygula = function () { try { if (K && K.zvAyar) K.zvAyar(z.sayi('zv_perde', 0), z.sayi('zv_bas', 0), z.sayi('zv_parlak', 0), Math.round(z.sayi('zv_adim', 8))); } catch (e) {} };
     z.ayar = ayar;
     // Türkçe cevabı Carvis'in İngilizcesine çevirir (önbellekli); çeviri olmazsa metni olduğu gibi döndürür
     z.ingilizce = function (m) {
@@ -60,7 +62,7 @@
             Zv.ingilizce(metin).then(function (en) {
               if (!bekleyenKonus[zid]) return; // bu arada susturuldu
               Zv.bekle[zid] = function (h) { if (!h) { delete bekleyenKonus[zid]; return ok(); } Zv.sonHata = h; var id2 = 'k' + (++sayac); bekleyenKonus[id2] = ok; delete bekleyenKonus[zid]; K.konus(metin, id2, String(hiz)); };
-              K.zvKonus(zid, en, hiz, Zv.efekt());
+              Zv.uygula(); K.zvKonus(zid, en, hiz, Zv.efekt());
             });
             return;
           }
@@ -587,6 +589,13 @@
       zvEf.addEventListener('change', function () { Zv.ayar('zv_efekt', zvEf.value); });
       govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [zvAc, 'Carvis bu sesle İngilizce konuşsun (altyazı Türkçe)']));
       govde.appendChild(satir('Jarvis cilası (netlik + hologram yankısı)', zvEf));
+      [['zv_perde', 'Perde (yarım ton; + daha ince)', -3, 3, 0.5, 0], ['zv_bas', 'Bas (dB; − daha az kalın)', -8, 4, 1, 0], ['zv_parlak', 'Parlaklık (dB)', -4, 6, 0.5, 0], ['zv_adim', 'Kalite (adım; yüksek = daha iyi ama yavaş)', 4, 10, 1, 8]].forEach(function (x) {
+        var r = el('input', { type: 'range', min: String(x[2]), max: String(x[3]), step: String(x[4]), value: String(Zv.sayi(x[0], x[5])) });
+        var et = el('span', { text: x[1] + ': ' + r.value });
+        r.addEventListener('input', function () { et.textContent = x[1] + ': ' + r.value; });
+        r.addEventListener('change', function () { Zv.ayar(x[0], r.value); Zv.uygula(); });
+        govde.appendChild(satir(et, r));
+      });
       govde.appendChild(el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [zvIndir, zvDene]));
       govde.appendChild(zvDurumP);
       Zv.ciz();

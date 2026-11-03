@@ -38,7 +38,7 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
   `espeak-ng-data` (yalnız en_dict), `lexicon.txt` (boş olmasın diye "a a"), `ornek.wav`/`ornek.txt` (konuşan ses örneği).
 - `fm_decoder_int8.onnx` (~125 MB) ilk kullanımda HF'ten indirilir (`CarvisZv.indir`).
 - JS: `Zv` (carvis.js) Türkçe cevabı İngilizceye çevirip `K.zvKonus` ile konuşturur, altyazı Türkçe kalır; hata olursa Android TTS'e döner.
-- **Konuşan ses örneği yalnız sesin sahibinin rızasıyla verilen ham kayıttan** seçilir (şimdilik lisanslı Piper en_GB-alan örneği).
+- **Konuşan ses örneği yalnız sesin sahibinin rızasıyla verilen ham kayıttan** seçilir (r37: kullanıcının kendi ham ses kaydından seçilen 8 sn; APK içinde, repoda değil). Seçim: iki kayıttaki tüm 6–12 sn cümle pencereleri ZipVoice ile denendi, eres2net+CAM++ konuşmacı benzerliğiyle puanlandı, son karar kullanıcının kulağı.
 
 ## Spotify — neden böyle (kullanıcı testleriyle öğrenildi)
 - Geliştirici modu (2026): sahip Premium olmalı, User Management'a kullanıcı eklenmeli; `/me` artık `product` döndürmüyor;

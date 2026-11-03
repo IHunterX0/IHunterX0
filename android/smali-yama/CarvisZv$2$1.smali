@@ -51,7 +51,7 @@
         }
     .end annotation
 
-    .line 161
+    .line 163
     iput-object p1, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
 
     iput-object p2, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$l:Ljava/util/ArrayList;
@@ -68,9 +68,9 @@
 
 # virtual methods
 .method public run()V
-    .locals 5
+    .locals 7
 
-    .line 163
+    .line 165
     :try_start_0
     iget-object v0, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$l:Ljava/util/ArrayList;
 
@@ -91,7 +91,7 @@
 
     check-cast v1, Ljava/lang/String;
 
-    .line 164
+    .line 166
     iget-object v2, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
 
     iget v2, v2, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
@@ -102,74 +102,99 @@
 
     goto :goto_2
 
-    .line 165
+    .line 167
     :cond_0
     new-instance v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;
 
     invoke-direct {v2}, Lcom/k2fsa/sherpa/onnx/GenerationConfig;-><init>()V
 
-    .line 166
-    iget-object v3, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
+    .line 168
+    sget v3, Lcom/dogac/bin1/CarvisZv;->perdeYt:F
 
-    iget v3, v3, Lcom/dogac/bin1/CarvisZv$2;->val$hiz:F
+    float-to-double v3, v3
 
-    const/4 v4, 0x0
+    const-wide/high16 v5, 0x4028000000000000L    # 12.0
 
-    cmpg-float v3, v3, v4
+    div-double/2addr v3, v5
 
-    if-gtz v3, :cond_1
+    const-wide/high16 v5, 0x4000000000000000L    # 2.0
 
-    const/high16 v3, 0x3f800000    # 1.0f
+    invoke-static {v5, v6, v3, v4}, Ljava/lang/Math;->pow(DD)D
+
+    move-result-wide v3
+
+    double-to-float v3, v3
+
+    .line 169
+    iget-object v4, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
+
+    iget v4, v4, Lcom/dogac/bin1/CarvisZv$2;->val$hiz:F
+
+    const/4 v5, 0x0
+
+    cmpg-float v4, v4, v5
+
+    if-gtz v4, :cond_1
+
+    const/high16 v4, 0x3f800000    # 1.0f
 
     goto :goto_1
 
     :cond_1
-    iget-object v3, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
+    iget-object v4, p0, Lcom/dogac/bin1/CarvisZv$2$1;->this$0:Lcom/dogac/bin1/CarvisZv$2;
 
-    iget v3, v3, Lcom/dogac/bin1/CarvisZv$2;->val$hiz:F
+    iget v4, v4, Lcom/dogac/bin1/CarvisZv$2;->val$hiz:F
 
     :goto_1
-    iput v3, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->speed:F
+    div-float/2addr v4, v3
 
-    const/4 v3, 0x4
+    iput v4, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->speed:F
 
-    iput v3, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->numSteps:I
+    sget v4, Lcom/dogac/bin1/CarvisZv;->adim:I
 
-    sget-object v3, Lcom/dogac/bin1/CarvisZv;->ornekSes:[F
+    iput v4, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->numSteps:I
 
-    iput-object v3, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceAudio:[F
+    sget-object v4, Lcom/dogac/bin1/CarvisZv;->ornekSes:[F
 
-    sget v3, Lcom/dogac/bin1/CarvisZv;->ornekSr:I
+    iput-object v4, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceAudio:[F
 
-    iput v3, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceSampleRate:I
+    sget v4, Lcom/dogac/bin1/CarvisZv;->ornekSr:I
 
-    sget-object v3, Lcom/dogac/bin1/CarvisZv;->ornekMetin:Ljava/lang/String;
+    iput v4, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceSampleRate:I
 
-    iput-object v3, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceText:Ljava/lang/String;
+    sget-object v4, Lcom/dogac/bin1/CarvisZv;->ornekMetin:Ljava/lang/String;
 
-    .line 168
-    sget-object v3, Lcom/dogac/bin1/CarvisZv;->kilit:Ljava/lang/Object;
+    iput-object v4, v2, Lcom/k2fsa/sherpa/onnx/GenerationConfig;->referenceText:Ljava/lang/String;
 
-    monitor-enter v3
+    .line 171
+    sget-object v4, Lcom/dogac/bin1/CarvisZv;->kilit:Ljava/lang/Object;
+
+    monitor-enter v4
     :try_end_0
     .catchall {:try_start_0 .. :try_end_0} :catchall_1
 
     :try_start_1
-    sget-object v4, Lcom/dogac/bin1/CarvisZv;->tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
+    sget-object v5, Lcom/dogac/bin1/CarvisZv;->tts:Lcom/k2fsa/sherpa/onnx/OfflineTts;
 
-    invoke-virtual {v4, v1, v2}, Lcom/k2fsa/sherpa/onnx/OfflineTts;->generateWithConfig(Ljava/lang/String;Lcom/k2fsa/sherpa/onnx/GenerationConfig;)Lcom/k2fsa/sherpa/onnx/GeneratedAudio;
+    invoke-virtual {v5, v1, v2}, Lcom/k2fsa/sherpa/onnx/OfflineTts;->generateWithConfig(Ljava/lang/String;Lcom/k2fsa/sherpa/onnx/GenerationConfig;)Lcom/k2fsa/sherpa/onnx/GeneratedAudio;
 
     move-result-object v1
 
-    monitor-exit v3
+    monitor-exit v4
     :try_end_1
     .catchall {:try_start_1 .. :try_end_1} :catchall_0
 
-    .line 169
+    .line 172
     :try_start_2
     iget-object v2, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$hazir:Ljava/util/concurrent/LinkedBlockingQueue;
 
-    iget-object v3, v1, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->samples:[F
+    iget-object v4, v1, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->samples:[F
+
+    iget v5, v1, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->sampleRate:I
+
+    invoke-static {v4, v5, v3}, Lcom/dogac/bin1/CarvisZv;->ton([FIF)[F
+
+    move-result-object v3
 
     iget v1, v1, Lcom/k2fsa/sherpa/onnx/GeneratedAudio;->sampleRate:I
 
@@ -185,15 +210,15 @@
     :try_end_2
     .catchall {:try_start_2 .. :try_end_2} :catchall_1
 
-    .line 170
+    .line 173
     goto :goto_0
 
-    .line 168
+    .line 171
     :catchall_0
     move-exception v0
 
     :try_start_3
-    monitor-exit v3
+    monitor-exit v4
     :try_end_3
     .catchall {:try_start_3 .. :try_end_3} :catchall_0
 
@@ -202,7 +227,7 @@
     :try_end_4
     .catchall {:try_start_4 .. :try_end_4} :catchall_1
 
-    .line 171
+    .line 174
     :catchall_1
     move-exception v0
 
@@ -222,7 +247,7 @@
     :goto_2
     nop
 
-    .line 172
+    .line 175
     :try_start_6
     iget-object v0, p0, Lcom/dogac/bin1/CarvisZv$2$1;->val$hazir:Ljava/util/concurrent/LinkedBlockingQueue;
 
@@ -237,7 +262,7 @@
     :catch_1
     move-exception v0
 
-    .line 173
+    .line 176
     :goto_3
     return-void
 .end method

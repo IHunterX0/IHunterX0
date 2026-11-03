@@ -38,7 +38,7 @@
         }
     .end annotation
 
-    .line 153
+    .line 155
     iput-object p1, p0, Lcom/dogac/bin1/CarvisZv$2;->val$metin:Ljava/lang/String;
 
     iput p2, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
@@ -59,10 +59,10 @@
 .method public run()V
     .locals 8
 
-    .line 154
+    .line 156
     nop
 
-    .line 156
+    .line 158
     :try_start_0
     invoke-static {}, Lcom/dogac/bin1/CarvisZv;->bag()Landroid/content/Context;
 
@@ -70,27 +70,27 @@
 
     if-eqz v0, :cond_3
 
-    .line 157
+    .line 159
     invoke-static {v0}, Lcom/dogac/bin1/CarvisZv;->yukle(Landroid/content/Context;)V
 
-    .line 158
+    .line 160
     iget-object v0, p0, Lcom/dogac/bin1/CarvisZv$2;->val$metin:Ljava/lang/String;
 
     invoke-static {v0}, Lcom/dogac/bin1/CarvisZv;->cumleler(Ljava/lang/String;)Ljava/util/ArrayList;
 
     move-result-object v0
 
-    .line 159
+    .line 161
     new-instance v1, Ljava/util/concurrent/LinkedBlockingQueue;
 
     invoke-direct {v1}, Ljava/util/concurrent/LinkedBlockingQueue;-><init>()V
 
-    .line 160
+    .line 162
     new-instance v2, Ljava/lang/Object;
 
     invoke-direct {v2}, Ljava/lang/Object;-><init>()V
 
-    .line 161
+    .line 163
     new-instance v3, Ljava/lang/Thread;
 
     new-instance v4, Lcom/dogac/bin1/CarvisZv$2$1;
@@ -99,30 +99,30 @@
 
     invoke-direct {v3, v4}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
-    .line 174
+    .line 177
     invoke-virtual {v3}, Ljava/lang/Thread;->start()V
 
-    .line 176
+    .line 179
     :goto_0
     invoke-virtual {v1}, Ljava/util/concurrent/LinkedBlockingQueue;->take()Ljava/lang/Object;
 
     move-result-object v0
 
-    .line 177
+    .line 180
     if-ne v0, v2, :cond_0
 
-    .line 183
+    .line 186
     const/4 v0, 0x0
 
     goto :goto_1
 
-    .line 178
+    .line 181
     :cond_0
     instance-of v3, v0, Ljava/lang/Throwable;
 
     if-nez v3, :cond_2
 
-    .line 179
+    .line 182
     iget v3, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
 
     sget v4, Lcom/dogac/bin1/CarvisZv;->nesil:I
@@ -131,11 +131,11 @@
 
     goto :goto_0
 
-    .line 180
+    .line 183
     :cond_1
     check-cast v0, [Ljava/lang/Object;
 
-    .line 181
+    .line 184
     iget v3, p0, Lcom/dogac/bin1/CarvisZv$2;->val$benim:I
 
     const/4 v4, 0x0
@@ -170,16 +170,16 @@
 
     invoke-static {v3, v4, v0}, Lcom/dogac/bin1/CarvisZv;->cal(I[FI)V
 
-    .line 182
+    .line 185
     goto :goto_0
 
-    .line 178
+    .line 181
     :cond_2
     check-cast v0, Ljava/lang/Throwable;
 
     throw v0
 
-    .line 156
+    .line 158
     :cond_3
     new-instance v0, Ljava/lang/Exception;
 
@@ -191,7 +191,7 @@
     :try_end_0
     .catchall {:try_start_0 .. :try_end_0} :catchall_0
 
-    .line 183
+    .line 186
     :catchall_0
     move-exception v0
 
@@ -229,11 +229,11 @@
 
     move-result-object v0
 
-    .line 184
+    .line 187
     :goto_1
     sget-object v1, Lcom/dogac/bin1/MainActivity;->ornek:Lcom/dogac/bin1/MainActivity;
 
-    .line 185
+    .line 188
     if-eqz v1, :cond_5
 
     new-instance v2, Ljava/lang/StringBuilder;
@@ -290,7 +290,7 @@
 
     invoke-virtual {v1, v0}, Lcom/dogac/bin1/MainActivity;->js(Ljava/lang/String;)V
 
-    .line 186
+    .line 189
     :cond_5
     return-void
 .end method
