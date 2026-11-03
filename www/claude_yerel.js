@@ -411,6 +411,7 @@
   sample.json = function (input, o) { return zincirle(groqJson, anaJson, input, o); };
   sample.limits = geminiSample.limits;
   function sagGecici(x) { return { id: x.id || 'gecici', ad: x.ad || 'Sağlayıcı', api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true, zincir: function () { return (x.modeller || []).slice(0, 1); }, ince: function () {} }; }
+  window.yerelAyar.ag = function (url, o) { return agIstegi(url, o || {}, { yerelAg: true }); }; // genel: Android üzerinden istek (GitHub vb.)
   window.yerelAyar.saglayici = {
     hazir: HAZIR_SAGLAYICI, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
     // Bağlantı testi: ilk modelle kısa bir istek

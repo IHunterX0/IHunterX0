@@ -64,6 +64,37 @@
       });
     });
   }
+  /* ---- Claude'a gönder (kullanıcı, 2026-11-03: "istekler otomatik Claude'a iletilsin; onaylarsam direkt senin önüne düşsün",
+     "günde birkaç kez claude oturumu açılsın checklesin"). Onaylanan öneri GitHub'da "[Carvis] …" başlıklı iş olarak açılır;
+     zamanlanmış Claude oturumları bu işleri alır, uygular ve işin altına yorum yazar. Anahtar yalnız bu cihazda. ---- */
+  var REPO = 'IHunterX0/IHunterX0';
+  function ghAnahtar() { try { return localStorage.getItem('github_is_anahtari') || ''; } catch (e) { return ''; } }
+  function gh(yol, o) {
+    var k = ghAnahtar(); if (!k) return Promise.reject(new Error('GitHub iş anahtarı girilmemiş (aşağıdaki "Claude bağlantısı" bölümü).'));
+    var url = 'https://api.github.com' + yol, opt = { method: (o && o.method) || 'GET', headers: { Authorization: 'Bearer ' + k, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'CARVIS' } };
+    if (o && o.body) { opt.body = JSON.stringify(o.body); opt.headers['Content-Type'] = 'application/json'; }
+    var ag = window.yerelAyar && window.yerelAyar.ag ? window.yerelAyar.ag(url, opt) : fetch(url, opt);
+    return ag.then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error('GitHub ' + r.status + ': ' + (j.message || '') + (r.status === 403 || r.status === 404 ? ' — anahtarın bu repoda "Issues: Read and write" izni olmalı.' : '')); return j; }); });
+  }
+  function claudeyaGonder(id) {
+    return oku().then(function (v) {
+      var o = v.liste.filter(function (x) { return x.id === id; })[0]; if (!o) throw new Error('Öneri bulunamadı.');
+      if (o.is) return o.is;
+      var baslik = '[Carvis] ' + ((o.d && o.d.baslik) || o.metin.slice(0, 60));
+      var govde = topluIstem([o]) + '\n\n---\n_Carvis öneri kutusundan, kullanıcı onayıyla gönderildi · öneri-id: ' + o.id + '_';
+      return gh('/repos/' + REPO + '/issues', { method: 'POST', body: { title: baslik, body: govde } }).then(function (j) {
+        var is = { no: j.number, url: j.html_url, t: Date.now() };
+        return guncelle(function (w) { w.liste.forEach(function (x) { if (x.id === id) { x.is = is; x.onay = true; } }); }).then(function () { return is; });
+      });
+    });
+  }
+  function isDurumu(o) {
+    if (!o.is) return Promise.resolve(null);
+    return Promise.all([gh('/repos/' + REPO + '/issues/' + o.is.no), gh('/repos/' + REPO + '/issues/' + o.is.no + '/comments?per_page=5')]).then(function (r) {
+      var is = r[0], y = r[1] || [], son = y[y.length - 1];
+      return { acik: is.state === 'open', yorum: son ? String(son.body || '').replace(/\s+/g, ' ').slice(0, 220) : '', yorumSayisi: is.comments || 0 };
+    });
+  }
   function istemMetni(o, sira) {
     var d = o.d || {};
     return (sira ? sira + '. ' : '') + (d.baslik || 'İstek') + '\n' +
@@ -119,6 +150,11 @@
     var degD = el('button', { class: 'dugme', type: 'button', text: '↻ Değerlendirilmemişleri değerlendir' });
     sayfa.appendChild(el('div', { class: 'ok-giris' }, [metin, el('div', { class: 'ok-dugmeler' }, [ekleD, aiD, degD, kopyaD]), durum]));
     var liste = el('div'); sayfa.appendChild(liste);
+    var ghIn = el('input', { type: 'password', value: ghAnahtar(), placeholder: 'GitHub iş anahtarı (github_pat_…)', autocomplete: 'off', style: 'flex:1;min-width:220px;background:var(--zemin);border:1px solid var(--cizgi);border-radius:6px;color:var(--metin);padding:8px 10px' });
+    var ghSonuc = el('p', { class: 'var-etiket', 'aria-live': 'polite' });
+    sayfa.appendChild(el('div', { class: 'ok-kart' }, [el('b', { text: '🔗 Claude bağlantısı' }),
+      el('p', { class: 'var-etiket', text: 'Onayladığın öneriler GitHub\'da "[Carvis] …" işi olarak açılır; Claude günde birkaç kez bakıp uygular ve işin altına yazar. Gereken: yalnız ' + REPO + ' reposu için "Issues: Read and write" izinli bir GitHub anahtarı (github.com/settings/personal-access-tokens/new → Only select repositories → ' + REPO + ' → Repository permissions → Issues: Read and write). Anahtar yalnız bu cihazda saklanır.' }),
+      el('div', { class: 'ok-dugmeler' }, [ghIn, el('button', { class: 'dugme kucuk', type: 'button', text: 'Kaydet ve dene', onclick: function () { try { localStorage.setItem('github_is_anahtari', ghIn.value.trim()); } catch (e) {} ghSonuc.textContent = 'Deneniyor…'; gh('/repos/' + REPO).then(function (j) { ghSonuc.textContent = '✓ Bağlandı: ' + j.full_name + (j.private ? ' (gizli)' : ' (HERKESE AÇIK — gizli yapman önerilir)') + (j.has_issues === false ? ' · ⚠ bu repoda Issues kapalı: Settings → Features → Issues' : ''); }, function (e) { ghSonuc.textContent = '✗ ' + e.message; }); } })]), ghSonuc]));
     function ciz() {
       return oku().then(function (v) {
         liste.innerHTML = '';
@@ -139,6 +175,9 @@
               ])
             ]),
             el('div', { class: 'ok-dugmeler' }, [
+              o.is ? el('a', { class: 'dugme kucuk', href: o.is.url, target: '_blank', rel: 'noopener', text: '↗ İş #' + o.is.no }) :
+                o.durum === 'acik' ? el('button', { class: 'dugme kucuk ana', type: 'button', text: '✓ Onayla → Claude\'a gönder', onclick: function () { var b = this; b.disabled = true; b.textContent = 'Gönderiliyor…'; claudeyaGonder(o.id).then(function () { durum.textContent = '✓ Gönderildi: Claude bir sonraki kontrolde ele alacak.'; ciz(); }, function (e) { b.disabled = false; b.textContent = '✓ Onayla → Claude\'a gönder'; durum.textContent = '✗ ' + e.message; }); } }) : null,
+              o.is ? el('button', { class: 'dugme kucuk', type: 'button', text: '🔄 Claude ne dedi?', onclick: function () { var b = this; b.textContent = 'Bakılıyor…'; isDurumu(o).then(function (d) { b.textContent = '🔄 Claude ne dedi?'; durum.textContent = d ? ('İş #' + o.is.no + ' · ' + (d.acik ? 'açık' : 'kapandı (tamam)') + ' · ' + d.yorumSayisi + ' yorum' + (d.yorum ? ' · son: ' + d.yorum : '')) : ''; if (d && !d.acik) guncelle(function (w) { w.liste.forEach(function (x) { if (x.id === o.id) x.durum = 'yapildi'; }); }).then(ciz); }, function (e) { b.textContent = '🔄 Claude ne dedi?'; durum.textContent = '✗ ' + e.message; }); } }) : null,
               el('button', { class: 'dugme kucuk', type: 'button', text: '📋 Kopyala', onclick: function () { kopyala(topluIstem([o])); } }),
               el('button', { class: 'dugme kucuk', type: 'button', text: d ? '↻ Yeniden değerlendir' : '✦ Değerlendir', onclick: function () { var b = this; b.disabled = true; b.textContent = 'Değerlendiriliyor…'; degerlendirKaydet(o.id).then(ciz, function (e) { b.disabled = false; b.textContent = '✦ Değerlendir'; durum.textContent = '✗ ' + e.message; }); } }),
               o.durum === 'acik' ? el('button', { class: 'dugme kucuk', type: 'button', text: '✓ Yapıldı', onclick: function () { guncelle(function (v) { v.liste.forEach(function (x) { if (x.id === o.id) x.durum = 'yapildi'; }); }).then(ciz); } })
