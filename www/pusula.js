@@ -34,7 +34,10 @@
       }, function (e) { if (on && on.veri) { V = on; V.eski = true; return V; } throw e; });
     }).then(function (v) { yukleniyor = null; komiteAktar(v); return v; }, function (e) { yukleniyor = null; throw e; });
   }
-  function ayar() { return Depo.oku('pusula').then(function (a) { a = a || {}; a.program = a.program || 'TR'; return a; }); }
+  // kişiye özel varsayılan (www/ozel-pusula.js — gitignore'da, yalnız kullanıcıya giden yamada): numara girilmemişse kullanılır
+  function ayar() { return Depo.oku('pusula').then(function (a) { a = a || {}; a.program = a.program || 'TR';
+    var oz = window.CARVIS_OZEL || {}; if (!a.numara && oz.numara) { a.numara = String(oz.numara); U.depoGuncelle('pusula', function (d) { if (!d.numara) d.numara = a.numara; }, 100); }
+    return a; }); }
   function grupBul(no) {
     if (!V || !no) return ''; var n = Number(no);
     for (var i = 0; i < V.veri.gruplar.length; i++) { var g = V.veri.gruplar[i], bas = Number(g.bas), bit = g.bit ? Number(g.bit) : null; if (bit != null && n >= bas && n <= bit) return g.grup; }
