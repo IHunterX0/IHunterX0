@@ -30,6 +30,15 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Carvis ana ekran / launcher (r66 TAM APK — yeni yama tabanı)
+- Manifest: MainActivity'ye `MAIN + HOME + DEFAULT` intent-filter (metin hâli `android/manifest/AndroidManifest.metin.xml`).
+  Üretim: `apktool d -s --no-assets <apk> -o tmpman` → metni düzenle → `apktool b tmpman` → çıkan ikili AndroidManifest.xml'i
+  `dec/`e kopyala (public.xml sayesinde kaynak kimlikleri aynı kalır; doğrulandı).
+- `kaynak-yeni/Uygulamalar.java` (+smali): liste (ad, paket, 72 px ikon), baslat, anaEkranAyari (ACTION_HOME_SETTINGS), anaEkranMi,
+  yeniNiyet (onNewIntent'te HOME → JS carvisEv). Kopru: uygulamaListesi(Z), uygulamaBaslat, anaEkranAyari, anaEkranMi.
+- `www/anaekran.js`: #uygulamalar ızgarası (uzun bas → favori), ana panoda UYGULAMALAR paneli, "Ana ekran yap".
+- **Yama tabanı artık r66 commit'i** (`git log --grep "r66" -1`): `python3 araclar/yama_yap.py <r66-commit> rNN …`.
+
 ## Jane tuzakları, canlı mod, sağlık (r65)
 - Jane sekmesinde "Beni kandırmaya çalış": yanlış sezgiyi hedefleyen 7 soru (Doğru/Yanlış + 5 şık), önbellek `janeTuzak2|…`.
 - `canli.js`: Carvis balonu varsayılan "canlı şerit" (son 2 mesaj + giriş, yarı saydam, sürüklenebilir); ⤢ tam sohbet. Sayfa kullanılabilir kalır.

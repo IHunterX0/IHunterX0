@@ -111,6 +111,7 @@
             git: function () { U.git(U.okuHash(k.id, s ? s.bolum : 0)); } }; });
         return kit.concat([
           { ik: 'pusula', ad: 'Program', alt: 'bugünkü dersler, pratikler, komite', git: function () { location.hash = '#pusula'; } },
+          { ik: 'izgara', ad: 'Uygulamalar', alt: 'tabletteki uygulamalar', git: function () { location.hash = '#uygulamalar'; } },
           { ik: 'damla', ad: 'Sağlık', alt: 'su, vitamin, verim, uyku', git: function () { location.hash = '#saglik'; } },
           { ik: 'oynat', ad: 'Reels', alt: 'kaydır, izle, öğren', git: function () { if (U.reelsAc) U.reelsAc(); else location.hash = '#reels'; } },
           { ik: 'makale', ad: 'Makaleler', alt: 'ilgi alanların, yeni araştırmalar', git: function () { location.hash = '#makaleler'; } },

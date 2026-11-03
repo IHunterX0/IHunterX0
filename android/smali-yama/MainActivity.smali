@@ -1197,6 +1197,8 @@
 
     invoke-virtual {p0, p1}, Lcom/dogac/bin1/MainActivity;->uyanIstegi(Landroid/content/Intent;)V
 
+    invoke-static {p1}, Lcom/dogac/bin1/Uygulamalar;->yeniNiyet(Landroid/content/Intent;)V
+
     return-void
 .end method
 

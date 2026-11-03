@@ -1550,3 +1550,47 @@
 
     return-void
 .end method
+
+.method public uygulamaListesi(Z)V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {p1}, Lcom/dogac/bin1/Uygulamalar;->liste(Z)V
+
+    return-void
+.end method
+
+.method public uygulamaBaslat(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {p1, p2}, Lcom/dogac/bin1/Uygulamalar;->baslat(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
+.method public anaEkranAyari()V
+    .locals 0
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/Uygulamalar;->anaEkranAyari()V
+
+    return-void
+.end method
+
+.method public anaEkranMi()Z
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/Uygulamalar;->anaEkranMi()Z
+
+    move-result v0
+
+    return v0
+.end method

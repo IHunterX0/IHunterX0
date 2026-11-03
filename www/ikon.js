@@ -67,7 +67,8 @@
     gunes: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z M12 1v3 M12 20v3 M1 12h3 M20 12h3 M4.2 4.2l2.1 2.1 M17.7 17.7l2.1 2.1 M4.2 19.8l2.1-2.1 M17.7 6.3l2.1-2.1',
     ok: 'M5 12h14 M13 6l6 6-6 6',
     kupa: 'M7 4h10v5a5 5 0 0 1-10 0Z M7 6H4v2a3 3 0 0 0 3 3 M17 6h3v2a3 3 0 0 1-3 3 M12 14v4 M8 21h8',
-    sise: 'M10 2h4 M10 2v5L7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9l-3-4V2 M7 14h10'
+    sise: 'M10 2h4 M10 2v5L7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9l-3-4V2 M7 14h10',
+    izgara: 'M4 4h6v6H4Z M14 4h6v6h-6Z M4 14h6v6H4Z M14 14h6v6h-6Z'
   };
   // emoji → ikon
   var E = {};
@@ -79,7 +80,7 @@
   es('yorum', '💬 🗨 🗨️'); es('buyutec', '🔍 🔎'); es('saray', '🏛 🏛️'); es('dis', '↗ ↗️'); es('grafik', '📈 📊 📉'); es('disli', '⚙️ ⚙'); es('tik', '✅ ✓ ✔ ✔️ ☑️'); es('kahve', '☕');
   es('kosu', '🏃 🏃‍♂️ 🏃‍♀️ 🚴'); es('uyku', '😴 🌙 💤'); es('yemek', '🍽 🍽️ 🍔 🍕 🍞 🍝 🥗 🍎 🍌'); es('termometre', '🌡 🌡️'); es('pil', '🔋'); es('kas', '💪'); es('el', '✋ 🖐 🖐️ 👋');
   es('kep', '🎓'); es('duraklat', '⏸ ⏸️'); es('dalga', '〰 〰️ 🌊'); es('mikrop', '🦠'); es('steteskop', '🩺'); es('seker', '🍬 🍭 🍯 🧁 🍰 🍫'); es('kalkan', '🛡 🛡️'); es('plan', '📋'); es('ev', '🏠');
-  es('enzim', '✂️ ✂'); es('gunes', '☀️ ☀'); es('ok', '➡️ ➡ →'); es('kupa', '🏆 🥇'); es('sise', '🍺 🍷 🥃 🧃 🥤');
+  es('enzim', '✂️ ✂'); es('gunes', '☀️ ☀'); es('ok', '➡️ ➡ →'); es('kupa', '🏆 🥇'); es('sise', '🍺 🍷 🥃 🧃 🥤'); es('izgara', '▦ 📱');
 
   U.IKONLAR = Y;
   U.ikonYol = function (ad) { return Y[ad] || Y[E[ad]] || null; };
