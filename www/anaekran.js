@@ -71,20 +71,21 @@
       'background:radial-gradient(circle,#fff1cf 0 14%,rgba(255,211,138,.6) 22%,rgba(255,211,138,.08) 56%,transparent 70%);box-shadow:0 0 18px rgba(255,200,100,.45);animation:aeNefes 3.6s ease-in-out infinite}',
     '@keyframes aeNefes{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1.08);opacity:1}}',
     'body.rl-acik .ae-nokta{display:none}',
-    '.ae-halka{position:fixed;inset:0;z-index:400;display:grid;place-items:center;background:radial-gradient(circle at 50% 50%,rgba(30,22,6,.55),rgba(1,6,9,.92) 70%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:aeAc .35s ease-out}',
+    '.ae-halka{position:fixed;inset:0;z-index:400;display:grid;place-items:center;background:radial-gradient(circle at 50% 50%,rgba(30,22,6,.9),rgba(1,6,9,.97) 70%);animation:aeAc .3s ease-out;contain:strict}',
+    'body.ae-halka-acik #ana,body.ae-halka-acik .kd-kadran,body.ae-halka-acik .jv-buyuk{visibility:hidden}',,
     '.ae-halka.kapaniyor{animation:aeKapa .3s ease-in forwards}',
-    '@keyframes aeAc{from{opacity:0}}@keyframes aeKapa{to{opacity:0;filter:blur(6px)}}',
+    '@keyframes aeAc{from{opacity:0}}@keyframes aeKapa{to{opacity:0}}',
     '.ae-ipucu{position:fixed;top:max(20px,env(safe-area-inset-top));left:0;right:0;text-align:center;font:11px var(--f-kod,monospace);letter-spacing:.2em;color:rgba(255,226,170,.6)}',
     '.ae-sahne{position:relative;width:min(92vmin,660px);height:min(92vmin,660px)}',
     '.ae-cizim{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}',
-    '.ae-don{transform-origin:0 0;animation:aeDon 50s linear infinite}@keyframes aeDon{to{transform:rotate(360deg)}}',
-    '.ae-isin{stroke:rgba(255,226,170,.55);stroke-width:.5;stroke-dasharray:2 3;stroke-dashoffset:60;animation:aeIsin 1.4s linear infinite,aeIsinGir .5s ease-out both}',
+    '.ae-cizim.don{will-change:transform;animation:aeDon 50s linear infinite}@keyframes aeDon{to{transform:rotate(360deg)}}',
+    '.ae-isin{stroke:rgba(255,226,170,.55);stroke-width:.5;stroke-dasharray:2 3;stroke-dashoffset:0;animation:aeIsinGir .5s ease-out both}',
     '@keyframes aeIsin{to{stroke-dashoffset:0}}@keyframes aeIsinGir{from{opacity:0}}',
     '.ae-orta{position:absolute;left:50%;top:50%;width:26%;height:26%;transform:translate(-50%,-50%);border-radius:50%;border:0;background:transparent;cursor:pointer;display:grid;place-items:center}',
     '.ae-orta canvas{position:absolute;inset:0;width:100%;height:100%}.ae-orta span{position:relative;font:700 10px var(--f-kod,monospace);letter-spacing:.24em;color:#ffe2a8;text-shadow:0 0 10px rgba(255,200,100,.8);margin-top:62%}',
     '.ae-dugum{position:absolute;left:50%;top:50%;width:104px;height:128px;margin:-64px 0 0 -52px;border:0;background:transparent;color:#fff4dd;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;' +
       'transform:translate(var(--x),var(--y));animation:aeDugum .55s cubic-bezier(.2,1.4,.4,1) both}',
-    '@keyframes aeDugum{from{transform:translate(0,0) scale(.2);opacity:0;filter:blur(8px)}to{transform:translate(var(--x),var(--y)) scale(1);opacity:1;filter:blur(0)}}',
+    '@keyframes aeDugum{from{transform:translate(0,0) scale(.2);opacity:0}to{transform:translate(var(--x),var(--y)) scale(1);opacity:1}}',
     '.ae-dugum i{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-style:normal;position:relative;overflow:hidden;' +
       'background:radial-gradient(circle,rgba(255,211,138,.16),rgba(20,14,4,.55) 70%);box-shadow:0 0 0 1px rgba(255,211,138,.45),0 0 22px rgba(255,200,100,.22)}',
     '.ae-dugum i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,240,210,.08) 0 1px,transparent 1px 3px);animation:aeTara 2.4s linear infinite;pointer-events:none}',
@@ -93,9 +94,14 @@
     '.ae-dugum span{font:600 12px var(--f-govde,system-ui);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 0 8px rgba(0,0,0,.8)}',
     '.ae-dugum:hover .hki,.ae-dugum:focus-visible .hki{filter:brightness(1.35) drop-shadow(0 0 14px rgba(255,200,100,.6))}',
     '.ae-dugum.secildi{z-index:3;animation:aeSec .42s ease-in forwards}',
-    '@keyframes aeSec{50%{transform:translate(var(--x),var(--y)) scale(1.35);filter:brightness(1.8) drop-shadow(0 0 22px #ffd38a)}100%{transform:translate(0,0) scale(.3);opacity:0;filter:brightness(2.5) blur(4px)}}',
-    '.ae-halka.cokuyor .ae-dugum:not(.secildi){animation:aeCok .35s ease-in forwards}@keyframes aeCok{to{transform:translate(0,0) scale(.2);opacity:0;filter:blur(6px)}}',
+    '@keyframes aeSec{50%{transform:translate(var(--x),var(--y)) scale(1.35);filter:brightness(1.8) drop-shadow(0 0 22px #ffd38a)}100%{transform:translate(0,0) scale(.3);opacity:0}}',
+    '.ae-halka.cokuyor .ae-dugum:not(.secildi){animation:aeCok .35s ease-in forwards}@keyframes aeCok{to{transform:translate(0,0) scale(.2);opacity:0}}',
     '.ae-halka.cokuyor .ae-isinlar{opacity:0;transition:opacity .25s}',
+    /* çemberdeki ikonlar durağan: dönen yay, titreme ve tarama animasyonu yok (her karede filtre yeniden çiziliyordu) */
+    '.ae-halka .hki-yay,.ae-halka .hki-cizim{animation:none!important}.ae-halka .hki::after{display:none}',
+    '.ae-halka .hki-cizim{filter:drop-shadow(0 0 3px var(--hki-r,#ffd38a))}',
+    '.ae-dugum{will-change:transform}',
+    '.ae-kapat{position:fixed;top:calc(18px + env(safe-area-inset-top,0px));right:18px;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,211,138,.5);background:rgba(20,14,4,.7);color:#ffe2a8;font-size:22px;cursor:pointer;z-index:2}',
     'body.ae-hologram .ae-dugum img{filter:grayscale(1) brightness(1.4) sepia(1) hue-rotate(-10deg) saturate(2.2) drop-shadow(0 0 6px rgba(255,200,100,.7))}',
     '@media (prefers-reduced-motion: reduce){.ae-don,.ae-isin,.ae-nokta{animation:none}}'
   ].join('\n');
@@ -154,9 +160,10 @@
      üstteki tuş gibi; pencereleri, animasyonları holografik yap"). Sağ altta amber nokta (sol alttaki menü noktasının eşi) →
      ekranın ortasında favori uygulamalar bir çember üzerinde; merkezden her birine akan ışık çizgileri, dönen çentikli halka;
      seçince ikon ışıyıp büyür, çember merkeze çöker, uygulama açılır. */
-  var halka = null;
+  var halka = null, halkaAcik = false;
   function halkaAc() {
     if (halka) return halkaKapat();
+    if (halkaAcik) return; halkaAcik = true;
     Promise.all([U.uygulamalar(false), favoriler(), stil()]).then(function (r) {
       var L = r[0], F = r[1];
       var l = F.map(function (p) { return L.filter(function (u) { return u.paket === p; })[0]; }).filter(Boolean).slice(0, 11);
@@ -165,7 +172,8 @@
       var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '-100 -100 200 200'); svg.setAttribute('class', 'ae-cizim');
       var h = '<g class="ae-don" fill="none" stroke="rgba(255,211,138,.32)" stroke-width=".35"><circle r="60"/><circle r="68" stroke-dasharray="1 2.6"/><circle r="95" stroke="rgba(255,211,138,.14)"/>';
       for (var i = 0; i < 96; i++) { var aa = i / 96 * Math.PI * 2, r1 = i % 8 ? 91 : 87; h += '<line x1="' + (Math.cos(aa) * r1).toFixed(1) + '" y1="' + (Math.sin(aa) * r1).toFixed(1) + '" x2="' + (Math.cos(aa) * 95).toFixed(1) + '" y2="' + (Math.sin(aa) * 95).toFixed(1) + '"/>'; }
-      h += '</g><g class="ae-isinlar">';
+      h += '</g>'; svg.innerHTML = h; svg.setAttribute('class', 'ae-cizim don'); sahne.appendChild(svg);
+      svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '-100 -100 200 200'); svg.setAttribute('class', 'ae-cizim'); h = '<g class="ae-isinlar">';
       l.forEach(function (u, k) { var a2 = -Math.PI / 2 + k / n * Math.PI * 2; h += '<line class="ae-isin" style="animation-delay:' + (k * 40) + 'ms" x1="' + (Math.cos(a2) * 13).toFixed(1) + '" y1="' + (Math.sin(a2) * 13).toFixed(1) + '" x2="' + (Math.cos(a2) * (R * 200 - 12)).toFixed(1) + '" y2="' + (Math.sin(a2) * (R * 200 - 12)).toFixed(1) + '"/>'; });
       svg.innerHTML = h + '</g>'; sahne.appendChild(svg);
       var orta = el('button', { class: 'ae-orta', type: 'button', 'aria-label': 'Tüm uygulamalar', onclick: function () { halkaKapat(); location.hash = '#uygulamalar'; } }, [el('canvas', { 'aria-hidden': 'true' }), el('span', { text: 'UYGULAMALAR' })]);
@@ -184,13 +192,15 @@
         });
         sahne.appendChild(d); dugumler.push(d);
       });
-      halka = el('div', { class: 'ae-halka', role: 'dialog', 'aria-label': 'Uygulamalar' }, [sahne]);
+      halka = el('div', { class: 'ae-halka', role: 'dialog', 'aria-label': 'Uygulamalar' }, [sahne, el('button', { class: 'ae-kapat', type: 'button', 'aria-label': 'Kapat', text: '✕', onclick: function (e) { e.stopPropagation(); halkaKapat(); } })]);
+      document.body.classList.add('ae-halka-acik');
       halka.addEventListener('click', function (e) { if (e.target === halka || e.target === sahne) halkaKapat(); });
       document.body.appendChild(halka);
       if (window.JarvisKure) new window.JarvisKure(orta.querySelector('canvas'), { kucuk: true, serit: 2, iplik: 4, nokta: 90, kosul: function () { return !!halka; } });
-    }).catch(function (e) { U.toast(e.message || 'Uygulamalar okunamadı'); });
+      halkaAcik = false;
+    }).catch(function (e) { halkaAcik = false; U.toast(e.message || 'Uygulamalar okunamadı'); });
   }
-  function halkaKapat(hizli) { if (!halka) return; var h2 = halka; halka = null; h2.classList.add('kapaniyor'); setTimeout(function () { h2.remove(); }, hizli ? 120 : 320); }
+  function halkaKapat(hizli) { document.body.classList.remove('ae-halka-acik'); if (!halka) return; var h2 = halka; halka = null; h2.classList.add('kapaniyor'); setTimeout(function () { h2.remove(); }, hizli ? 120 : 320); }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && halka) halkaKapat(); });
   window.addEventListener('hashchange', function () { if (halka) halkaKapat(); });
   U.uygulamaHalkasi = halkaAc;
