@@ -103,6 +103,7 @@
   setInterval(tik, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) tik(); });
   var Pomodoro = U.Pomodoro = {
+    anlik: function () { return { calisiyor: !!(Saat.calisiyor && !Saat.duraklatildi), mod: Saat.mod }; }, // müzik önerisi bağlamı
     baslat: function (dk, hedef, oto) {
       return ayarlar().then(function (a) {
         if (dk) U.depoGuncelle('plan', function (v) { v.pomodoro = Object.assign({}, VARSAYILAN, v.pomodoro || {}, { calis: Math.max(5, Math.min(180, +dk)) }); }, 300);

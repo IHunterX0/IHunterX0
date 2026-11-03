@@ -190,31 +190,89 @@
   }
   function yerelKarisim(kutu, ruh, neden) {
     var tercih = kutu.sarkilar.filter(function (x) { return /son|favori/.test(x.k); }), digeri = kutu.sarkilar.filter(function (x) { return !/son|favori/.test(x.k); });
-    var l = karistir(tercih).slice(0, 12).concat(karistir(digeri).slice(0, 6));
+    var l = karistir(tercih.filter(function (x) { return geriPuan(x) > -3; })).sort(function (a, b) { return geriPuan(b) - geriPuan(a); }).slice(0, 14).concat(karistir(digeri.filter(function (x) { return geriPuan(x) > -3; })).slice(0, 8));
+    l = cesitlendir(l).slice(0, 18);
     return { id: Date.now().toString(36), ruh: ruh, baslik: 'Senin favorilerin', yorum: 'Yapay zekâ şu an cevap vermedi (' + neden + '); en çok dinlediklerinden karışık bir liste kurdum.', sarkilar: l, yeniAra: [], t: Date.now(), yerel: true };
   }
+  /* ---- Öğrenen öneri (kullanıcı, 2026-11-03: "müzik kısmındaki AI'ı zekileştir") ----
+     Geri bildirim: Carvis karışımından gelen şarkıyı 30 sn içinde geçmek = beğenmedi, sonuna kadar dinlemek = beğendi,
+     👍/👎 açık oy (ağırlık 3). Bağlam: çalışılan kitap/bölüm, pomodoro, saat. İnce ayar: "daha hareketli" gibi istekler son
+     karışımı düzeltir. Her şarkıya kısa gerekçe. Çeşitlilik kodla: sanatçı başına en çok 2, aynı sanatçı art arda gelmez. */
+  var Geri = oku('spotify_geri_v1', {});
+  function geriAnahtar(a, s2) { return sade(a) + '|' + sade(String(s2 || '').split(',')[0]); }
+  function geriKaydet(a, s2, tur, agirlik) {
+    var k = geriAnahtar(a, s2); if (k === '|') return;
+    var g = Geri[k] = Geri[k] || { a: a, s: s2, begen: 0, atla: 0 };
+    g[tur] = (g[tur] || 0) + (agirlik || 1); g.t = Date.now();
+    var ks = Object.keys(Geri); if (ks.length > 600) { ks.sort(function (x, y) { return (Geri[x].t || 0) - (Geri[y].t || 0); }); delete Geri[ks[0]]; }
+    yaz('spotify_geri_v1', Geri);
+  }
+  function geriPuan(x) { var g = Geri[geriAnahtar(x.a, x.s)]; return g ? (g.begen || 0) - 1.5 * (g.atla || 0) : 0; }
+  function karisimdaki(baslik) { return sonKarisim ? sonKarisim.sarkilar.filter(function (x) { return eslesirAd(baslik, x.a); })[0] || null : null; }
+  // Dinleme izi: çalan şarkı değişince öncekinin ne kadar dinlendiğine bakar (yerel, ağsız)
+  var Iz = null;
+  function izGuncelle(d) {
+    if (!d || !d.var || !d.baslik) return;
+    if (!Iz || Iz.baslik !== d.baslik) {
+      if (Iz && Iz.karisim) { // kayıt karışımdaki şarkının kendi adı/sanatçısıyla (kütüphaneyle eşleşsin)
+        var dinlenen = Iz.enCok, sure = Iz.sure || 0, x = Iz.karisim;
+        if (dinlenen < 30000 && (!sure || dinlenen < sure * 0.4)) geriKaydet(x.a, x.s, 'atla');
+        else if (sure && dinlenen >= sure * 0.8) geriKaydet(x.a, x.s, 'begen');
+      }
+      Iz = { baslik: d.baslik, sure: d.sure || 0, enCok: d.konum || 0, karisim: karisimdaki(d.baslik) };
+    } else { Iz.enCok = Math.max(Iz.enCok, d.konum || 0); if (d.sure) Iz.sure = d.sure; }
+  }
+  setInterval(function () { if (YEREL && sonKarisim) izGuncelle(yDurum()); }, 4000);
+  function cesitlendir(l) {
+    var say = {}, sonuc = [];
+    l.forEach(function (x) { var sa = sade(String(x.s || '').split(',')[0]); say[sa] = (say[sa] || 0) + 1; if (say[sa] <= 2) sonuc.push(x); });
+    for (var i = 1; i < sonuc.length; i++) { // aynı sanatçı art arda gelmesin
+      if (sade(String(sonuc[i].s).split(',')[0]) !== sade(String(sonuc[i - 1].s).split(',')[0])) continue;
+      for (var j = i + 1; j < sonuc.length; j++) if (sade(String(sonuc[j].s).split(',')[0]) !== sade(String(sonuc[i].s).split(',')[0])) { var t = sonuc[i]; sonuc[i] = sonuc[j]; sonuc[j] = t; break; }
+    }
+    return sonuc;
+  }
+  function baglamMetni() {
+    var p = [], Du = U.Durum || {};
+    if (Du.aktifKitap) p.push('şu an çalıştığı: ' + Du.aktifKitap.baslik + (Du.aktifBolum ? ' — ' + (Du.aktifBolum.kisa || Du.aktifBolum.baslik) : ''));
+    try { var P = U.Pomodoro && U.Pomodoro.anlik && U.Pomodoro.anlik(); if (P && P.calisiyor) p.push('pomodoro: ' + (P.mod === 'calis' ? 'odak bloğunda' : 'molada')); } catch (e) {}
+    var sa = new Date().getHours(); p.push('saat ' + sa + ':00' + (sa >= 23 || sa < 5 ? ' (gece geç saat)' : sa < 9 ? ' (sabah)' : ''));
+    return p.join('; ');
+  }
+  var INCE = /^(daha|biraz|az |çok |bunun gibi|buna benzer|benzer|değiştir|çıkar|ekle|yerine|ama |sadece|türkçe|ingilizce|sözsüz|enstrümantal|hareketli|sakin|yavaş|hızlı)/i;
   function ruhHalindenOner(ruh, taze) {
     ruh = String(ruh || '').trim(); if (!ruh) return Promise.reject(new Error('Ruh hâlini yaz.'));
     var anahtar = katla2(ruh);
-    var onbellek = taze ? null : karisimlar().filter(function (x) { return !x.yerel && katla2(x.ruh) === anahtar && Date.now() - x.t < 6 * 3600e3; })[0];
+    var onceki = sonKarisim && Date.now() - (sonKarisim.t || 0) < 3 * 3600e3 && INCE.test(ruh) ? sonKarisim : null;
+    var onbellek = taze || onceki ? null : karisimlar().filter(function (x) { return !x.yerel && katla2(x.ruh) === anahtar && Date.now() - x.t < 6 * 3600e3; })[0];
     if (onbellek) return Promise.resolve(Object.assign({}, onbellek, { yeniAra: [], onbellekten: true }));
     return Promise.all([kutuKaynak(), U.AI ? U.AI.hazir().catch(function () { return false; }) : Promise.resolve(!!(U.Y && U.Y.sample))]).then(function (r) {
       var kutu = r[0];
       if (!r[1]) { if (kutu.sarkilar.length >= 5) return yerelKarisim(kutu, ruh, 'yapay zekâ anahtarı yok'); throw new Error('Öneri için yapay zekâ gerekiyor: Gemini anahtarını gir (ya da Spotify\'da birkaç şarkı dinle, onlardan karıştırayım).'); }
       if (kutu.sarkilar.length < 15) return zevktenOner(kutu, ruh);
-      var l = kutu.sarkilar.slice().sort(function (a, b) { function p(x) { return /son/.test(x.k) ? 0 : /favori/.test(x.k) ? 1 : /begeni/.test(x.k) ? 2 : 3; } return p(a) - p(b); });
-      l = l.slice(0, 120).concat(karistir(l.slice(120)).slice(0, 100)); // en çok dinlenenler + kütüphaneden rastgele bir kesit
-      var istem = 'Sen bir DJ\'sin. Tıp öğrencisi kullanıcının ruh hâli: "' + ruh + '". Saat ' + new Date().getHours() + ':00.\n' +
-        'Aşağıdaki KENDİ şarkılarından (numara|şarkı — sanatçı) bu ruh hâline en uygun 15 tanesini seç; tempo, enerji ve sözlerin duygusunu düşün, akış ruh hâlini yakalayıp istenen yöne taşısın. Ders/odak isteniyorsa az sözlü olanları öne al. ' +
+      // Aday havuzu: çok atlananlar çıkar; beğenilenler + en çok dinlenenler önce, sonra kütüphaneden rastgele kesit
+      var l = kutu.sarkilar.filter(function (x) { return geriPuan(x) > -3; });
+      l.sort(function (a, b) { function p(x) { return -geriPuan(x) * 10 + (/son/.test(x.k) ? 0 : /favori/.test(x.k) ? 1 : /begeni/.test(x.k) ? 2 : 3); } return p(a) - p(b); });
+      l = l.slice(0, 130).concat(karistir(l.slice(130)).slice(0, 90));
+      var sevilen = Object.keys(Geri).filter(function (k) { return Geri[k].begen > Geri[k].atla; }).slice(-10).map(function (k) { return Geri[k].a + ' — ' + Geri[k].s; });
+      var atlanan = Object.keys(Geri).filter(function (k) { return Geri[k].atla > Geri[k].begen; }).slice(-10).map(function (k) { return Geri[k].a + ' — ' + Geri[k].s; });
+      var istem = 'Sen kullanıcıyı iyi tanıyan bir DJ\'sin. Tıp öğrencisi kullanıcının isteği: "' + ruh + '".\nBağlam: ' + baglamMetni() + '.\n' +
+        (onceki ? 'Bu bir İNCE AYAR isteği. Önceki karışım ("' + onceki.ruh + '"): ' + onceki.sarkilar.slice(0, 12).map(function (x) { return x.a + ' — ' + String(x.s).split(',')[0]; }).join('; ') + '. Önceki karışımın havasını koru ama yeni isteğe göre değiştir.\n' : '') +
+        (sevilen.length ? 'Son zamanlarda SEVDİKLERİ (sonuna kadar dinledi / beğendi): ' + sevilen.join('; ') + '\n' : '') +
+        (atlanan.length ? 'ATLADIKLARI (koyma, benzerlerinden de kaçın): ' + atlanan.join('; ') + '\n' : '') +
+        'Aşağıdaki KENDİ şarkılarından (numara|şarkı — sanatçı) 15 tane seç. Tempo, enerji, sözlerin dili ve duygusunu kendi müzik bilginle değerlendir; akış isteği yakalayıp yavaşça istenen yöne taşısın. Odak/ders bağlamında az sözlü ya da tanıdık şarkıları öne al. Her seçime en çok 8 kelimelik Türkçe gerekçe yaz.\n' +
         'Ayrıca zevkine uyan ama listede OLMAYAN, gerçekten var olan 4 şarkı öner.\n' +
-        'YALNIZ JSON yaz: {"baslik":"2-4 kelime","yorum":"1-2 samimi Türkçe cümle","secim":[numaralar],"yeni":["Sanatçı - Şarkı"]}\n\n' +
+        'YALNIZ JSON yaz: {"baslik":"2-4 kelime","yorum":"1-2 samimi Türkçe cümle","secim":[{"n":numara,"neden":"kısa gerekçe"}],"yeni":["Sanatçı - Şarkı"]}\n\n' +
         l.map(function (x, i) { return i + '|' + x.a.slice(0, 50) + ' — ' + x.s.split(',')[0].slice(0, 30); }).join('\n');
-      var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 25 sn\'de cevap vermedi')); }, 25000); });
+      var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 30 sn\'de cevap vermedi')); }, 30000); });
       return Promise.race([U.Y.sample(istem, { cache: false, hafif: true }), zaman]).then(function (c) {
         var j = jsonAyikla(c.text || ''), g = {};
-        var secim = (j.secim || []).map(function (i) { return l[+i]; }).filter(function (x) { if (!x || g[x.id]) return false; g[x.id] = 1; return true; });
+        var secim = (j.secim || []).map(function (v) {
+          var n = typeof v === 'object' && v ? v.n : v, x = l[+n];
+          return x ? Object.assign({}, x, { neden: typeof v === 'object' && v && v.neden ? String(v.neden).slice(0, 80) : '' }) : null;
+        }).filter(function (x) { if (!x || g[x.id]) return false; g[x.id] = 1; return true; });
         if (secim.length < 3) throw new Error('öneri boş geldi');
-        var k = { id: Date.now().toString(36), ruh: ruh, baslik: j.baslik || ruh, yorum: j.yorum || '', sarkilar: secim, yeniAra: (j.yeni || []).slice(0, 4), t: Date.now() };
+        var k = { id: Date.now().toString(36), ruh: onceki ? onceki.ruh + ' → ' + ruh : ruh, baslik: j.baslik || ruh, yorum: j.yorum || '', sarkilar: cesitlendir(secim), yeniAra: (j.yeni || []).slice(0, 4), t: Date.now(), ince: !!onceki };
         if (YEREL) yeniCevir(k); // yerel mod aramayla çaldığı için Spotify araması gerekmez
         karisimSakla(k);
         return k;
@@ -441,7 +499,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.03-r31';
+  var SURUM = '2026.11.03-r32';
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   function sade(t) { return String(t || '').toLocaleLowerCase('tr').replace(/\(.*?\)|\[.*?\]/g, '').replace(/ - .*$/, '').replace(/[^\p{L}\p{N}]/gu, ''); }
@@ -657,6 +715,7 @@
     '.sp-yeni{font:600 9.5px var(--f-kod);letter-spacing:.15em;color:var(--holo-sicak,#ffb547);border:1px solid currentColor;padding:1px 5px}',
     '.sp-durum{font:12px var(--f-kod);color:var(--metin-sonuk);letter-spacing:.05em}',
     '.sp-hata{color:var(--kotu)}',
+    '.sp-oy{display:flex;gap:6px;align-items:center}.sp-oyd{cursor:pointer;opacity:.55;font-size:15px;padding:2px 4px}.sp-oyd:hover{opacity:1}',
     '.sp-sarki.simdi{background:rgba(94,231,255,.14);border-left-color:var(--holo)}.sp-sarki.simdi .n{color:var(--holo)}',
     '.sp-rapor{white-space:pre-wrap;font:12px/1.5 var(--f-kod);background:rgba(2,10,16,.8);border:1px solid rgba(94,231,255,.25);padding:10px;margin-top:10px;max-height:320px;overflow:auto}',
     // mini oynatıcı
@@ -740,7 +799,10 @@
     var l = el('div', { class: 'sp-liste' });
     k.sarkilar.forEach(function (x, i) {
       l.appendChild(el('button', { class: 'sp-sarki', type: 'button', style: 'animation-delay:' + Math.min(i * 30, 600) + 'ms', title: 'Buradan başlat', onclick: function () { basla(i); } },
-        [el('span', { class: 'n', text: String(i + 1).padStart(2, '0') }), el('span', {}, [el('b', { text: x.a }), el('small', { text: x.s })]), x.yeni ? el('span', { class: 'sp-yeni', text: 'YENİ' }) : el('span')]));
+        [el('span', { class: 'n', text: String(i + 1).padStart(2, '0') }), el('span', {}, [el('b', { text: x.a }), el('small', { text: x.s + (x.neden ? ' · ' + x.neden : '') })]),
+          el('span', { class: 'sp-oy' }, [x.yeni ? el('span', { class: 'sp-yeni', text: 'YENİ' }) : null,
+            el('span', { class: 'sp-oyd', role: 'button', title: 'Beğendim', text: geriPuan(x) > 0 ? '💙' : '👍', onclick: function (e) { e.stopPropagation(); geriKaydet(x.a, x.s, 'begen', 3); this.textContent = '💙'; U.toast('Not aldım: ' + x.a + ' 👍'); } }),
+            el('span', { class: 'sp-oyd', role: 'button', title: 'Bunu koyma', text: '👎', onclick: function (e) { e.stopPropagation(); geriKaydet(x.a, x.s, 'atla', 3); this.closest('.sp-sarki').style.opacity = '.35'; U.toast('Bir daha koymam: ' + x.a); } })])]));
     });
     kap.appendChild(l); kuyrukCiz();
   }
@@ -827,7 +889,7 @@
     simdiKap = el('div');
     sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'ŞİMDİ ÇALIYOR' }), simdiKap]));
     simdiKartCiz(); simdiYenile(); if (bagli()) premiumTazele();
-    var giris = el('input', { type: 'text', placeholder: 'Bugün nasılsın? "yorgunum ama 2 saat daha çalışmam lazım"…', 'aria-label': 'Ruh hâli', enterkeyhint: 'go' });
+    var giris = el('input', { type: 'text', placeholder: sonKarisim ? 'Ruh hâlin ya da ince ayar: "biraz daha hareketli", "daha az Türkçe"…' : 'Bugün nasılsın? "yorgunum ama 2 saat daha çalışmam lazım"…', 'aria-label': 'Ruh hâli', enterkeyhint: 'go' });
     var oner = el('button', { class: 'dugme ana', type: 'button' }, ['✦ Öner']);
     var karisimKap = el('div', { class: 'sp-kutu', hidden: !sonKarisim });
     function calistir(ruh) {
