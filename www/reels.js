@@ -41,21 +41,23 @@
   var bellek = {};
   function icerik(it) {
     if (bellek[it.id]) return bellek[it.id];
-    var anahtar = 'reel|' + it.id;
+    var anahtar = 'reel2|' + it.id;
     return bellek[it.id] = Depo.oku(anahtar).then(function (v) {
-      if (v && v.j && v.j.duraklar) return v.j;
+      if (v && v.j && v.j.sahneler) return v.j;
       return Kitaplik.bolumAc(it.kitap, it.sira).then(function (bolum) {
         var a = (bolum.altlar || []).filter(function (x) { return x.id === it.alt; })[0];
         var metin = a && U.altMetin ? U.altMetin(a, 3500) : (U.bolumOzu ? U.bolumOzu(bolum, 3500) : '');
         var ornek = (it.aile || []).slice(0, 2).map(function (f) { var vv = (f.q.varyantlar || [])[0]; return vv ? vv.govde : ''; }).filter(Boolean).join(' | ');
-        return Y.sample.json('Bir tıp öğrencisi için 60 saniyelik, KAYDIRARAK izlenen bir "reels" dersi yaz. Konu: ' + it.kitapAd + ' · ' + it.bolum + ' · ' + it.konu + '.\n' +
-          'Teknik: HAFIZA SARAYI (method of loci). Tanıdık bir mekân seç (ör. öğrencinin evi, fakülte koridoru, hastane acili) ve ' + DURAK + ' durak kur: her durakta konunun bir bilgisini, ABARTILI, komik ya da şok edici, görsel bir imgeye bağla (imge bilgiyi hatırlatmalı).\n' +
+        return Y.sample.json('Bir tıp öğrencisi için ~60-80 saniyelik, KAYDIRARAK izlenen, ANİMASYONLU ve ETKİLEŞİMLİ bir "reels" dersi yaz. Konu: ' + it.kitapAd + ' · ' + it.bolum + ' · ' + it.konu + '.\n' +
           'YALNIZ aşağıdaki kitap metnine dayan; sayılar ve terimler doğru olsun. Türkçe, kısa cümleler.' + (ornek ? ' Bu konudan çıkmış sorular: ' + ornek.slice(0, 600) : '') + '\n' +
-          'YALNIZ JSON: {"kanca":"ilk 3 saniyede merak uyandıran tek cümle","mekan":"saray mekânı","duraklar":[{"yer":"durak (ör. kapı)","sembol":"tek emoji","imge":"çarpıcı imge, en fazla 14 kelime","bilgi":"bilgi, en fazla 16 kelime","anahtar":"1-3 kelime"}],"ozet":"akılda kalsın: tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"Jane tarzı hap bilgi/tuzak, en fazla 22 kelime","begeni":sayi}],"soru":{"soru":"ayırt edici tek soru","siklar":["A","B","C","D","E"],"dogru":0,"aciklama":"neden, ayırt edici nokta"}}\n' +
-          'yorumlar: 6 yorum; 3 tanesi patrick.jane (sınav tuzağı, karıştırılan çift, kestirme), 3 tanesi farklı öğrenci kullanıcı adlarıyla (esprili, soru soran, kendi hafıza kancasını paylaşan). duraklar tam ' + DURAK + ' tane.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
+          'Akış: 1) kanca sahnesi (merak uyandıran soru/şaşırtıcı bilgi) 2) mekanizmayı ANİMASYONLA gösteren sahneler 3) HAFIZA SARAYI: tanıdık bir mekânda 2-3 durak (arka "koridor"; büyük ikon = abartılı imge, yazı = bilgi) 4) soru sahneleri 5) "akılda kalsın" kapanışı.\n' +
+          U.Animasyon.SENARYO_KURALI + '\n' +
+          'YALNIZ JSON: {"baslik":"kısa","sahneler":[...],"saray":{"mekan":"…","duraklar":[{"yer":"…","sembol":"emoji","imge":"abartılı imge","bilgi":"bilgi","anahtar":"1-3 kelime"}]},"ozet":"tek cümle","yorumlar":[{"ad":"patrick.jane","metin":"…","begeni":sayi}]}\n' +
+          'saray: 4-5 durak. yorumlar: 6 yorum; 3 tanesi patrick.jane (sınav tuzağı, karıştırılan çift, kestirme), 3 tanesi farklı öğrenci kullanıcı adlarıyla.\n\nKİTAP METNİ:\n"""\n' + metin + '\n"""', { cache: false })
           .then(function (j) {
-            if (!j || !j.duraklar || !j.duraklar.length) throw new Error('reel üretilemedi');
-            j.duraklar = j.duraklar.slice(0, DURAK);
+            if (!j || !j.sahneler || !j.sahneler.length) throw new Error('reel üretilemedi');
+            if (j.saray && j.saray.duraklar) { j.mekan = j.saray.mekan; j.duraklar = j.saray.duraklar.slice(0, 6); } else j.duraklar = [];
+            j.soru = j.soru || (j.sahneler.filter(function (x) { return x && x.tip === 'soru'; }).slice(-1)[0]) || null;
             U.depoGuncelle(anahtar, function (d) { d.j = j; d.t = Date.now(); }, 200);
             return j;
           });
@@ -70,7 +72,9 @@
     '.rl{position:fixed;inset:0;z-index:300;background:radial-gradient(ellipse at 50% 40%,#06222a,#01070a 70%);overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}',
     '.rl::-webkit-scrollbar{display:none}',
     '.rl-reel{position:relative;height:100vh;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;display:flex;align-items:center;justify-content:center}',
-    '.rl-reel canvas{position:absolute;inset:0;width:100%;height:100%}',
+    '.rl-reel > canvas{position:absolute;inset:0;width:100%;height:100%}',
+    '.rl-sahnekap{position:absolute;left:0;right:80px;top:56px;bottom:20px}',
+    '@media (max-width:640px){.rl-sahnekap{right:64px}}',
     '.rl-ic{position:relative;width:min(720px,calc(100vw - 110px));display:flex;flex-direction:column;gap:14px;align-items:flex-start;padding:80px 20px 120px}',
     '.rl-konu{font:600 11px var(--f-kod,monospace);letter-spacing:.24em;color:#7fe8da;text-transform:uppercase;text-shadow:0 0 10px rgba(94,240,220,.6)}',
     '.rl-kanca{font:700 clamp(24px,4.4vw,40px)/1.18 var(--f-baslik,system-ui);color:#f0fffc;text-shadow:0 0 22px rgba(94,240,220,.55);animation:rlGir .7s cubic-bezier(.2,.9,.2,1.2) both}',
@@ -194,35 +198,24 @@
     begen.addEventListener('click', function () { begenToggle(false); });
     var sonDokun = 0;
     kok.addEventListener('pointerup', function (e) { if (e.target.closest('button, select, .rl-sayfa')) return; var n = Date.now(); if (n - sonDokun < 320) { begenToggle(true); var k = el('div', { class: 'rl-kalp', text: '♥', style: 'left:' + (e.clientX - 50) + 'px;top:' + (e.clientY - 70) + 'px;color:#ff6b8a' }); kok.appendChild(k); setTimeout(function () { k.remove(); }, 900); } sonDokun = n; });
+    var sahneKap = el('div', { class: 'rl-sahnekap' }); kok.insertBefore(sahneKap, sag);
     r.basla = function () {
-      r.bitti = false; r.durak = -1; ilerI.style.width = '0';
-      if (!ap) ap = arkaPlan(cv, i % 2);
+      r.bitti = false; ilerI.style.width = '0';
       icerik(it).then(function (j) {
         r.j = j; if (!R || R.reels[R.aktif] !== r) return;
-        ic.innerHTML = '';
-        ic.appendChild(el('div', { class: 'rl-konu', text: String(it.kitapAd).replace(/^1001\s*/, '') + ' · ' + it.konu + (it.ol != null ? ' · sınavda %' + Math.round(it.ol * 100) : '') }));
-        ic.appendChild(el('div', { class: 'rl-kanca', text: j.kanca || it.konu }));
-        ic.appendChild(el('div', { class: 'rl-konu', style: 'opacity:.75', text: '🏛 Saray: ' + (j.mekan || '') }));
-        r.durakEl = j.duraklar.map(function (d) { var e = el('div', { class: 'rl-durak' }, [el('div', { class: 'rl-sembol', text: d.sembol || '◆' }), el('div', {}, [el('small', { text: d.yer || '' }), el('i', { text: d.imge || '' }), el('b', { text: d.bilgi || '' })])]); ic.appendChild(e); return e; });
-        r.ozetEl = el('div', { class: 'rl-ozet', text: '✦ ' + (j.ozet || '') }); ic.appendChild(r.ozetEl);
-        r.t0 = performance.now();
-        if (R.sesAcik && window.Carvis && window.Carvis.soyle) { try { window.Carvis.soyle(j.kanca); } catch (e) {} }
+        ic.style.display = 'none'; if (r.oy) r.oy.yoket();
+        r.oy = new U.Animasyon.Oynatici(sahneKap, j, {
+          konus: function (m) { if (R && R.sesAcik && window.Carvis && window.Carvis.soyle) window.Carvis.soyle(m); },
+          sus: function () { if (window.Carvis && window.Carvis.sus) window.Carvis.sus(); },
+          cevap: function (ok, q) { izlendi(it.id + '|soru|' + String(q.soru).slice(0, 20), ok ? 20 : 5).then(function () { R && R.istatCiz(); }); if (!ok && U.eksikEkle) U.eksikEkle({ kitap: it.kitap, bolum: it.bolum, sira: it.sira, konu: it.konu, soru: String(q.soru).slice(0, 160), bilmiyor: false, kaynak: 'reels' }); },
+          bitti: function () { if (r.bitti) return; r.bitti = true; ilerI.style.width = '100%'; izlendi(it.id, 10).then(function () { R && R.istatCiz(); }); var sonraki = R && R.reels[i + 1]; if (sonraki && !document.querySelector('.rl-sayfa')) setTimeout(function () { R.kok.scrollTo({ top: sonraki.el.offsetTop, behavior: 'smooth' }); }, 1200); }
+        });
+        r.oy.basla();
         onHazirla(i);
-      }, function (e) { ic.lastChild.textContent = 'Bu reel hazırlanamadı: ' + (U.AI && U.AI.hataMetni ? U.AI.hataMetni(e) : e.message || e) + ' — kaydır.'; });
+      }, function (e) { ic.style.display = ''; ic.lastChild.textContent = 'Bu reel hazırlanamadı: ' + (U.AI && U.AI.hataMetni ? U.AI.hataMetni(e) : e.message || e) + ' — kaydır.'; });
     };
-    r.ciz = function (t) {
-      var en = 0.3;
-      if (r.j && r.t0) {
-        var g = (t - r.t0) / SURE; ilerI.style.width = Math.min(100, g * 100) + '%';
-        var d = Math.min(DURAK, Math.floor((g - 0.08) / (0.8 / DURAK)));
-        if (d > r.durak && d >= 0 && d < DURAK) { r.durak = d; r.durakEl.forEach(function (e, k) { e.classList.toggle('gor', k <= d); e.classList.toggle('simdi', k === d); }); var x = r.j.duraklar[d]; if (R.sesAcik && window.Carvis && window.Carvis.soyle) try { window.Carvis.soyle((x.yer ? x.yer + '. ' : '') + (x.imge ? x.imge + '. ' : '') + x.bilgi); } catch (e) {} en = 1; }
-        if (g > 0.9 && !r.ozetEl.classList.contains('gor')) { r.ozetEl.classList.add('gor'); r.durakEl.forEach(function (e) { e.classList.add('gor'); e.classList.remove('simdi'); }); }
-        if (g >= 1 && !r.bitti) { r.bitti = true; izlendi(it.id, 10).then(function () { R && R.istatCiz(); }); var sonraki = R.reels[i + 1]; if (sonraki && !document.querySelector('.rl-sayfa')) R.kok.scrollTo({ top: sonraki.el.offsetTop, behavior: 'smooth' }); }
-        en = 0.4 + 0.3 * Math.sin(t * 0.004);
-      }
-      if (ap) ap(t, en);
-    };
-    r.dur = function () { r.t0 = 0; };
+    r.ciz = null;
+    r.dur = function () { if (r.oy) { r.oy.yoket(); r.oy = null; } };
     return r;
   }
   function basla(i) {
