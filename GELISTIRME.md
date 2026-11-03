@@ -30,6 +30,14 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Reels şema kütüphanesi (r54, internetsiz)
+- `www/sema/` (yalnız APK'da, repoda değil; ~56 MB): OpenStax *Anatomy & Physiology 2e* figürleri (718 adet, **CC BY-NC-SA 4.0** —
+  kişisel/ticari olmayan kullanım, her görselde atıf). `sema/dizin.json`: dosya, başlık, açıklama, bölüm, boyut.
+- Üretim: `git clone --depth 1 --filter=blob:none --sparse https://github.com/openstax/osbooks-anatomy-physiology` → `git sparse-checkout set modules collections`
+  → `python3 -I araclar/sema/sema_dizin.py <repo> dizin_ham.json` → `python3 -I araclar/sema/sema_indir.py dizin_ham.json <cikti>` (raw.githubusercontent'tan indirir, 900 px JPEG q80)
+  → `<cikti>/*` → `dec/assets/www/sema/`.
+- JS: `U.semaBul(ara)` (animasyon.js) İngilizce terimle başlık/açıklama üzerinde puanlı arama; bulunamazsa Wikimedia Commons API (tablette; sunucu IP'si 429 alıyor).
+
 ## Carvis sesi — ZipVoice (r36, internetsiz)
 - Motor: sherpa-onnx **v1.13.8 resmî AAR** (JitPack `com/github/k2-fsa/sherpa-onnx/sherpa-onnx/v1.13.8/sherpa-onnx-v1.13.8.aar`): `jni/arm64-v8a/*.so` + `classes.jar` içindeki Kotlin TTS sınıfları (d8 → smali). HF csukuangfj2 "1.13.8" paketi daha yeni bir derlemeydi, JNI alanları uymadı ve uygulamayı çökertti (r37–r39).
   JNI, Kotlin `Tts.kt` sınıflarını alan adıyla okur → `android/kaynak-yeni/sherpa-onnx/*.java` birebir karşılığı (alan adı/türü değişirse uygulama çöker).

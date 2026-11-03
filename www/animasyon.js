@@ -62,6 +62,7 @@
     '.an-gorsel img{width:100%;height:100%;object-fit:contain;display:block;background:#f4f8f8}',
     '.an-gorsel::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(94,240,220,.06) 0 1px,transparent 1px 4px),radial-gradient(ellipse at center,transparent 60%,rgba(2,12,16,.55))}',
     '.an-gorsel small{position:absolute;left:8px;bottom:6px;z-index:2;font:500 9.5px var(--f-kod,monospace);color:#fff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.an-gbaslik{position:absolute;left:0;right:0;top:0;z-index:2;padding:6px 12px;font:700 12px var(--f-kod,monospace);letter-spacing:.06em;color:#e9fffb;background:linear-gradient(180deg,rgba(2,14,18,.85),transparent);text-shadow:0 0 8px rgba(94,240,220,.6)}',
     '.an-zincir{position:absolute;left:50%;transform:translateX(-50%);width:min(82%,520px);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:3}',
     '.an-zadim{width:100%;text-align:center;padding:11px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(94,240,220,.12),rgba(0,0,0,.25));box-shadow:0 0 0 1px var(--r);color:#f2fffd;font:700 clamp(15px,2.6vw,21px)/1.3 var(--f-baslik,system-ui);text-shadow:0 0 10px rgba(0,0,0,.6)}',
     '.an-zok{font-size:22px;line-height:1;text-shadow:0 0 10px currentColor}',
@@ -189,8 +190,56 @@
     }).catch(function () { delete gorselBellek[sorgu]; return null; });
   }
 
+  /* ---------- gömülü şema kütüphanesi (kullanıcı, 2026-11-03: "görsel olsa güzel olurdu") ----------
+     OpenStax Anatomy & Physiology 2e figürleri (CC BY-NC-SA 4.0, kişisel/ticari olmayan kullanım, atıf gösterilir): APK içinde
+     www/sema/ — internet gerekmez. Yapay zekâ İngilizce "ara" terimi yazar; başlık/açıklama üzerinde yerel puanlı arama yapılır.
+     Uygun şema yoksa Wikimedia Commons denenir. */
+  var SEMA = null, DUR = { the: 1, of: 1, and: 1, a: 1, an: 1, in: 1, to: 1, is: 1, are: 1, with: 1, for: 1, on: 1, by: 1, from: 1, or: 1, as: 1, at: 1, this: 1, that: 1, its: 1, be: 1, diagram: 1, figure: 1, human: 1, image: 1, illustration: 1, shows: 1, show: 1 };
+  function kok(w) { w = w.replace(/(ies)$/, 'y').replace(/(ses|xes)$/, function (m) { return m.slice(0, 2); }); if (w.length > 4 && /s$/.test(w) && !/ss$/.test(w)) w = w.slice(0, -1); return w; }
+  function belirtec(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(function (w) { return w.length > 1 && !DUR[w]; }).map(kok); }
+  function semaDizin() {
+    if (!SEMA) SEMA = fetch('sema/dizin.json').then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (l) {
+      l.forEach(function (e) { e._t = belirtec(e.t); e._c = belirtec(e.c + ' ' + e.m); e._a = belirtec(e.a + ' ' + e.b); });
+      return l;
+    }).catch(function () { return []; });
+    return SEMA;
+  }
+  var ES = [[/neuromuscular junction|nmj|motor end ?plate/i, 'motor end plate innervation'], [/alveol/i, 'respiratory zone structures'], [/coronary arter/i, 'coronary circulation'], [/gas exchange/i, 'external internal respiration'], [/(cardiac|heart) conduction|sa node|sinoatrial/i, 'cardiac conduction system'], [/action potential/i, 'action potential graph']];
+  function semaBul(ara, kullanilan) {
+    ara = String(ara || ''); ES.forEach(function (e) { if (e[0].test(ara)) ara = e[1] + ' ' + ara; });
+    var q = belirtec(ara); if (!q.length) return Promise.resolve(null);
+    return semaDizin().then(function (l) {
+      var en = null, enP = 0;
+      l.forEach(function (e) {
+        if (kullanilan && kullanilan[e.f]) return;
+        var p = 0, tumu = 0;
+        q.forEach(function (w) { var v = e._t.indexOf(w) >= 0 ? 3 : e._c.indexOf(w) >= 0 ? 1.4 : e._a.indexOf(w) >= 0 ? 0.6 : 0; if (v) tumu++; p += v; });
+        if (tumu === q.length) p += 2;                 // bütün terimler geçiyor
+        if (e._t.join(' ').indexOf(q.join(' ')) >= 0) p += 3; // başlıkta aynı sırayla
+        if (p > enP) { enP = p; en = e; }
+      });
+      if (!en || enP < Math.max(2.5, q.length * 1.1)) return null;
+      return { url: 'sema/' + en.f, lisans: 'CC BY-NC-SA 4.0', yazar: 'OpenStax A&P 2e', baslik: en.t, dosya: en.f, w: en.w, h: en.h };
+    });
+  }
+  function gorselBul(ara, kullanilan) { return semaBul(ara, kullanilan).then(function (g) { return g || commonsBul(ara); }); }
+
   /* ---------- senaryo onarımı: taşma, çakışma, eksik alanlar ---------- */
   function duzelt(j) {
+    // görsel yoksa: yalnız yazı/ikon olan sahnelere (kanca hariç) şema eklenir; arama terimi gorselAra ya da makaleSorgu'dan
+    var terimler = [].concat(j.gorselAra || []).map(String).filter(Boolean);
+    if (j.makaleSorgu) terimler.push(String(j.makaleSorgu).replace(/"|\bOR\b|\bAND\b|[()]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 4).join(' '));
+    var gorselSay = 0; (j.sahneler || []).forEach(function (s) { (s && s.ogeler || []).forEach(function (g) { if (g && g.tip === 'gorsel') gorselSay++; }); });
+    if (gorselSay < 2 && terimler.length) {
+      var eklenen = 0;
+      (j.sahneler || []).forEach(function (s, k) {
+        if (!k || !s || s.tip === 'soru' || eklenen >= 2 - gorselSay || eklenen >= terimler.length) return;
+        var og = s.ogeler || [];
+        if (og.some(function (g) { return g && !/^(yazi|ikon|etiket|vurgu|cizik)$/.test(g.tip); })) return;
+        og.forEach(function (g) { if (g && (g.tip === 'yazi' || g.tip === 'etiket')) g.y = Math.min(sayi(g.y, 0.1), 0.12); if (g && g.tip === 'ikon') { g.y = 0.1; g.x = 0.88; g.boyut = 1; } });
+        og.push({ id: 'oto' + k, tip: 'gorsel', ara: terimler[eklenen], x: 0.5, y: 0.48, g: 0.9, y2: 0.52, t: 0.3 }); s.ogeler = og; eklenen++;
+      });
+    }
     (j.sahneler || []).forEach(function (s) {
       if (!s || s.tip === 'soru') return;
       s.anlatim = String(s.anlatim || '').split(/\s+/).slice(0, 34).join(' ');
@@ -209,7 +258,7 @@
     });
     return j;
   }
-  function onYukle(j) { (j.sahneler || []).forEach(function (s) { (s.ogeler || []).forEach(function (g) { if (g && g.tip === 'gorsel' && g.ara) commonsBul(g.ara).then(function (r) { if (r) { var im = new Image(); im.src = r.url; } }); }); }); }
+  function onYukle(j) { (j.sahneler || []).forEach(function (s) { (s.ogeler || []).forEach(function (g) { if (g && g.tip === 'gorsel' && g.ara) gorselBul(g.ara).then(function (r) { if (r) { var im = new Image(); im.src = r.url; } }); }); }); }
 
   /* ---------- oynatıcı: tek parça akan video ---------- */
   function sahneSuresi(s) { return s.tip === 'soru' ? 11 : Math.max(sayi(s.sure, 4.5), Math.min(14, String(s.anlatim || '').length / 14 + 0.8)); }
@@ -224,6 +273,7 @@
     var cubuk = el('div', { class: 'an-cubuk', role: 'slider', 'aria-label': 'Video ilerlemesi' }, [el('b')]), sureYazi = el('div', { class: 'an-sure' });
     var nisan = el('div', { class: 'an-nisan' }), notK = el('div', { class: 'an-not' });
     kok.appendChild(cv); kok.appendChild(sahne); kok.appendChild(nisan); kok.appendChild(notK); kok.appendChild(alt); kok.appendChild(flas); kok.appendChild(cubuk); kok.appendChild(sureYazi); kap.appendChild(kok);
+    var kullanilan = {};
     var i = -1, tl = null, durdu = false, arkaCiz = null, arkaTur = '', bitti = false, raf = 0, D = null, sesSoz = null, kusak = 0, soruZaman = null;
     function yeniDunya() {
       var d = el('div', { class: 'an-dunya' }), svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'an-svg'); svg.setAttribute('viewBox', '0 0 1000 1000'); svg.setAttribute('preserveAspectRatio', 'none');
@@ -345,10 +395,13 @@
         var gw = kl(sayi(g.g, 0.84)), gh = kl(sayi(g.y2, 0.5));
         var gk = el('div', { class: 'an-gorsel', style: 'left:' + px(g.x) + ';top:' + px(g.y) + ';width:' + gw * 100 + '%;height:' + gh * 100 + '%' }), atif = el('small');
         gk.appendChild(atif); katman.appendChild(gk); G.set(gk, { opacity: 0 });
-        commonsBul(g.ara).then(function (res) {
+        // aynı reel'de aynı şema iki kez çıkmasın: ara terimi + sahne sırasıyla önceden ayrılır
+        (g._gs || (g._gs = gorselBul(g.ara, kullanilan))).then(function (res) {
           if (!res) { gk.remove(); return; }
+          if (res.dosya) kullanilan[res.dosya] = 1;
           var im = new Image(); im.alt = g.etiket || g.ara; im.src = res.url; gk.insertBefore(im, atif);
-          atif.textContent = (res.yazar ? res.yazar + ' · ' : '') + res.lisans + ' · Wikimedia Commons';
+          atif.textContent = (res.yazar ? res.yazar + ' · ' : '') + res.lisans + (res.dosya ? '' : ' · Wikimedia Commons');
+          if (res.baslik && !g.etiket) { var be = el('div', { class: 'an-gbaslik', text: res.baslik }); gk.appendChild(be); }
           G.fromTo(im, { scale: 1.02, xPercent: -1 }, { scale: 1.16, xPercent: 1.5, duration: sure + 2, ease: 'none' });
         });
         tl.fromTo(gk, { opacity: 0, scale: 0.9, filter: 'blur(8px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'power2.out' }, t0);
@@ -542,7 +595,8 @@
     this.bittiMi = function () { return bitti; };
     this.toplamSure = function () { return toplam; };
   }
-  U.Animasyon = { Oynatici: Oynatici, hazir: function () { return !!window.gsap; }, organlar: function () { return Object.keys(ORGAN); }, duzelt: duzelt, onYukle: onYukle, gorselBul: commonsBul, sure: function (j) { return (j.sahneler || []).reduce(function (a, s) { return a + (s ? sahneSuresi(s) : 0); }, 0); } };
+  U.semaBul = semaBul;
+  U.Animasyon = { Oynatici: Oynatici, semaBul: semaBul, hazir: function () { return !!window.gsap; }, organlar: function () { return Object.keys(ORGAN); }, duzelt: duzelt, onYukle: onYukle, gorselBul: gorselBul, sure: function (j) { return (j.sahneler || []).reduce(function (a, s) { return a + (s ? sahneSuresi(s) : 0); }, 0); } };
 
   /* ---------- yapay zekâya verilecek senaryo kuralları ---------- */
   U.Animasyon.senaryoKurali = function () {
@@ -555,7 +609,7 @@
       'Öğeler (her birinde "id" ve "t" = sahne içinde başlama saniyesi):',
       ' {"tip":"vucut","odak":["kalp"],"renk":"kirmizi"} — holografik insan vücudu; odak organ parlar ve etiketlenir. Arka arkaya iki sahnede vucut kullanırsan aynı vücut kalır, kamera kaldığı yerden devam eder (kesintisiz). Organlar: ' + Object.keys(ORGAN).join(', ') + '.',
       ' {"tip":"lab","surec":"…","x":0.5,"y":0.4,"g":0.9,"y2":0.5,"etiket":"kısa"} — hücre düzeyi CANLI simülasyon. Süreçler: ' + lab,
-      ' {"tip":"gorsel","ara":"İngilizce Wikimedia Commons arama terimi (ör. \'nephron diagram\', \'cardiac action potential\', \'brachial plexus\')","x":0.5,"y":0.4,"g":0.9,"y2":0.5,"etiket":"kısa"} — GERÇEK açık lisanslı şema/görsel, yavaşça yakınlaşır. Anatomi ve histolojide 1-2 sahnede kullan.',
+      ' {"tip":"gorsel","ara":"2-4 İngilizce anatomi/fizyoloji ders kitabı terimi (ör. \'nephron\', \'cardiac muscle action potential\', \'brachial plexus\', \'humerus\', \'synapse\')","x":0.5,"y":0.46,"g":0.92,"y2":0.56,"etiket":"kısa"} — GERÇEK ders kitabı şeması (gömülü OpenStax kütüphanesi), yavaşça yakınlaşır. HER REEL\'DE EN AZ 2 SAHNEDE kullan (anatomide 3); terimleri ders kitabı figür başlığı gibi yaz.',
       ' {"tip":"grafik","noktalar":[[0,-70],[1,-70],[1.5,30],[3,-80],[5,-70]],"birim":"mV","xEtiket":"ms","esik":{"deger":-55,"metin":"eşik"},"isaretler":[{"x":1.5,"metin":"tepe +30"}],"x":0.12,"y":0.2,"g":0.8,"y2":0.44,"renk":"sari","sure":2.6} — gerçek veri noktaları (x gerçek birim, y gerçek değer); eksenler, eşik çizgisi ve anlık değer otomatik çizilir.',
       ' {"tip":"zincir","adimlar":["Na⁺ kanalı açılır","Na⁺ içeri","Depolarizasyon","K⁺ çıkar"],"y":0.1,"renk":"teal"} — neden→sonuç zinciri, adım adım belirir (mekanizmalar için en iyisi).',
       ' {"tip":"karsilastir","sol":{"baslik":"…","maddeler":["…"]},"sag":{"baslik":"…","maddeler":["…"]},"y":0.1} — karıştırılan iki kavram yan yana (ayırt etme).',
