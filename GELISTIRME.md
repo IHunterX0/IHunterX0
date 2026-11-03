@@ -30,6 +30,12 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 6. **İmza anahtarı** (`carvis.p12` + şifre) kullanıcıda; repoda yok. Eski (orijinal) uygulama Android Debug anahtarıyla imzalı;
    kullanıcı bir kez sil-kur yaptı, artık bu anahtarla imzalı sürümler üstüne kurulur.
 
+## Jarvis uygulama ikonları (r69)
+- `holoikon.js` → `U.holoIkon(u, stil)`: vektör çizim (marka logosu değil, işlevi anlatan çizim: küre, ses dalgası, diyafram, balon,
+  kıvılcım, klasör…) + dönen iki yay + çentikler + tarama + titreme. Paket/ad eşlemesi `PAKET`. Bilinmeyen uygulama: orijinal ikon
+  hologram tonunda aynı çerçevede. Stil: cizim (varsayılan) / hologram / orijinal. SVG özniteliğinde var() çalışmaz → style ile.
+  Yapay zekâ resim modeli kullanılmadı: OpenRouter resim modelleri ücretli, tarz tutarsız.
+
 ## Uygulama çemberi + holografik pencereler (r68)
 - `anaekran.js`: sağ altta amber nokta (.ae-nokta, sol alttaki menü noktasının eşi) → favori uygulamalar çemberde (`U.uygulamaHalkasi`);
   seçince ikon ışıyıp büyür, çember merkeze çöker, uygulama açılır. Raf kaldırıldı. Konumlar px (translate yüzdesi elemanın kendi boyutuna göre).
