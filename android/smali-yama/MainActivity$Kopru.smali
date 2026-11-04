@@ -1561,6 +1561,42 @@
     return-void
 .end method
 
+.method public ekranGozu(Z)Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {p1}, Lcom/dogac/bin1/EkranGozu;->ayarla(Z)Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
+.method public ekranGozuDurum()Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/EkranGozu;->durum()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
+.method public ekranGozuSon()Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/EkranGozu;->sonYakalama()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
 .method public uygulamaBaslat(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     .locals 1
     .annotation runtime Landroid/webkit/JavascriptInterface;

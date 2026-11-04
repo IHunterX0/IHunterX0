@@ -409,7 +409,7 @@
     l = l.concat(hafizaAraclari());
     // kullanıcı, 2026-11-03: "Carvis ekranımı görebilsin" — gerektiğinde ekrandaki metni okur (her istekte göndermek kota yerdi)
     l.push({ name: 'ekrana_bak', description: 'Kullanıcının şu an ekranda gördüğünü döndürür (sayfa, başlık, görünen metin). "bu", "şu", "ekrandaki", "burada", "bunu açıkla" gibi ifadelerde önce bunu çağır.',
-      inputSchema: { type: 'object', properties: {} }, execute: function () { return ekranMetni(); } });
+      inputSchema: { type: 'object', properties: {} }, execute: function () { var d = Carvis._disEkran; return (d && Date.now() - d.t < 180000 ? 'KULLANICININ PAYLAŞTIĞI DIŞ EKRAN (' + (d.uygulama || d.paket) + '):\n' + String(d.metin || '').slice(0, 3000) + '\n\n--- CARVIS EKRANI ---\n' : '') + ekranMetni(); } });
     // Eklentiler: Carvis kendi kodunu yazar (kullanıcı onayıyla) + eklentilerin tanımladığı araçlar
     if (U.eklentiAraclari) U.eklentiAraclari().forEach(function (t) { if (t && t.name && t.execute) l.push(t); });
     if (U.eklentiYazdir) l.push({ name: 'ozellik_ekle', description: 'Kullanıcı uygulamaya YENİ bir özellik/ekran/komut istediğinde ("şunu yapan bir şey ekle", "kendine şu özelliği yaz") eklenti yazdırır: Eklentiler sayfası açılır, yapay zekâ kodu yazar, kullanıcı onaylayınca eklenir. Sen kısaca "yazıyorum, onaylarsan eklenecek" de.',
@@ -604,6 +604,16 @@
       var ap = el('input', { type: 'checkbox', checked: K.arkaPlanMi() ? true : null });
       ap.addEventListener('change', function () { K.arkaPlan(ap.checked); });
       govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [ap, 'Uygulama dışında "Carvis" deyince arka planda dinlesin (öne gelmez; sayfa/3B/test gerekince gelir)']));
+    }
+    // Ekran gözü (kullanıcı, 2026-11-04: "ekranı okuması için bir tuş olsun, ben aktive edeyim")
+    if (K && K.ekranGozu) {
+      var eg = {}; try { eg = JSON.parse(K.ekranGozuDurum() || '{}'); } catch (e) {}
+      var egAc = el('input', { type: 'checkbox', checked: eg.acik && eg.erisim ? true : null });
+      var egP = el('p', { class: 'var-etiket', text: eg.erisim ? 'Açıkken başka uygulamalarda kenarda küçük bir Carvis noktası durur. Ona dokunduğunda (yalnız o an) Carvis ekranı görür ve ne olduğunu anlatır. Sürükleyip taşıyabilir, uzun basıp kapatabilirsin.' : 'Önce Android ayarlarında Erişilebilirlik → C.A.R.V.I.S.\'i açman gerekiyor; kutuyu işaretleyince ayar sayfası açılır.' });
+      egAc.addEventListener('change', function () { var r = K.ekranGozu(egAc.checked); if (r === 'erisim-kapali') { egAc.checked = false; egP.textContent = 'Erişilebilirlik → Yüklü uygulamalar → C.A.R.V.I.S.\'i aç, sonra buraya dönüp kutuyu yeniden işaretle.'; } else U.toast(egAc.checked ? 'Ekran gözü açık: başka bir uygulamaya geçince noktayı göreceksin.' : 'Ekran gözü kapandı.'); });
+      govde.appendChild(el('h4', { text: '👁 Ekran gözü' }));
+      govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [egAc, 'Başka uygulamalarda Carvis noktası (dokununca ekranı okur)']));
+      govde.appendChild(egP);
     }
     if (K && K.sesler) {
       var sesler = []; try { sesler = JSON.parse(K.sesler() || '[]'); } catch (e) {}
@@ -832,6 +842,33 @@
     return Ses.dinle().then(function (t) { return (t || '').trim() || Ses.konus('Cevabını bekliyorum. Bilmiyorsan "geç" de.').then(Ses.dinle).then(function (x) { return (x || '').trim(); }); });
   }
   // "⚡ Zamanım yok" düğmesini Carvis adına çalıştırır; özet bitince metnini döndürür (sesli okunsun diye)
+  /* Ekran gözü: başka uygulamada Carvis noktasına dokunulunca Android ekranın yazılarını + görüntüsünü verir, Carvis öne gelir.
+     Carvis ne gördüğünü kısaca söyler; sonraki sorularda (ekrana_bak) bu ekranı 3 dakika hatırlar. */
+  Carvis.ekranAnlat = function () {
+    var j = null; try { j = JSON.parse((K && K.ekranGozuSon && K.ekranGozuSon()) || 'null'); } catch (e) {}
+    if (!j || (Carvis._disEkran && Carvis._disEkran.t === j.t)) return;
+    Carvis._disEkran = j;
+    if (!Carvis.acik) Carvis.ac();
+    document.body.classList.remove('cv-yazi-kapali');
+    var ad = j.uygulama || j.paket || 'ekran';
+    var ben = mesaj('cv-ben', '<b>👁 ' + U.esc(ad) + '</b> ekranını gösterdim');
+    var blob = null;
+    if (j.resim) { try { var b = atob(j.resim), u8 = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i); blob = new Blob([u8], { type: 'image/jpeg' }); ben.appendChild(el('img', { src: 'data:image/jpeg;base64,' + j.resim, alt: '', style: 'display:block;max-width:100%;max-height:180px;margin-top:6px;border-radius:10px;opacity:.9' })); } catch (e) { blob = null; } }
+    var cev = mesaj('cv-o', '<div class="yukleniyor">Bakıyorum…</div>'); durum('Ekrana bakıyor…');
+    var istem = 'Sen Carvis\'sin: tıp öğrencisinin Türkçe sesli asistanı. Kullanıcı şu an tablette "' + ad + '" uygulamasında ve ekranını sana bir tuşla gösterdi.' +
+      (blob ? ' Ekran görüntüsü ekte.' : ' Ekran görüntüsü yok; yalnız ekrandaki yazılar var.') +
+      ' Ekranda ne olduğunu 1-3 cümlede söyle; kullanıcının büyük ihtimalle ne yapmak ya da öğrenmek istediğini sez ve doğrudan işine yarayacak bir şey ekle (soru/ödev/makale/video ise özü ya da cevabı; tıp konusuysa kısa ve doğru açıklama). Uzatma; sesli okunacak; liste yerine akıcı konuşma dili. Emin olmadığını uydurma.\n\nEKRANDAKİ YAZILAR:\n' + String(j.metin || '(yok)').slice(0, 3500);
+    Carvis.gecmis.push({ role: 'user', content: '[Ekranımı gösterdim: ' + ad + ']\n' + String(j.metin || '').slice(0, 600) });
+    return Y.sample([{ role: 'user', content: istem }], blob ? { images: [blob] } : { hafif: true }).then(function (r) {
+      Carvis.gecmis.push({ role: 'assistant', content: r.text });
+      cev.innerHTML = U.mdHtml(r.text); cev.appendChild(el('span', { class: 'etiket-kucuk ai', text: 'AI üretimi' }));
+      return Carvis.soyle(r.text);
+    }).catch(function (e) { cev.innerHTML = ''; cev.appendChild(el('p', { class: 'hata-metni', text: U.AI ? U.AI.hataMetni(e) : String(e) })); durum(''); });
+  };
+  window.carvisEkran = function () { try { Carvis.ekranAnlat(); } catch (e) {} };
+  window.carvisEkranKapandi = function () { U.toast('Ekran gözü kapandı (Carvis ayarlarından yeniden açabilirsin).'); };
+  // açılışta: ekran gözü açık bırakılmışsa ve erişilebilirlik açıksa nokta geri gelsin
+  setTimeout(function () { try { if (K && K.ekranGozuDurum) { var d = JSON.parse(K.ekranGozuDurum() || '{}'); if (d.acik && d.erisim && !d.nokta) K.ekranGozu(true); } } catch (e) {} }, 2500);
   Carvis.zamanimYok = function (kitapId, sira) {
     function bekle(kosul, ms) { return new Promise(function (ok) { var t0 = Date.now(); (function d() { var v = kosul(); if (v || Date.now() - t0 > ms) return ok(v); setTimeout(d, 400); })(); }); }
     var ac = kitapId ? Promise.all([Kitaplik.ac(kitapId), Kitaplik.bolumAc(kitapId, sira || 0)]).then(function (r) {
