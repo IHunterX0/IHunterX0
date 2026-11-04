@@ -22,6 +22,9 @@
     '.arac-cubugu.ac2 > button:hover,.arac-cubugu.ac2 > button:focus-visible{border-color:rgba(110,255,235,.4)!important;background:rgba(94,240,220,.08)!important}',
     '.arac-cubugu.ac2 > #zamanimYokDug{color:#ffe2a8!important;background:linear-gradient(135deg,rgba(255,211,138,.18),rgba(255,211,138,.04))!important;border-color:rgba(255,211,138,.5)!important;box-shadow:0 0 14px rgba(255,200,100,.18)!important}',
     '.arac-cubugu.ac2 > .cekmece-dugme{padding:0!important;width:38px}',
+    /* telefon (kullanıcı, 2026-11-04 iPhone: "optimize değil"): kapsül ekrana sığsın, yazılar kısalsın; tablolar kendi içinde kaysın */
+    '@media (max-width:600px){.arac-cubugu.ac2{max-width:calc(100vw - 16px);flex-wrap:nowrap!important}.arac-cubugu.ac2 .kitap-adi{max-width:30vw;overflow:hidden;text-overflow:ellipsis}.ac-fazla .dugme{width:100%;justify-content:flex-start}}',
+    '@media (max-width:600px){.metin table,.ai-metin table{display:block;max-width:100%;overflow-x:auto}.tablo-kap{max-width:100%}}',
     '.arac-cubugu.ac2 .ac-daha{padding:0!important;width:38px;font-size:18px!important;letter-spacing:.05em}',
     '.arac-cubugu.ac2 .ac-daha[aria-expanded=true]{border-color:#9ffff0!important;background:rgba(94,240,220,.14)!important}',
     '.ac-fazla{position:absolute;right:6px;top:calc(100% + 10px);z-index:41;min-width:260px;padding:12px;border-radius:20px;display:grid;grid-template-columns:1fr 1fr;gap:8px;' +
@@ -57,6 +60,8 @@
         if (c === fazla || c === daha) return;
         var etiket = (c.getAttribute('aria-label') || '') + ' ' + (c.id || '') + ' ' + (c.className || '');
         if (/Yazıyı (küçült|büyüt)/.test(etiket)) { boyut.appendChild(c); return; }
+        // telefonda (dar ekran) ek düğmeler ⋯ menüsüne; Zamanım yok dışarıda kalır
+        if (innerWidth <= 600 && c.classList && c.classList.contains('dugme') && c.id !== 'zamanimYokDug' && !c.closest('.ac-fazla')) { fazla.appendChild(c); return; }
         if (c.tagName === 'SELECT' || /Kutu filtreleri|Bu kitapta ara|okumaModuDug/.test(etiket)) { if (/Bu kitapta ara/.test(etiket) && !c.dataset.acEt) { c.dataset.acEt = 1; c.appendChild(document.createTextNode(' Kitapta ara')); } fazla.appendChild(c); return; }
       });
       // ⋯ her zaman en sonda
