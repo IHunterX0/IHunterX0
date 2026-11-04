@@ -613,7 +613,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r98'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r99'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1020,7 +1020,44 @@
     var modSec = el('select', { 'aria-label': 'Öneri kaynağı', style: 'background:var(--zemin);border:1px solid var(--cizgi);border-radius:6px;color:var(--metin);padding:6px 8px' });
     [['karisik', '🔀 Karışık: yeni keşifler + kütüphanem'], ['kesif', '🔭 Keşif: çoğu yeni şarkı'], ['kutuphane', '📚 Yalnız kütüphanem (hızlı)']].forEach(function (x) { modSec.appendChild(el('option', { value: x[0], text: x[1], selected: muzikModu() === x[0] ? true : null })); });
     modSec.addEventListener('change', function () { yaz('spotify_mod', modSec.value); });
-    var ruhKutu = el('div', { class: 'sp-kutu sp-ruh' }, [el('h2', { text: 'RUH HÂLİ' }), el('div', { class: 'sp-satir' }, [giris, oner]), el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [modSec, el('span', { class: 'sp-durum', text: 'Şarkı adı yazarsan (ör. "Do I Clench My Fists - Ridgeclub") onun etrafında kurar.' })])]);
+    // ruh hâli → "＋ Ekle": yapay zekâ ruh hâlini çözümler, uyan şarkıları etiketler, Spotify'da doğrulanan şarkıları
+    // mevcut listenin SONUNA ekler (liste yoksa yeni karışım kurulur)
+    var ekleDug = el('button', { class: 'dugme', type: 'button', title: 'Ruh hâline uyan şarkıları etiketleyip listenin sonuna ekler' }, ['＋ Ekle']);
+    function ruhEkle(ruh) {
+      ruh = String(ruh || '').trim(); if (!ruh) { giris.focus(); return; }
+      ekleDug.disabled = true; var eskiYazi = ekleDug.textContent; ekleDug.textContent = 'Düşünüyor…';
+      var istem = 'Tıp öğrencisinin ruh hâli / isteği: "' + ruh + '".\n' +
+        'Önce bu ruh hâlini çözümle (tempo, enerji, dil, odak ya da duygu). Sonra bu ruh hâline uyan, Spotify\'da GERÇEKTEN var olan 10 şarkıyı karşılaştırarak seç. ' +
+        'Her şarkıya 2-3 kısa etiket ver (ör. "odak", "yavaş", "gece", "Türkçe", "enerjik"). Uydurma şarkı yazma.\n' +
+        (Zevk ? 'Sevdiği sanatçılar/türler: ' + Zevk + '\n' : '') + (Banger ? 'BANGER MODU: yalnız kendini kanıtlamış hitler seç.\n' : '') +
+        'Yalnız JSON: {"sarkilar":[{"sarki":"Sanatçı - Şarkı","etiketler":["..."]}]}';
+      var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 60 sn\'de cevap vermedi')); }, 60000); });
+      Promise.race([U.Y.sample(istem, { cache: false }), zaman]).then(function (c) {
+        var j = jsonAyikla(c.text || '');
+        var adaylar = (j.sarkilar || []).filter(function (x) { return x && x.sarki; }).slice(0, 12);
+        if (adaylar.length < 3) throw new Error('şarkı önerisi boş geldi');
+        return adaylar.reduce(function (z, x) {
+          return z.then(function (acc) {
+            return api('/search?type=track&limit=1&q=' + encodeURIComponent(String(x.sarki))).then(function (sn) {
+              var t = iz(sn && sn.tracks && sn.tracks.items && sn.tracks.items[0]);
+              if (t) { t.neden = Array.isArray(x.etiketler) ? x.etiketler.join(', ') : ''; t.yeni = true; acc.push(t); }
+              return acc;
+            }).catch(function () { return acc; });
+          });
+        }, Promise.resolve([]));
+      }).then(function (yeniler) {
+        if (!yeniler.length) throw new Error('Spotify\'da bulunan şarkı yok');
+        var k = sonKarisim;
+        if (!k) k = { id: Date.now().toString(36), ruh: ruh, baslik: ruh, yorum: 'Ruh hâline göre etiketlendi.', sarkilar: [], yeniAra: [], t: Date.now(), ince: false };
+        var g = {}; k.sarkilar.forEach(function (x) { g[x.id] = 1; });
+        k.sarkilar = k.sarkilar.concat(yeniler.filter(function (t) { if (g[t.id]) return false; g[t.id] = 1; return true; }));
+        sonKarisim = k; karisimSakla(k); karisimCiz(karisimKap, k); karisimKap.hidden = false;
+        U.toast(yeniler.length + ' şarkı listenin sonuna eklendi');
+      }).catch(function (e) { U.toast('Eklenemedi: ' + String(e && e.message || e)); })
+        .then(function () { ekleDug.disabled = false; ekleDug.textContent = eskiYazi; });
+    }
+    ekleDug.addEventListener('click', function () { ruhEkle(giris.value); });
+    var ruhKutu = el('div', { class: 'sp-kutu sp-ruh' }, [el('h2', { text: 'RUH HÂLİ' }), el('div', { class: 'sp-satir' }, [giris, oner, ekleDug]), el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [modSec, el('span', { class: 'sp-durum', text: 'Şarkı adı yazarsan (ör. "Do I Clench My Fists - Ridgeclub") onun etrafında kurar.' })])]);
     var cipler = el('div', { class: 'sp-cipler' });
     RUH_CIPLER.forEach(function (c) { cipler.appendChild(el('button', { class: 'cip', type: 'button', onclick: function () { calistir(c.replace(/^\S+\s/, '')); } }, [c])); });
     ruhKutu.appendChild(cipler);
