@@ -67,7 +67,7 @@
     '.ae-kur p{margin:0;flex:1;font-size:13.5px;color:#d6f7f1}',
     /* hologram ikon stili: renkli ikonlar tek renk turkuaz ışık */
     'body.ae-hologram .ae-ikon img,body.ae-hologram .ae-raf img{filter:grayscale(1) brightness(1.35) sepia(1) hue-rotate(125deg) saturate(2.4) drop-shadow(0 0 6px rgba(94,240,220,.7))!important;opacity:.95}',
-    '.ae-nokta{position:fixed;right:max(22px,env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:200;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;' +
+    '.ae-nokta{position:fixed;right:max(20px,env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:200;width:66px;height:66px;border-radius:50%;border:0;cursor:pointer;' +
       'background:radial-gradient(circle,#fff1cf 0 14%,rgba(255,211,138,.6) 22%,rgba(255,211,138,.08) 56%,transparent 70%);box-shadow:0 0 18px rgba(255,200,100,.45);animation:aeNefes 3.6s ease-in-out infinite}',
     '@keyframes aeNefes{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1.08);opacity:1}}',
     'body.rl-acik .ae-nokta{display:none}',

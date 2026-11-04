@@ -17,7 +17,7 @@
     'body.ev-sade #ana .sayfa > :not(.jv-pano){display:none!important}',
     'body.ev-sade #ana .sayfa{padding-bottom:0!important}',
     /* sol üstteki menü noktası (kullanıcı: "çok güzel, daha uygun bir yere alalım") → sol alt köşe, başparmak hizası; ana sayfada da */
-    '.mn-nokta{top:auto!important;bottom:calc(26px + env(safe-area-inset-bottom,0px))!important;left:max(22px,env(safe-area-inset-left))!important;width:44px!important;height:44px!important}',
+    '.mn-nokta{top:auto!important;bottom:calc(22px + env(safe-area-inset-bottom,0px))!important;left:max(20px,env(safe-area-inset-left))!important;width:66px!important;height:66px!important}',
     'body.ev-sade .jv-panel.kd-ses{display:none!important}',
     '.kd-kadran{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:1;transform:translate(-50%,-50%);z-index:5;pointer-events:none}',
     '.kd-kadran svg{width:100%;height:100%;overflow:visible}',
@@ -95,21 +95,22 @@
       var d = surukle.d, kisa = Date.now() - surukle.t < 350 && Math.abs(d) < 6; surukle = null;
       yay();
       ipSol.classList.remove('on'); ipSag.classList.remove('on');
-      if (d <= -ESIK || kisa) { titret(25); cark_ac(durbun); }
-      else if (d >= ESIK) { titret(25); if (U.menuAc) U.menuAc(); else location.hash = '#kutuphane'; }
+      if (d <= -ESIK || kisa) { titret(25); cark_ac(durbun, false); }
+      else if (d >= ESIK) { titret(25); cark_ac(durbun, true); }
     }
     [tut, bant].forEach(function (x) { x.addEventListener('pointerdown', bas); x.addEventListener('pointermove', tasi); x.addEventListener('pointerup', birak); x.addEventListener('pointercancel', birak); });
   }
 
   /* ---------- küçük çark (silah çarkı) ---------- */
-  function ogeler() {
+  // sağa kaydırınca kitap listesi (kitapli=true); sola ya da kısa dokunuşta kısa yol çarkı (kitapli=false)
+  function ogeler(kitapli) {
     return U.Kitaplik.katalog().then(function (l) {
       return U.Depo.oku('ilerleme').then(function (il) {
         il = il || {};
         var kit = l.map(function (k) { var s = (il.okuma || {})[k.id], okunan = Object.keys(((il.okunan || {})[k.id]) || {}).length, top = (k.sayilar && k.sayilar.altBolum) || 0;
           return { ik: /anatomi/.test(k.id) ? 'kemik' : /kimya/.test(k.id) ? 'molekul' : /istatistik/.test(k.id) ? 'grafik' : /fizik/.test(k.id) ? 'dalga' : 'kitap', ad: k.baslik.replace(/^1001\s*/, ''), alt: (top ? '%' + Math.round(100 * okunan / top) + ' okundu · ' : '') + (s ? 'kaldığın yerden aç' : 'baştan aç'), renk: k.renk || '#4fe0ff',
             git: function () { U.git(U.okuHash(k.id, s ? s.bolum : 0)); } }; });
-        return kit.concat([
+        return (kitapli ? kit : []).concat([
           { ik: 'pusula', ad: 'Program', alt: 'bugünkü dersler, pratikler, komite', git: function () { location.hash = '#pusula'; } },
           { ik: 'izgara', ad: 'Uygulamalar', alt: 'tabletteki uygulamalar', git: function () { location.hash = '#uygulamalar'; } },
           { ik: 'damla', ad: 'Sağlık', alt: 'su, vitamin, verim, uyku', git: function () { location.hash = '#saglik'; } },
@@ -128,7 +129,7 @@
     var buyuk = a1 - a0 > Math.PI ? 1 : 0;
     return 'M' + p(r0, a0) + ' L' + p(r1, a0) + ' A' + r1 + ' ' + r1 + ' 0 ' + buyuk + ' 1 ' + p(r1, a1) + ' L' + p(r0, a1) + ' A' + r0 + ' ' + r0 + ' 0 ' + buyuk + ' 0 ' + p(r0, a0) + ' Z';
   }
-  function cark_ac(durbun) {
+  function cark_ac(durbun, kitapli) {
     if (document.querySelector('.kd-tekerlek')) return;
     var r = durbun.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     cx = Math.max(innerWidth * 0.3, Math.min(innerWidth * 0.7, cx)); cy = Math.max(innerHeight * 0.38, Math.min(innerHeight * 0.62, cy));
@@ -139,7 +140,7 @@
     function tus(e) { if (e.key === 'Escape') kapat(); }
     document.addEventListener('keydown', tus);
     perde.addEventListener('click', kapat);
-    ogeler().then(function (l) {
+    ogeler(kitapli).then(function (l) {
       var s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '-120 -120 240 240');
       var n = l.length, bosluk = 0.025, R0 = 48, R1 = 114;
       s.innerHTML = '<circle r="44" fill="rgba(2,14,18,.88)" stroke="rgba(110,255,235,.5)" stroke-width="1"/><circle r="117" fill="none" stroke="rgba(110,255,235,.25)" stroke-dasharray="2 4"/>';
@@ -173,7 +174,7 @@
      hücre düzeyinde istiyorum"): menülerden ve Carvis araçlarından çıkarıldı; kod duruyor, #lab-hareket adresiyle açılabilir. */
   (function () { var l = U.SEKMELER || []; for (var i = l.length - 1; i >= 0; i--) if (l[i] && l[i].id === 'lab-hareket') l.splice(i, 1); })();
   var arsivCss = document.createElement('style'); arsivCss.textContent = '.lab-dug[href*="lab-hareket"],.lab-dug[href*="lab-eklem"]{display:none!important}'; document.head.appendChild(arsivCss);
-  U.kisaYolCarki = function () { var d = document.querySelector('.jv-durbun'); cark_ac(d || document.body); };
+  U.kisaYolCarki = function () { var d = document.querySelector('.jv-durbun'); cark_ac(d || document.body, false); };
 
   /* ---------- ana sayfa sadeleştirme + kurulum ---------- */
   function evMi() { var h = location.hash.replace(/^#/, ''); return h === '' || h === 'kutuphane'; }
