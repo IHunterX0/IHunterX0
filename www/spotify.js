@@ -267,6 +267,88 @@
      Geri bildirim: Carvis karışımından gelen şarkıyı 30 sn içinde geçmek = beğenmedi, sonuna kadar dinlemek = beğendi,
      👍/👎 açık oy (ağırlık 3). Bağlam: çalışılan kitap/bölüm, pomodoro, saat. İnce ayar: "daha hareketli" gibi istekler son
      karışımı düzeltir. Her şarkıya kısa gerekçe. Çeşitlilik kodla: sanatçı başına en çok 2, aynı sanatçı art arda gelmez. */
+  /* ---- Konuşma: liste oluşturmanın tek girdi yeri (kullanıcı, 2026-11-04). Sorular sırayla sorulur, her cevap kaydedilir;
+     en sonda kayıtlar ve işaretler birlikte düşünülüp liste kurulur. Odak ve düşünme modları tempo kuralını değiştirir. */
+  var KONUSMA_ANAHTAR = 'spotify_konusma_v1', ISARET_ANAHTAR = 'spotify_isaret_v1';
+  var KONUSMA_SORULAR = [
+    { id: 'nasil', kisa: 'Ruh hâli', soru: 'Nasılsın? Bugün nasıl bir ruh hâlindesin?', ipucu: null, zorunlu: true },
+    { id: 'odak', kisa: 'Odak mı, düşünme mi', soru: 'Şu an bir göreve mi odaklanmak istiyorsun, yoksa düşünmek mi?', ipucu: ['Göreve odaklanmak', 'Düşünmek'], zorunlu: true },
+    { id: 'ornek', kisa: 'Benzer tarzlar', soru: 'Bu tip şarkılardan (ör. The Strokes, Radiohead, Arctic Monkeys) ya da benzerlerinden dinlemek istediğin var mı? Yaz; sanatçılarıyla birlikte karşına çıkarayım, sen onaylayasın.', ipucu: ['The Strokes, Radiohead, Arctic Monkeys', 'Yok'], zorunlu: false, sanatci: true },
+    { id: 'edit', kisa: 'Edit', soru: 'Spesifik olarak bir edit\'in içerisinde kendini hayal ediyor musun? "Hayır" de ya da futbolcu yaz (ör. neymar / dybala).', ipucu: ['Hayır'], zorunlu: false },
+    { id: 'tur', kisa: 'Tür', soru: 'Spesifik olarak istediğin bir tür var mı? Yoksa "yok" yaz.', ipucu: ['Yok'], zorunlu: false }
+  ];
+  var Konusma = Object.assign({ adim: 0, cevaplar: {}, sanatci: [], mod: '', gecmis: [] }, oku(KONUSMA_ANAHTAR, null) || {});
+  var KonusmaBaglam = null; // toplu düşünme sırasında istem bölümü (yalnız o çağrıda dolu)
+  var Isaret = oku(ISARET_ANAHTAR, {}); // { anahtar: { a, s, b: 'beğen' | 'beğenme' | 'alakasız', t } }
+  function konusmaKaydet() { yaz(KONUSMA_ANAHTAR, Konusma); }
+  function konusmaBitti() { return Konusma.adim >= KONUSMA_SORULAR.length; }
+  function konusmaCevapla(c) {
+    var s = KONUSMA_SORULAR[Konusma.adim]; if (!s) return;
+    Konusma.cevaplar[s.id] = String(c || '').trim();
+    if (s.id === 'odak') Konusma.mod = /düşün/i.test(c || '') ? 'dusunme' : /odak|çalış|ders|görev|sınav|bitir/i.test(c || '') ? 'odak' : 'dusunme';
+    Konusma.adim++; konusmaKaydet();
+  }
+  function konusmaYeniOturum() {
+    if (Konusma.adim > 0) Konusma.gecmis = [{ t: Date.now(), cevaplar: Konusma.cevaplar, mod: Konusma.mod, sanatci: Konusma.sanatci }].concat(Konusma.gecmis || []).slice(0, 20);
+    Konusma.adim = 0; Konusma.cevaplar = {}; Konusma.sanatci = []; Konusma.mod = ''; konusmaKaydet();
+  }
+  function konusmaOzet() {
+    var c = Konusma.cevaplar || {}, p = [(c.nasil || 'belirtilmedi'), 'Mod: ' + (Konusma.mod === 'odak' ? 'görev odaklanma (enerji yüksek ya da yükseltilecek)' : 'düşünme (üzüntü yoluyla; yavaş ve içe dönük)')];
+    if (c.tur && !/^yok/i.test(c.tur)) p.push('Tür: ' + c.tur);
+    if (c.edit && !/^(hayır|yok)/i.test(c.edit)) p.push('Edit: ' + c.edit);
+    if (Konusma.sanatci && Konusma.sanatci.length) p.push('Tarz: ' + Konusma.sanatci.join(', '));
+    return p.join(' · ');
+  }
+  function konusmaBaglamKur() { var c = Konusma.cevaplar || {}; return { nasil: c.nasil || '', mod: Konusma.mod || 'dusunme', sanatci: (Konusma.sanatci || []).slice(), edit: c.edit || '', tur: c.tur || '', ornek: c.ornek || '' }; }
+  // Öneri istemine giren bölüm: kullanıcının kendi cevapları ve moda göre tempo kuralı
+  function konusmaSatirlari(s) {
+    var odak = s.mod === 'odak';
+    return [
+      '- Sohbet cevapları (kullanıcı kendi yazdı; doğrudan istek):',
+      '  · Bugün nasıl: ' + (s.nasil || '(belirtilmedi)'),
+      '  · Mod: ' + (odak ? 'görev odaklanma' : 'düşünme (üzüntü yoluyla açığa çıkar)'),
+      '  · Tempo kuralı: ' + (odak ? 'görevde enerji yüksek tutulmak ya da yükseltilmek isteniyor. Tempo ve enerji kademeli artsın (ör. 100 → 125 BPM), ritim dinamik kalsın; ağır ve yavaş parçalardan kaçın.' : 'yavaş, içe dönük ve melankolik parçalar; tempo düşük (70–95 BPM), enerji düşük. The Strokes, Radiohead ve Arctic Monkeys\'in yavaş, düşündüren tarzı örnek alınır, kopyalanmaz.'),
+      '  · Kullanıcının kendi ifadesi (benzer tarzlar): ' + (s.ornek && !/^yok$/i.test(s.ornek) ? s.ornek : '(yok)'),
+      '  · Onaylı benzer tarzlar (sanatçılar): ' + (s.sanatci && s.sanatci.length ? s.sanatci.join(', ') : '(yok)'),
+      '  · Edit bağlamı: ' + (s.edit && !/^(hayır|yok)/i.test(s.edit) ? s.edit : '(yok)'),
+      '  · Tür: ' + (s.tur && !/^yok/i.test(s.tur) ? s.tur : '(yok)')
+    ];
+  }
+  // Verilen tarza yakın bilinen sanatçılar: yapay zekâ önerir, kullanıcı onaylar
+  function konusmaSanatciOner(metin) {
+    var istem = 'Kullanıcı şu tarzda şarkı dinlemek istiyor: "' + metin + '". Bu tarza yakın, Spotify\'da bulunan bilinen sanatçıları 12 tane öner. Girdideki sanatçıları yazma. YALNIZ JSON yaz: {"sanatcilar":["Sanatçı adı"]}';
+    var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 30 sn\'de cevap vermedi')); }, 30000); });
+    return Promise.race([U.Y.sample(istem, { cache: false, hafif: true }), zaman]).then(function (c) {
+      var j = jsonAyikla(c.text || '');
+      return (j.sanatcilar || []).map(function (x) { return String(x || '').trim(); }).filter(function (x, i, d) { return x && d.indexOf(x) === i; }).slice(0, 12);
+    });
+  }
+  // İşaretler (alt çubuk): beğen / beğenme / alakasız. Beğen ve beğenme ayrıca Geri'ye (öneri öğrenmesi) yazılır.
+  function isaretle(a, s2, b) {
+    var k = geriAnahtar(a, s2); if (k === '|') return;
+    Isaret[k] = { a: a, s: s2, b: b, t: Date.now() }; yaz(ISARET_ANAHTAR, Isaret);
+    if (b === 'beğen') geriKaydet(a, s2, 'begen', 3); else if (b === 'beğenme') geriKaydet(a, s2, 'atla', 3);
+  }
+  function isaretSil(a, s2) { var k = geriAnahtar(a, s2); if (Isaret[k]) { delete Isaret[k]; yaz(ISARET_ANAHTAR, Isaret); } }
+  function isaretOku(a, s2) { var x = Isaret[geriAnahtar(a, s2)]; return x ? x.b : null; }
+  function kapakUrl(t) { var im = t && t.album && t.album.images; return im && im.length ? ((im.slice(-2)[0] || im[0]).url || null) : null; }
+  // Yerel modda kapak gelmezse, şarkının kayıtlı karışımdaki kapağı kullanılır (karışım parçaları Spotify'dan kapaklı gelir)
+  function kapakBul(a, s2) {
+    var k = geriAnahtar(a, s2), kaynak = [sonKarisim].concat(karisimlar());
+    for (var i = 0; i < kaynak.length; i++) { var l = (kaynak[i] && kaynak[i].sarkilar) || []; for (var j = 0; j < l.length; j++) if (l[j].kapak && geriAnahtar(l[j].a, l[j].s) === k) return l[j].kapak; }
+    return null;
+  }
+  function isaretGrubu() {
+    var g = el('span', { class: 'sp-isaret' }), mevcut = Simdi ? isaretOku(Simdi.a, Simdi.s) : null;
+    [['beğen', '👍', 'Beğen'], ['beğenme', '👎', 'Beğenme'], ['alakasız', '⊘', 'Alakasız (bu ruh hâline uymuyor)']].forEach(function (x) {
+      g.appendChild(el('button', { type: 'button', class: mevcut === x[0] ? 'aktif' : '', title: x[2], 'aria-label': x[2], 'aria-pressed': mevcut === x[0] ? 'true' : 'false', onclick: function (e) {
+        e.stopPropagation(); if (!Simdi) return;
+        if (isaretOku(Simdi.a, Simdi.s) === x[0]) isaretSil(Simdi.a, Simdi.s); else isaretle(Simdi.a, Simdi.s, x[0]);
+        miniCiz(); U.toast(isaretOku(Simdi.a, Simdi.s) ? 'İşaret: ' + x[2] : 'İşaret kaldırıldı');
+      } }, [x[1]]));
+    });
+    return g;
+  }
   var Geri = oku('spotify_geri_v1', {});
   function geriAnahtar(a, s2) { return sade(a) + '|' + sade(String(s2 || '').split(',')[0]); }
   function geriKaydet(a, s2, tur, agirlik) {
@@ -391,6 +473,7 @@
       '- Kütüphanem (tüm veri; dinleme süresi ve istatistik yok):',
       (p.profil || []).map(function (s) { return '  · ' + s; }).join('\n'),
       '- Mod: ' + (p.mod === 'kesif' ? 'keşif (kütüphanemdeki şarkıları önerme)' : 'karışık (kütüphanemden en çok 3 şarkı olabilir)'),
+      (p.konusma ? konusmaSatirlari(p.konusma).join('\n') : ''),
       '- Atlananlar ve zaten listede olanlar (tekrar önerme): ' + satirlar(p.atlanan),
       '- Önceki liste (yalnızca ince ayar isteğinde; havayı koru, istenen yönde değiştir): ' + satirlar(p.onceki),
       '- Banger modu: ' + (p.banger ? 'açık' : 'kapalı'),
@@ -482,6 +565,11 @@
     var aralik = Math.max(1, Math.ceil(begeni.length / 120));
     var ornek = begeni.filter(function (x, i) { return i % aralik === 0; }).slice(0, 120).map(function (x) { return x.a + ' — ' + String(x.s).split(',')[0]; });
     if (ornek.length) satir.push('Beğenilen şarkılardan örnek (kütüphanenin tüm bölümlerinden ' + ornek.length + ' adet): ' + ornek.join('; '));
+    // İşaretler: beğendiklerin ve uymayanlar (işaret alt çubuktan ya da öneri listesinden verilir)
+    var isaretler = Object.keys(Isaret).map(function (k) { return Isaret[k]; });
+    var b1 = isaretler.filter(function (x) { return x.b === 'beğen'; }).slice(0, 40), b2 = isaretler.filter(function (x) { return x.b !== 'beğen'; }).slice(0, 40);
+    if (b1.length) satir.push('Beğendiğim (işaretlediğim): ' + b1.map(function (x) { return x.a + ' — ' + x.s; }).join('; '));
+    if (b2.length) satir.push('Beğenmediğim ya da bu ruh hâline uymayan (önerme): ' + b2.map(function (x) { return x.a + ' — ' + x.s; }).join('; '));
     return satir;
   }
   function atlananListe() { return Object.keys(Geri).filter(function (k) { return Geri[k].atla > Geri[k].begen; }).slice(-20).map(function (k) { return Geri[k].a + ' — ' + Geri[k].s; }); }
@@ -499,7 +587,7 @@
       tonlar: tonlar.map(function (t) { return '"' + t.ad + '" — ' + t.sanatci; }),
       uyan: ornek.uyan, uymaz: ornek.uymaz,
       listeler: ruhIcinListeler(ruh).map(function (x) { return 'Liste "' + x.ad + '": ' + x.sarkilar.join(' | '); }),
-      profil: kutuProfili(), mod: muzikModu(),
+      profil: kutuProfili(), mod: muzikModu(), konusma: KonusmaBaglam,
       atlanan: atlananListe().concat(tur === 'ekle' ? mevcutAd : []),
       mevcut: tur === 'ekle' ? mevcutAd : [],
       banger: Banger
@@ -529,7 +617,7 @@
       var a = adaylar[i];
       return trackAra(a.sarki, a.sanatci).then(function (t) {
         var x = iz(t);
-        if (x && !g[x.id]) { g[x.id] = 1; x.yeni = true; x.bilinen = !!kutuKimlik[x.id]; x.neden = etiketMetni(a); x.uyum = +a.ruh_uyumu || 0; bulunan[i] = x; }
+        if (x && !g[x.id]) { g[x.id] = 1; x.yeni = true; x.kapak = kapakUrl(t); x.bilinen = !!kutuKimlik[x.id]; x.neden = etiketMetni(a); x.uyum = +a.ruh_uyumu || 0; bulunan[i] = x; }
         cozuldu++; durumYaz('Spotify\'da doğrulanıyor… ' + cozuldu + '/' + adaylar.length);
       }).then(function () { return bekle(120); }).then(isci);
     }
@@ -843,7 +931,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r102'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r103'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1023,15 +1111,22 @@
   setInterval(function () { if (Simdi && Simdi.calisiyor && U.Durum.gorunum === 'muzik') cubukGuncelle(); }, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) simdiYenile(); });
   function dugme(t, et, f) { return el('button', { class: 'sp-d', type: 'button', 'aria-label': et, title: et, onclick: function (e) { e.stopPropagation(); f(); } }, [t]); }
+  var miniSig = ''; // mini çubuğun son çizilen içeriği
   function miniCiz() {
-    if (!Simdi || U.Durum.gorunum === 'muzik') { mini.hidden = true; return; }
-    mini.hidden = false; mini.innerHTML = '';
+    if (!Simdi || U.Durum.gorunum === 'muzik') { mini.hidden = true; miniSig = ''; return; }
+    // İçerik değişmediyse DOM yeniden kurulmaz: 3 sn'lik yoklama, tam o anda yapılan dokunuşu kaybettirmesin
+    var sig = [Simdi.a, Simdi.s, (Simdi.kapak && Simdi.kapak.url) || kapakBul(Simdi.a, Simdi.s) || '', !!Simdi.calisiyor, isaretOku(Simdi.a, Simdi.s) || ''].join('\u0001');
+    mini.hidden = false;
+    if (sig === miniSig) return;
+    miniSig = sig; mini.innerHTML = '';
     mini.classList.toggle('calar', Simdi.calisiyor);
-    mini.appendChild(el('div', { class: 'sp-disk', style: Simdi.kapak ? 'background-image:url("' + Simdi.kapak.url + '")' : '' }));
+    var kap = Simdi.kapak || (function () { var u = kapakBul(Simdi.a, Simdi.s); return u ? { url: u } : null; })();
+    mini.appendChild(el('div', { class: 'sp-disk', style: kap ? 'background-image:url("' + kap.url + '")' : '' }));
     mini.appendChild(el('button', { class: 'sp-bilgi', type: 'button', onclick: function () { U.git('muzik'); } }, [el('b', { text: Simdi.a }), el('small', { text: Simdi.s })]));
     mini.appendChild(dugme('⏮', 'Önceki', function () { kontrol('onceki'); }));
     mini.appendChild(dugme(Simdi.calisiyor ? '⏸' : '▶', Simdi.calisiyor ? 'Duraklat' : 'Çal', function () { kontrol(Simdi.calisiyor ? 'duraklat' : 'devam'); }));
     mini.appendChild(dugme('⏭', 'Sonraki', function () { kontrol('sonraki'); }));
+    mini.appendChild(isaretGrubu());
     mini.appendChild(el('div', { class: 'sp-ekolayzer', 'aria-hidden': 'true' }, [el('i'), el('i'), el('i'), el('i')]));
   }
   window.addEventListener('hashchange', function () { setTimeout(miniCiz, 50); });
@@ -1072,6 +1167,8 @@
     '.sp-bilgi{min-width:0;flex:1;background:none;border:0;color:inherit;text-align:left;padding:0 4px;cursor:pointer}.sp-bilgi b,.sp-bilgi small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}',
     '.sp-bilgi b{font:600 13px var(--f-baslik)}.sp-bilgi small{font-size:11px;color:var(--metin-sonuk)}',
     '.sp-d{background:none;border:0;color:var(--holo,#5ee7ff);font-size:16px;width:32px;height:32px;cursor:pointer;text-shadow:0 0 8px currentColor}',
+    '.sp-isaret{display:flex;gap:2px;flex-shrink:0}.sp-isaret button{width:26px;height:26px;padding:0;border:0;background:none;color:var(--metin-sonuk);font-size:13px;cursor:pointer}.sp-isaret button.aktif{color:var(--holo-sicak,#ffb547);text-shadow:0 0 8px currentColor}',
+    '.sp-konusma{margin:4px 0 10px}.sp-balon{border-left:2px solid var(--holo,#5ee7ff);padding:8px 12px;margin:6px 0;background:rgba(94,231,255,.06)}.sp-balon b{font:600 11px var(--f-kod);letter-spacing:.18em;color:var(--holo-sicak,#ffb547)}.sp-balon p{margin:4px 0 0;font-size:15px}.sp-cevaplar{font-size:12px;color:var(--metin-sonuk);margin-top:6px}.sp-cevaplar span{display:block;margin:2px 0}.sp-cip-secili{border-color:var(--holo,#5ee7ff)!important;color:var(--holo,#5ee7ff)!important}',
     '.sp-ekolayzer{display:flex;gap:2px;align-items:flex-end;height:16px;margin-left:2px}.sp-ekolayzer i{width:3px;height:30%;background:var(--holo);box-shadow:0 0 6px var(--holo)}',
     '.sp-mini.calar .sp-ekolayzer i{animation:spEq .9s ease-in-out infinite}.sp-mini.calar .sp-ekolayzer i:nth-child(2){animation-delay:.2s}.sp-mini.calar .sp-ekolayzer i:nth-child(3){animation-delay:.45s}.sp-mini.calar .sp-ekolayzer i:nth-child(4){animation-delay:.1s}',
     '@keyframes spEq{0%,100%{height:25%}50%{height:100%}}',
@@ -1146,8 +1243,8 @@
       l.appendChild(el('button', { class: 'sp-sarki', type: 'button', style: 'animation-delay:' + Math.min(i * 30, 600) + 'ms', title: 'Buradan başlat', onclick: function () { basla(i); } },
         [el('span', { class: 'n', text: String(i + 1).padStart(2, '0') }), el('span', {}, [el('b', { text: x.a }), el('small', { text: x.s + (x.neden ? ' · ' + x.neden : '') })]),
           el('span', { class: 'sp-oy' }, [x.yeni ? el('span', { class: 'sp-yeni', text: 'YENİ' }) : null,
-            el('span', { class: 'sp-oyd', role: 'button', title: 'Beğendim', text: geriPuan(x) > 0 ? '💙' : '👍', onclick: function (e) { e.stopPropagation(); geriKaydet(x.a, x.s, 'begen', 3); this.textContent = '💙'; U.toast('Not aldım: ' + x.a + ' 👍'); } }),
-            el('span', { class: 'sp-oyd', role: 'button', title: 'Bunu koyma', text: '👎', onclick: function (e) { e.stopPropagation(); geriKaydet(x.a, x.s, 'atla', 3); this.closest('.sp-sarki').style.opacity = '.35'; U.toast('Bir daha koymam: ' + x.a); } })])]));
+            el('span', { class: 'sp-oyd', role: 'button', title: 'Beğendim', text: geriPuan(x) > 0 ? '💙' : '👍', onclick: function (e) { e.stopPropagation(); isaretle(x.a, x.s, 'beğen'); this.textContent = '💙'; U.toast('Not aldım: ' + x.a + ' 👍'); } }),
+            el('span', { class: 'sp-oyd', role: 'button', title: 'Bunu koyma', text: '👎', onclick: function (e) { e.stopPropagation(); isaretle(x.a, x.s, 'beğenme'); this.closest('.sp-sarki').style.opacity = '.35'; U.toast('Bir daha koymam: ' + x.a); } })])]));
     });
     kap.appendChild(l); kuyrukCiz();
   }
@@ -1235,18 +1332,86 @@
     sayfa.appendChild(el('div', { class: 'sp-kutu' }, [el('h2', { text: 'ŞİMDİ ÇALIYOR' }), simdiKap]));
     simdiKartCiz(); simdiYenile(); if (bagli()) premiumTazele();
     var giris = el('input', { type: 'text', placeholder: sonKarisim ? 'Ruh hâlin ya da ince ayar: "biraz daha hareketli", "daha az Türkçe"…' : 'Bugün nasılsın? "yorgunum ama 2 saat daha çalışmam lazım"…', 'aria-label': 'Ruh hâli', enterkeyhint: 'go' });
-    var oner = el('button', { class: 'dugme ana', type: 'button' }, ['✦ Öner']);
+    var oner = el('button', { class: 'dugme ana', type: 'button' }, ['Gönder']);
     var karisimKap = el('div', { class: 'sp-kutu', hidden: !sonKarisim });
     function calistir(ruh) {
       if (!String(ruh || '').trim()) { giris.focus(); return; }
-      giris.value = ruh; oner.disabled = true; karisimKap.hidden = false;
+      giris.value = ruh; oner.disabled = true; hemenDug.disabled = true; karisimKap.hidden = false;
       karisimKap.innerHTML = '<div class="yukleniyor">' + (bagli() && !Kutu ? 'Kütüphanen taranıyor: ilk seferde 60–80 sn sürer, sonra öneriler hızlı gelir…' : (muzikModu() !== 'kutuphane' || tohumMu(ruh) ? 'Keşfediliyor: yapay zekâ liste kuruyor, şarkılar Spotify\'da tek tek doğrulanıyor (20-40 sn)…' : 'Ruh hâline göre seçiliyor…')) + '</div>';
-      ruhKarisimCal(ruh, false, karisimKap).then(function () { oner.disabled = false; });
+      ruhKarisimCal(ruh, false, karisimKap).then(function () { oner.disabled = false; hemenDug.disabled = false; });
     }
     // ruh hâli yalnızca yazılan metin; tonlar (ton kutusundaki örnek şarkılar) öneri istemine ayrıca girer
     function ruhGirisi() { return giris.value.trim() || (Ornekler.length ? 'tonlara benzer' : ''); }
-    oner.addEventListener('click', function () { calistir(ruhGirisi()); });
-    giris.addEventListener('keydown', function (e) { if (e.key === 'Enter') calistir(ruhGirisi()); });
+    oner.addEventListener('click', function () { konusmaGonder(giris.value); });
+    giris.addEventListener('keydown', function (e) { if (e.key === 'Enter') konusmaGonder(giris.value); });
+    // ---- Konuşma paneli: tek girdi yerinde sırayla sorular; her cevap kaydedilir; en sonda toplu düşünülüp liste kurulur ----
+    var konusmaKap = el('div', { class: 'sp-konusma' });
+    var hemenDug = el('button', { class: 'dugme', type: 'button', title: 'Soru sormadan, yazdığın metinle hemen liste kurar' }, ['⚡ Hemen öner']);
+    hemenDug.addEventListener('click', function () { calistir(ruhGirisi()); });
+    var sanatciSecim = null, konusmaMesgul = false; // sanatçı önerisi aşaması yalnız bellekte tutulur
+    function konusmaCiz() {
+      konusmaKap.innerHTML = '';
+      var bitti = konusmaBitti(), s = KONUSMA_SORULAR[Konusma.adim];
+      if (konusmaMesgul) konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS' }), el('p', { text: 'Düşünüyorum…' })]));
+      if (!bitti && !sanatciSecim && !konusmaMesgul) {
+        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS · ' + (Konusma.adim + 1) + ' / ' + KONUSMA_SORULAR.length }), el('p', { text: s.soru })]));
+        var ipucular = s.ipucu || RUH_CIPLER.map(function (c) { return c.replace(/^\S+\s/, ''); });
+        konusmaKap.appendChild(el('div', { class: 'sp-cipler' }, ipucular.map(function (t) { return el('button', { class: 'cip', type: 'button', onclick: function () { konusmaGonder(t); } }, [t]); })));
+        if (!s.zorunlu) konusmaKap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'cip', type: 'button', onclick: function () { konusmaGonder(''); } }, ['Atla'])]));
+      }
+      if (sanatciSecim) {
+        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS · ' + (Konusma.adim + 1) + ' / ' + KONUSMA_SORULAR.length }), el('p', { text: 'Bu tarza yakın sanatçılar. Sevdiklerine dokun, sonra devam et.' })]));
+        konusmaKap.appendChild(el('div', { class: 'sp-cipler' }, sanatciSecim.oneriler.map(function (a) { return el('button', { class: 'cip' + (sanatciSecim.secili[a] ? ' sp-cip-secili' : ''), type: 'button', onclick: function () { sanatciSecim.secili[a] = !sanatciSecim.secili[a]; konusmaCiz(); } }, [a]); })));
+        konusmaKap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { sanatciDevam(); } }, ['Seçilenlerle devam'])]));
+      }
+      var cevaplar = KONUSMA_SORULAR.slice(0, Konusma.adim).map(function (q) { return el('span', { text: '✓ ' + q.kisa + ': ' + (Konusma.cevaplar[q.id] || '—') }); });
+      if (cevaplar.length) konusmaKap.appendChild(el('div', { class: 'sp-cevaplar' }, cevaplar));
+      if (bitti) {
+        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS' }), el('p', { text: 'Cevapların kaydedildi. Toplu düşünüp listeyi kurayım mı?' })]));
+        if (!konusmaMesgul) konusmaKap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'cip', type: 'button', onclick: function () { if (konusmaMesgul) { U.toast('Liste hazırlanıyor; bitince yeni oturum açabilirsin.'); return; } konusmaYeniOturum(); konusmaCiz(); } }, ['↻ Yeni oturum (soruları baştan sor)'])]));
+      }
+      oner.textContent = bitti ? 'Liste kur' : 'Gönder';
+      giris.placeholder = bitti ? 'İstersen "Liste kur" de' : 'Cevabını yaz ya da yukarıdan seç…';
+    }
+    // Gönder: sanatçı aşamasında seçilenlerle devam; konuşma bittiyse liste kur; değilse cevabı kaydet ve sonraki soruya geç
+    function konusmaGonder(metin) {
+      if (konusmaMesgul) return;
+      var m = String(metin === undefined || metin === null ? giris.value : metin).trim();
+      giris.value = '';
+      if (sanatciSecim) { sanatciDevam(); return; }
+      if (konusmaBitti()) { konusmaKur(); return; }
+      var s = KONUSMA_SORULAR[Konusma.adim];
+      if (!m && s.zorunlu) { giris.focus(); return; }
+      if (s.sanatci && m && !/^yok$/i.test(m)) { sanatciAsama(m); return; }
+      konusmaCevapla(m); konusmaCiz();
+    }
+    function sanatciAsama(m) {
+      konusmaMesgul = true; konusmaCiz();
+      konusmaSanatciOner(m).then(function (liste) {
+        if (liste.length) sanatciSecim = { metin: m, oneriler: liste, secili: {} };
+        else konusmaCevapla(m);
+      }, function () {
+        U.toast('Sanatçı önerisi alınamadı; cevabın kaydedildi.');
+        konusmaCevapla(m);
+      }).then(function () { konusmaMesgul = false; konusmaCiz(); });
+    }
+    function sanatciDevam() {
+      if (!sanatciSecim) return;
+      var sec = sanatciSecim.oneriler.filter(function (a) { return sanatciSecim.secili[a]; });
+      var m = sanatciSecim.metin; sanatciSecim = null;
+      Konusma.sanatci = sec;
+      konusmaCevapla(m); konusmaCiz();
+    }
+    // Toplu düşünme: kayıtlı cevaplar + işaretler + kütüphane birlikte istem olur; keşif listesi kurulur
+    // Tıklanan düğme devre dışı bırakılmaz (meşguliyet bayrağı kullanılır); tarayıcı girdiyi kesmesin
+    function konusmaKur() {
+      if (konusmaMesgul) return;
+      KonusmaBaglam = konusmaBaglamKur(); konusmaMesgul = true; konusmaCiz();
+      karisimKap.hidden = false;
+      karisimKap.innerHTML = '<div class="yukleniyor">Toplu düşünüyorum: cevapların, işaretlerin ve kütüphanen birlikte değerlendiriliyor (20–40 sn)…</div>';
+      var bitir = function () { KonusmaBaglam = null; konusmaMesgul = false; konusmaCiz(); };
+      ruhKarisimCal(konusmaOzet(), true, karisimKap).then(bitir, bitir);
+    }
     var modSec = el('select', { 'aria-label': 'Öneri kaynağı', style: 'background:var(--zemin);border:1px solid var(--cizgi);border-radius:6px;color:var(--metin);padding:6px 8px' });
     [['karisik', '🔀 Karışık: yeni keşifler + kütüphanem'], ['kesif', '🔭 Keşif: çoğu yeni şarkı'], ['kutuphane', '📚 Yalnız kütüphanem (hızlı)']].forEach(function (x) { modSec.appendChild(el('option', { value: x[0], text: x[1], selected: muzikModu() === x[0] ? true : null })); });
     modSec.addEventListener('change', function () { yaz('spotify_mod', modSec.value); });
@@ -1254,19 +1419,19 @@
     // mevcut listenin SONUNA ekler (liste yoksa yeni karışım kurulur)
     var ekleDug = el('button', { class: 'dugme', type: 'button', title: 'Ruh hâline uyan şarkıları etiketleyip listenin sonuna ekler' }, ['＋ Ekle']);
     function ruhEkle(ruh) {
-      ruh = String(ruh || '').trim() || (Ornekler.length ? 'tonlara benzer' : ''); if (!ruh) { giris.focus(); return; }
+      var konusmaTamam = konusmaBitti(); if (konusmaTamam) KonusmaBaglam = konusmaBaglamKur();
+      ruh = konusmaTamam ? konusmaOzet() : (String(ruh || '').trim() || (Ornekler.length ? 'tonlara benzer' : '')); if (!ruh) { giris.focus(); return; }
       ekleDug.disabled = true; var eskiYazi = ekleDug.textContent; ekleDug.textContent = 'Düşünüyor…';
       ruhEkleAkis(ruh).then(function (r) {
         sonKarisim = r.k; karisimSakla(r.k); karisimCiz(karisimKap, r.k); karisimKap.hidden = false;
         U.toast(r.eklenen + ' yeni şarkı listenin sonuna eklendi');
       }).catch(function (e) { U.toast('Eklenemedi: ' + String(e && e.message || e)); })
-        .then(function () { ekleDug.disabled = false; ekleDug.textContent = eskiYazi; });
+        .then(function () { ekleDug.disabled = false; ekleDug.textContent = eskiYazi; KonusmaBaglam = null; });
     }
     ekleDug.addEventListener('click', function () { ruhEkle(giris.value); });
-    var ruhKutu = el('div', { class: 'sp-kutu sp-ruh' }, [el('h2', { text: 'RUH HÂLİ' }), el('div', { class: 'sp-satir' }, [giris, oner, ekleDug]), el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [modSec, el('span', { class: 'sp-durum', text: 'Şarkı adı yazarsan (ör. "Do I Clench My Fists - Ridgeclub") onun etrafında kurar.' })])]);
-    var cipler = el('div', { class: 'sp-cipler' });
-    RUH_CIPLER.forEach(function (c) { cipler.appendChild(el('button', { class: 'cip', type: 'button', onclick: function () { calistir(c.replace(/^\S+\s/, '')); } }, [c])); });
-    ruhKutu.appendChild(cipler);
+    var ruhKutu = el('div', { class: 'sp-kutu sp-ruh' }, [el('h2', { text: 'RUH HÂLİ' }), konusmaKap, el('div', { class: 'sp-satir' }, [giris, oner, ekleDug]), el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [modSec, hemenDug, el('span', { class: 'sp-durum', text: 'Şarkı adı yazarsan (ör. "Do I Clench My Fists - Ridgeclub") onun etrafında kurar.' })])]);
+    konusmaCiz();
+    // ruh hâli seçenekleri konuşmanın ilk sorusunda (konusmaKap)
     var zevk = el('input', { type: 'text', value: Zevk, placeholder: 'Sevdiğin sanatçılar / türler (ör. Duman, Arctic Monkeys, lo-fi, Ludovico Einaudi)', 'aria-label': 'Müzik zevkin' });
     zevk.addEventListener('change', function () { Zevk = zevk.value.trim(); yaz('spotify_zevk', Zevk); U.toast('Zevkin kaydedildi'); });
     ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [zevk]));
