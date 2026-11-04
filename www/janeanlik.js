@@ -22,7 +22,7 @@
   function bugunAnahtar() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function gunluk() { try { var v = JSON.parse(localStorage.getItem('janeAnlikGun') || '{}'); return v.g === bugunAnahtar() ? v : { g: bugunAnahtar(), n: 0 }; } catch (e) { return { g: bugunAnahtar(), n: 0 }; } }
   function gunlukYaz(v) { try { localStorage.setItem('janeAnlikGun', JSON.stringify(v)); } catch (e) {} }
-  function sonrakiAralik() { return 30 + Math.floor(Math.random() * 15); }
+  function sonrakiAralik() { return 20 + Math.floor(Math.random() * 71); } // 20–90 sn, rastgele
   // kaydırdığın / dokunduğun pencere: Zamanım yok paneli, yüzen pencere ya da kitap; soru oradan sorulur
   function kokBul(t) { if (!t || !t.closest) return; var k = t.closest('.yan-panel, .hp, .yp-govde, .ai-metin, .sohbet-akis, .zy-alan, .metin, .okuma-alani'); if (k) kok = k; }
 
