@@ -78,25 +78,27 @@
     function aci(e) { var r = kap.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; return Math.atan2(e.clientX - cx, -(e.clientY - cy)) * 180 / Math.PI; }
     function bas(e) {
       e.preventDefault(); e.stopPropagation();
-      surukle = { a0: aci(e), d: 0, son: 0, t: Date.now(), id: e.pointerId };
+      surukle = { a0: aci(e), d: 0, son: 0, t: Date.now(), id: e.pointerId, x0: e.clientX, dx: 0 };
       try { (e.target.setPointerCapture ? e.target : kap).setPointerCapture(e.pointerId); } catch (x) {}
       cancelAnimationFrame(yayRaf);
     }
     function tasi(e) {
       if (!surukle || e.pointerId !== surukle.id) return;
       var d = aci(e) - surukle.a0; while (d > 180) d -= 360; while (d < -180) d += 360;
-      d = Math.max(-80, Math.min(80, d)); surukle.d = d;
+      d = Math.max(-80, Math.min(80, d)); surukle.d = d; surukle.dx = e.clientX - surukle.x0;
       aciKoy(d);
       var tik = Math.round(d / 7.2); if (tik !== surukle.son) { surukle.son = tik; titret(6); }
       ipSol.classList.toggle('on', d <= -ESIK); ipSag.classList.toggle('on', d >= ESIK);
     }
     function birak(e) {
       if (!surukle || (e && e.pointerId !== surukle.id)) return;
-      var d = surukle.d, kisa = Date.now() - surukle.t < 350 && Math.abs(d) < 6; surukle = null;
+      var d = surukle.d, dx = surukle.dx, kisa = Date.now() - surukle.t < 350 && Math.abs(d) < 6 && Math.abs(dx) < 10; surukle = null;
       yay();
       ipSol.classList.remove('on'); ipSag.classList.remove('on');
-      if (d <= -ESIK || kisa) { titret(25); cark_ac(durbun, false); }
-      else if (d >= ESIK) { titret(25); cark_ac(durbun, true); }
+      // sınıflandırma ekrandaki yatay hareketle: sağa = kitap listesi, sola ya da kısa dokunuş = kısa yol (dairesel açı yönü tersine dönebiliyor)
+      var sag = dx >= 30 ? true : dx <= -30 ? false : (d >= ESIK ? true : d <= -ESIK ? false : null);
+      if (kisa || sag === false) { titret(25); cark_ac(durbun, false); }
+      else if (sag === true) { titret(25); cark_ac(durbun, true); }
     }
     [tut, bant].forEach(function (x) { x.addEventListener('pointerdown', bas); x.addEventListener('pointermove', tasi); x.addEventListener('pointerup', birak); x.addEventListener('pointercancel', birak); });
   }
