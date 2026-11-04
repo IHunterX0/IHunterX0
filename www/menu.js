@@ -13,7 +13,7 @@
   var BOLUM = [
     { ad: 'MERKEZ', ikon: '◉', h: 'kutuphane', alt: [] },
     { ad: 'OKU', ikon: '❏', h: 'oku', alt: [] },
-    { ad: 'ÇALIŞ', ikon: '◈', alt: [['reels', 'Reels'], ['ders', 'Ders programı'], ['koc', 'Bugün'], ['plan', 'Plan'], ['kartlar', 'Kartlar'], ['test', 'Test'], ['tahmin', 'Tahmin'], ['saray', 'Saraylar']] },
+    { ad: 'ÇALIŞ', ikon: '◈', alt: [['reels', 'Reels'], ['ders', 'Ders programı'], ['koc', 'Bugün'], ['plan', 'Plan'], ['kartlar', 'Kartlar'], ['test', 'Test'], ['tahmin', 'Çıkmış'], ['saray', 'Saraylar']] },
     { ad: 'LAB', ikon: '⬡', alt: [['lab-hucre', 'Hücre'], ['lab-anatomi', 'Anatomi'], ['lab-molekul', 'Molekül'], ['zaman', 'Zaman']] },
     { ad: 'MÜZİK', ikon: '♫', h: 'muzik', alt: [] },
     { ad: 'ARŞİV', ikon: '▤', alt: null } // diğer tüm sekmeler

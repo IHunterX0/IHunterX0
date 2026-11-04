@@ -121,7 +121,7 @@
           { ik: 'makale', ad: 'Makaleler', alt: 'ilgi alanların, yeni araştırmalar', git: function () { location.hash = '#makaleler'; } },
           { ik: 'kart', ad: 'Kartlar', alt: 'bugünkü tekrar', git: function () { location.hash = '#kartlar'; } },
           { ik: 'hedef', ad: 'Test', alt: 'çıkmış sorular', git: function () { location.hash = '#test'; } },
-          { ik: 'tahmin', ad: 'Tahmin', alt: 'bu sınavda ne çıkar', git: function () { location.hash = '#tahmin'; } },
+          { ik: 'tahmin', ad: 'Çıkmış', alt: 'konu, deneme, Jane', git: function () { location.hash = '#tahmin'; } },
           { ik: 'takvim', ad: 'Plan', alt: 'komite ve günlük plan', git: function () { location.hash = '#plan'; } }
         ]);
       });
