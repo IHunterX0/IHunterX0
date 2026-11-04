@@ -17,15 +17,17 @@
     '.jane-anlik .ja-sonuc{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(255,211,138,.08);font-size:14px;line-height:1.5}' +
     '@media (prefers-reduced-motion: reduce){.jane-anlik{animation:none}}';
   document.head.appendChild(css);
-  var okumaSn = 0, sonEtkilesim = Date.now(), siradaki = 300 + Math.floor(Math.random() * 240), kartVar = false, mesgul = false;
+  var okumaSn = 0, sonEtkilesim = Date.now(), siradaki = 30, kartVar = false, mesgul = false, kok = null;
 
   function bugunAnahtar() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function gunluk() { try { var v = JSON.parse(localStorage.getItem('janeAnlikGun') || '{}'); return v.g === bugunAnahtar() ? v : { g: bugunAnahtar(), n: 0 }; } catch (e) { return { g: bugunAnahtar(), n: 0 }; } }
   function gunlukYaz(v) { try { localStorage.setItem('janeAnlikGun', JSON.stringify(v)); } catch (e) {} }
-  function sonrakiAralik() { return 480 + Math.floor(Math.random() * 600); }
+  function sonrakiAralik() { return 30 + Math.floor(Math.random() * 15); }
+  // kaydırdığın / dokunduğun pencere: Zamanım yok paneli, yüzen pencere ya da kitap; soru oradan sorulur
+  function kokBul(t) { if (!t || !t.closest) return; var k = t.closest('.yan-panel, .hp, .yp-govde, .ai-metin, .sohbet-akis, .zy-alan, .metin, .okuma-alani'); if (k) kok = k; }
 
-  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, function () { sonEtkilesim = Date.now(); }, { passive: true, capture: true }); });
-  window.addEventListener('scroll', function () { sonEtkilesim = Date.now(); }, { passive: true, capture: true });
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, function (e) { sonEtkilesim = Date.now(); kokBul(e.target); }, { passive: true, capture: true }); });
+  window.addEventListener('scroll', function (e) { sonEtkilesim = Date.now(); kokBul(e.target); }, { passive: true, capture: true });
 
   function okumada() { return /^#oku-/.test(location.hash) && !document.hidden && Date.now() - sonEtkilesim < 120000; }
   function mola() { var P = U.Pomodoro && U.Pomodoro.anlik ? U.Pomodoro.anlik() : null; return !!(P && P.calisiyor && P.mod !== 'calis'); }
@@ -36,10 +38,13 @@
   }
 
   function paragrafSec() {
+    var koku = (kok && document.body.contains(kok)) ? kok : document.querySelector('.metin');
+    if (!koku) return null;
     var orta = innerHeight / 2, en = null, fark = 1e9;
-    Array.prototype.forEach.call(document.querySelectorAll('.metin p'), function (p) {
+    Array.prototype.forEach.call(koku.querySelectorAll('p, li'), function (p) {
       var r = p.getBoundingClientRect();
-      if (r.top < 90 || r.bottom > innerHeight - 90 || p.textContent.trim().length < 90) return;
+      if (r.height < 10 || r.bottom < 0 || r.top > innerHeight) return;
+      if (p.textContent.trim().length < 60) return;
       var d = Math.abs((r.top + r.bottom) / 2 - orta); if (d < fark) { fark = d; en = p; }
     });
     return en;
@@ -71,7 +76,7 @@
       el('div', { class: 'ja-alt' }, [sonra, cevapla])
     ]);
     document.body.appendChild(k);
-    zamanlayici = setTimeout(kapat, 60000);
+    zamanlayici = setTimeout(kapat, 25000);
     sonra.addEventListener('click', kapat);
     cevapla.addEventListener('click', function () { cevapla.remove(); cevapAlani.hidden = false; if (zamanlayici) clearTimeout(zamanlayici); zamanlayici = setTimeout(kapat, 120000); try { girdi.focus({ preventScroll: true }); } catch (e) {} });
     gonder.addEventListener('click', function () {
@@ -105,7 +110,7 @@
     okumaSn += 5;
     if (okumaSn < siradaki) return;
     if (kartVar || mesgul) return;
-    if (gunluk().n >= 8) { siradaki = okumaSn + 1800; return; }
+    if (gunluk().n >= 300) { siradaki = okumaSn + 1800; return; }
     if (mola() || !bos()) { siradaki = okumaSn + 60; return; }
     dene();
   }, 5000);
