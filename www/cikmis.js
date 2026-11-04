@@ -262,14 +262,14 @@
       var ok = r[1]; if (!ok) throw { code: 'not_granted' };
       var istem = 'Sen Patrick Jane\'sin (The Mentalist): sakin, kendinden emin, oyuncu; isabetli ve adil. Bir tıp öğrencisine, aşağıdaki bölümde sınavda çıkması en olası 8 çoktan seçmeli soruyu yaz.\n' +
         'Kurallar: Her soru yalnız bu metinde açıkça geçen bilgiye dayansın. 5 şık (A-E), tek doğru; şıklar aynı türden ve inandırıcı olsun; "hepsi/hiçbiri" yok. Doğru şıkkın yeri değişsin. ' +
-        'Sorular çıkmış sorulardaki sınanan noktalara yakın olsun (üslup ve konu), aynısını sorma.\n' +
+        'Sorular çıkmış sorulardaki sınanan noktalara yakın olsun (üslup ve konu), aynısını sorma. Doğru şık bölüm metninde açıkça yazılsın; çeldiriciler metinde geçen yakın kavramlardan olsun ki öğrenci gerçekten ayırt etmek zorunda kalsın.\n' +
         'Yalnız JSON: {"sorular":[{"soru":"...","siklar":["...","...","...","...","..."],"dogru":0-4,"aciklama":"doğru cevabın nedeni, 1-2 cümle, Jane ağzından","konu":"2-4 kelime"}]}\n\n' +
         (r[0] ? 'ÇIKMIŞ SORU ÖRNEKLERİ:\n' + r[0] + '\n\n' : '') + 'BÖLÜM METNİ:\n"""\n' + kapsam + '\n"""';
       return Y.sample.json(istem, { cache: false });
     }).then(function (j) {
-      var sorular = (j && j.sorular || []).filter(function (q) { return q && q.soru && Array.isArray(q.siklar) && q.siklar.length === 5 && q.dogru >= 0 && q.dogru < 5; }).slice(0, 8)
+      var sorular = (j && j.sorular || []).filter(function (q) { return q && q.soru && Array.isArray(q.siklar) && q.siklar.length === 5 && q.dogru >= 0 && q.dogru < 5 && metinde(q.soru + ' ' + q.siklar[q.dogru] + ' ' + (q.aciklama || ''), kapsam); }).slice(0, 8)
         .map(function (q, i) { return { id: 'jane-' + i, kitap: kj.id, kitapAd: kj.baslik, ders: dersOf(kj.baslik) || 'Diğer', bolum: bolum.id, bolumAd: bolum.kisa || bolum.baslik || '', sira: bolumSira(kj, bolum.id), alt: '', konu: String(q.konu || ''), soru: String(q.soru), guvenli: false, siklar: q.siklar.map(String), dogru: +q.dogru, aciklamaHtml: esc(String(q.aciklama || '')), etiket: 'Jane\'in tahmini', jane: true, sk: 0 }; });
-      if (!sorular.length) throw new Error('Jane geçerli soru üretemedi; yeniden dene.');
+      if (sorular.length < 3) throw new Error('Jane yeterince bölüme dayalı soru üretemedi (' + sorular.length + '/8). Yeniden dene.');
       govde.innerHTML = '';
       govde.appendChild(el('p', { class: 'var-etiket', text: 'Bunlar Jane\'in tahmini. Gerçek çıkmış sorular değil; sonuçları ayrı tutulur.' }));
       var cats = [], kap = el('div'); govde.appendChild(kap);
@@ -283,11 +283,22 @@
     });
   }
 
+  // Jane'in sorusu bölüm metninde karşılığı olan kelimelerden oluşmalı (anahtar kelimelerin yarısından fazlası metinde geçsin)
+  var DURDUR = { bunu: 1, hangisi: 1, hangisidir: 1, olarak: 1, sonuç: 1, nedeni: 1, nedir: 1, nasıl: 1, öğrenci: 1, cevap: 1, neden: 1, doğru: 1, yanlış: 1, şekilde: 1, aşağıdakilerden: 1, aşağıdaki: 1 };
+  function normal(s) { return String(s || '').toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]+/g, ' '); }
+  function metinde(soru, metin) {
+    var m = ' ' + normal(metin) + ' ';
+    var kel = normal(soru).split(' ').filter(function (w) { return w.length >= 5 && !DURDUR[w]; });
+    if (!kel.length) return false;
+    var hit = kel.filter(function (w) { return m.indexOf(w) >= 0; }).length;
+    return hit >= Math.max(1, Math.ceil(kel.length / 2));
+  }
+
   /* ---------- sayfa ---------- */
   U.GORUNUMLER.tahmin = function (arg) {
     var ana = $('#ana'); ana.innerHTML = '';
     var sayfa = el('div', { class: 'sayfa' }); ana.appendChild(sayfa);
-    sayfa.appendChild(el('div', { class: 'kahraman' }, [el('div', { class: 'ust-etiket', text: 'Çıkmış sorular' }), el('h1', { text: '🔮 Çıkmış sorular' }),
+    sayfa.appendChild(el('div', { class: 'kahraman' }, [el('div', { class: 'ust-etiket', text: 'Çıkmış' }), el('h1', { text: '🔮 Çıkmış' }),
       el('p', { text: 'Konu konu çöz, komite formatında deneme yap ya da Jane\'in çıkmasını beklediği yerleri soy. Her soruda 5 şık + “Bilmiyorum”: ikisini birlikte işaretlersen doğruysa “tık bilgi”, yanlışsa “şans denemesi” olarak kaydedilir.' })]));
     var kitapSec = el('select', { 'aria-label': 'Kitap' }), bolumSec = el('select', { 'aria-label': 'Bölüm' });
     sayfa.appendChild(el('div', { class: 'yp-dugmeler', style: 'align-items:center;flex-wrap:wrap' }, [kitapSec, bolumSec]));
