@@ -180,3 +180,4 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 - r88: Jane anlık soru aralığı rastgele 20–90 sn.
 - r89: Jane aralığı kart kapandıktan sonra başlar, en az 45 sn; cevap gönderilince kapanma zamanlayıcısı durur.
 - r90: açık yan panel (Zamanım yok vb.) Jane'in soru kaynağı; panel açıkken soru engellenmez.
+- r91: Jane kaynağı yalnız aktif pencereler: küçültülmüş/dar paneller ve kenara park edilmiş (.kenarda) pencereler sayılmaz.

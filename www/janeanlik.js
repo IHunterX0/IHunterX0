@@ -25,7 +25,7 @@
   // kart kapandıktan sonra sayaç baştan başlar: en az 45 sn, en çok 105 sn (rastgele)
   function sonrakiAralik() { return 45 + Math.floor(Math.random() * 61); }
   // kaydırdığın / dokunduğun pencere: Zamanım yok paneli, yüzen pencere ya da kitap; soru oradan sorulur
-  function kokBul(t) { if (!t || !t.closest) return; var k = t.closest('.yan-panel, .hp, .yp-govde, .ai-metin, .sohbet-akis, .zy-alan, .metin, .okuma-alani'); if (k) kok = k; }
+  function kokBul(t) { if (!t || !t.closest) return; var k = t.closest('.yan-panel, .hp, .yp-govde, .ai-metin, .sohbet-akis, .zy-alan, .metin, .okuma-alani'); if (k && !k.closest('.kenarda')) kok = k; }
 
   ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, function (e) { sonEtkilesim = Date.now(); kokBul(e.target); }, { passive: true, capture: true }); });
   window.addEventListener('scroll', function (e) { sonEtkilesim = Date.now(); kokBul(e.target); }, { passive: true, capture: true });
@@ -38,11 +38,25 @@
     return true;
   }
 
-  // öncelik: açık yan panel (Zamanım yok vb.) > son dokunulan pencere > kitap
+  // aktif (ekranda açık, küçültülmemiş, kenara park edilmemiş) pencere
+  function aktifYan() {
+    var y = document.querySelector('.yan-panel.acik'); if (!y) return null;
+    var r = y.getBoundingClientRect(); if (r.width < 200 || r.right <= 0 || r.left >= innerWidth) return null;
+    return y;
+  }
+  function aktifHp() {
+    var best = null, bz = -1;
+    document.querySelectorAll('.hp:not(.kenarda)').forEach(function (h) {
+      var r = h.getBoundingClientRect(); if (r.width < 150 || r.height < 100 || r.right <= 0 || r.left >= innerWidth) return;
+      var z = parseInt(getComputedStyle(h).zIndex, 10) || 0; if (z > bz) { bz = z; best = h; }
+    });
+    return best;
+  }
+  // öncelik: açık Zamanım yok paneli > en üstteki açık pencere > son dokunulan (kenarda değilse) > kitap
   function kaynakKok() {
-    var y = document.querySelector('.yan-panel.acik .yp-govde') || document.querySelector('.yan-panel.acik');
-    if (y) return y;
-    if (kok && document.body.contains(kok)) return kok;
+    var y = aktifYan(); if (y) return y.querySelector('.yp-govde') || y;
+    var h = aktifHp(); if (h) return h;
+    if (kok && document.body.contains(kok) && !kok.closest('.kenarda')) return kok;
     return document.querySelector('.metin');
   }
   function paragrafSec() {
@@ -114,7 +128,7 @@
 
   setInterval(function () {
     if (KAPALI) return;
-    if (!okumada() && !document.querySelector('.yan-panel.acik')) return;
+    if (!okumada() && !aktifYan()) return;
     okumaSn += 5;
     if (okumaSn < siradaki) return;
     if (kartVar || mesgul) return;
