@@ -439,7 +439,7 @@
       { name: 'medya', description: 'Çalan müziği/videoyu kontrol eder.', inputSchema: { type: 'object', properties: { komut: { type: 'string', enum: ['oynat', 'duraklat', 'sonraki', 'onceki'] } }, required: ['komut'] },
         execute: function (g) { return K && K.medya ? K.medya(String(g.komut)) : 'Yalnız Android uygulamasında.'; } },
       { name: 'uygulama_ac', description: 'Tablette adı verilen uygulamayı açar (ör. YouTube, Ayarlar, Takvim, Kamera).', inputSchema: { type: 'object', properties: { ad: { type: 'string' } }, required: ['ad'] },
-        execute: function (g) { return K && K.uygulamaAc ? K.uygulamaAc(String(g.ad)) : 'Yalnız Android uygulamasında.'; } },
+        execute: function (g) { return K && K.uygulamaAc ? K.uygulamaAc(String(g.ad)) : iosUygulamaAc(String(g.ad)); } },
       { name: 'whatsapp', description: 'WhatsApp\'ta rehberdeki ya da yalnız WhatsApp\'ta adıyla kayıtlı kişiye mesaj yazar ya da sesli/görüntülü arar. ÖNEMLİ: önce onaylandi=false ile çağırma; önce kullanıcıya kişiyi ve (mesajsa) metni sesli oku, "Göndereyim mi?" / "Arayayım mı?" diye sor. Kullanıcı açıkça evet/gönder/ara derse onaylandi=true ile çağır. Sadece "taslak yaz/aç" denirse onaylandi=false ile çağır (gönderilmez).',
         inputSchema: { type: 'object', properties: { kisi: { type: 'string', description: 'kişinin KAYITLI adı (ek almadan: "anneme at" → "Annem", "Aliyi ara" → "Ali") ya da numara' }, islem: { type: 'string', enum: ['mesaj', 'sesli', 'goruntulu'] }, metin: { type: 'string' }, onaylandi: { type: 'boolean' } }, required: ['kisi', 'islem'] },
         execute: function (g) { return K && K.whatsapp ? K.whatsapp(String(g.kisi), String(g.metin || ''), String(g.islem), g.onaylandi === true) : 'Yalnız Android uygulamasında.'; } },
@@ -519,7 +519,7 @@
   }
   var DUSUNME = 'DÜŞÜNME YÖNTEMİN (cevaptan önce, içinden): 1) Asıl ne soruluyor, öğrenci neyi karıştırıyor olabilir? 2) Kitapta ara; bilgiyi mekanizma ve "neden"iyle bağla. 3) Sınavda nasıl sorulur, klasik tuzak ne? 4) Doğrula: metabolik basamaklarda substrat → ürün → enzim zincirini, anatomide yön/komşuluğu, sayıları ve birimleri tek tek kontrol et; kitap sonucuyla çelişen bir şey söyleme. Emin olmadığını kesinmiş gibi söyleme. Sonra kısa, akıcı, sesli okunacak biçimde cevapla; gerekiyorsa tek cümlelik bir sınav ipucu ekle.';
   function profilMetni() {
-    return Promise.all([calismaDurumu(), gozlemler()]).then(function (rr) { var d = rr[0], gz = rr[1];
+    return Promise.all([calismaDurumu(), gozlemler(), U.Depo.oku('janeOto').catch(function () { return {}; })]).then(function (rr) { var d = rr[0], gz = rr[1], jo = (rr[2] && rr[2].liste) || [];
       var s = new Date(), saat = s.getHours();
       var l = ['KULLANICI: ' + (Profil.ad ? 'adı ' + Profil.ad + '. ' : '') + (hitap() ? 'Ona "' + hitap() + '" diye hitap et (her cümlede değil, ara sıra). ' : '') + 'Üslup: ' + (TONLAR[Profil.ton] || TONLAR.jarvis),
         'Şu an: ' + s.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }) + ', saat ' + ('0' + saat).slice(-2) + ':' + ('0' + s.getMinutes()).slice(-2) + (saat >= 0 && saat < 5 ? ' (gece geç saat: gerekirse uykuyu nazikçe hatırlat)' : '') + '.'];
@@ -530,6 +530,8 @@
         ? 'ŞU AN SINAV HAFTASI (' + U.sinavAdi(d.sinav) + ' için ' + kalan + ' gün): yalnız sınava yönelik konuş — çıkmış soru mantığı, tuzaklar, kısa özet; akademik ayrıntıya girme.'
         : 'Sınava ' + (kalan != null ? kalan + ' gün var' : 'tarih girilmemiş') + ': cevabı sınav bilgisiyle bitir ama DERİNLEŞTİR — mekanizma ve "neden", terimin İngilizcesi, konunun güncel araştırma bağlantısı ya da klasik bir deney/keşif (bilmiyorsan uydurma). Uygun düştüğünde küçük bir araştırma sorusu ya da İngilizce okuma önerisi yap.'));
       if (gz) l.push('GÖZLEMLER (gerçek veri; çıkarım yaparken yalnız bunlara ve sohbete dayan): ' + gz + '.');
+      // Jane sarsılma turunda "emin ama yanlış" çıkan varsayımlar: öğrencinin otomatik doldurma noktaları; konu açılınca kısaca uyar
+      if (jo.length) l.push('OTOMATİK DOLDURMA NOKTALARI (Jane turunda emin olup yanıldığı; ilgili konu açılırsa bu tuzağa tek cümleyle dikkat çek): ' + jo.slice(-5).map(function (x) { return (x.konu || '') + ': ' + String(x.varsayim || x.soru || '').slice(0, 110); }).join(' | ') + '.');
       l.push(DUSUNME);
       if (Profil.hafiza.length) l.push('HAFIZAN (kullanıcının sana söyledikleri; uygun düştüğünde kullan, tekrar tekrar söyleme):\n- ' + Profil.hafiza.slice(-25).map(function (h) { return h.m; }).join('\n- '));
       l.push('Kullanıcı kendisi hakkında kalıcı bir bilgi/tercih söylerse ("sabahları çalışırım", "bana kısa anlat", "kardiyolojiyi seviyorum") ya da "bunu hatırla" derse hatirla aracını kullan; "unut" derse unut. "Bana X de", "daha resmi/samimi konuş" derse profil_ayarla.');
@@ -816,14 +818,18 @@
       // kısa sohbet/selamlaşma: hafif model (daha bol kotalı) yeter
       var basit = t.split(/\s+/).length <= 5 && !/neden|nasıl|nedir|ne demek|açıkla|anlat|fark|mekanizma|hesapla|çöz|test|soru/i.test(t);
       var CIHAZ_ARAC = /^(spotify_ruh_hali|spotify_kontrol|ses_seviyesi|muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|plan_oku|ekran_suresi|eksiklerim|pomodoro|calisma_onerisi|hatirla|unut|profil_ayarla)$/;
-      return profilMetni().then(function (pm) { return Y.sample([{ role: 'user', content: KURAL + '\n' + pm + '\n' + baglam + '\nAnladıysan "Tamam" yaz.' }, { role: 'assistant', content: 'Tamam.' }].concat(gecmis),
-        { tools: cihazIsi ? tumAraclar.filter(function (a) { return CIHAZ_ARAC.test(a.name); }) : aracSec(t, tumAraclar), hafif: cihazIsi || basit, maxTur: cihazIsi ? 2 : 3, groqAtla: cihazIsi ? null : /^(muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|ekran_suresi|ilgi_ekle|unut|profil_ayarla|ses_seviyesi)$/, signal: Carvis.ctl.signal, onText: function (u) { cev.innerHTML = U.mdHtml(u.text); } }); })
+      var obAn = onbAnahtar(t, kj, cihazIsi || basit);
+      return (obAn ? U.AI.onbellekOku(obAn) : Promise.resolve(null)).then(function (ob) {
+        if (ob && ob.metin && Date.now() - (ob.t || 0) < 14 * 864e5) return { text: ob.metin, _hafiza: true };
+        return Promise.all([profilMetni(), onAra(t, cihazIsi || basit, tumAraclar)]).then(function (rr) { var pm = rr[0], on = rr[1]; return Y.sample([{ role: 'user', content: KURAL + '\n' + pm + '\n' + baglam + (on ? '\nÖN ARAMA (kitaplarda cihazda yapıldı, güvenilir; yeterliyse ARAÇ ÇAĞIRMADAN bunlarla cevapla, kaynak etiketlerini aynen koru; yetmezse araçları kullan):\n' + on : '') + '\nAnladıysan "Tamam" yaz.' }, { role: 'assistant', content: 'Tamam.' }].concat(gecmis),
+        { tools: cihazIsi ? tumAraclar.filter(function (a) { return CIHAZ_ARAC.test(a.name); }) : aracSec(t, tumAraclar), hafif: cihazIsi || basit, maxTur: cihazIsi ? 2 : (on ? 2 : 3), groqAtla: cihazIsi ? null : /^(muzik_cal|medya|uygulama_ac|whatsapp|ses_kaydi|ekran_suresi|ilgi_ekle|unut|profil_ayarla|ses_seviyesi)$/, signal: Carvis.ctl.signal, onText: function (u) { cev.innerHTML = U.mdHtml(u.text); } }); }); })
         .then(function (r) {
           Carvis.gecmis.push({ role: 'assistant', content: r.text });
+          if (obAn && !r._hafiza && !Carvis._internet && r.text && r.text.length > 60) U.AI.onbellekYaz(obAn, { metin: r.text, t: Date.now(), eylem: 'carvis' });
           cev.innerHTML = (Carvis._internet ? '<span class="cv-etiket">İnternetten · doğrula</span>' : '') + U.mdHtml(r.text);
           if (Carvis._kaynaklar.length) { var k = el('div', { class: 'cv-kaynak' }); Carvis._kaynaklar.slice(0, 5).forEach(function (s) { k.appendChild(el('a', { href: s.url, target: '_blank', rel: 'noopener', text: '↗ ' + (s.baslik || s.url) })); }); cev.appendChild(k); }
           U.atiflariBagla && kj && U.atiflariBagla(cev, kj);
-          cev.appendChild(el('span', { class: 'etiket-kucuk ai', text: 'AI üretimi' }));
+          cev.appendChild(el('span', { class: 'etiket-kucuk ai', text: r._hafiza ? 'AI üretimi · hafızadan (kota harcamadı)' : 'AI üretimi' }));
           akis.scrollTop = akis.scrollHeight;
           return yazili && !Carvis.acik ? null : Carvis.soyle(r.text);
         }).catch(function (e) { cev.innerHTML = ''; cev.appendChild(el('p', { class: 'hata-metni', text: U.AI ? U.AI.hataMetni(e) : String(e) })); durum(''); });
@@ -869,6 +875,41 @@
   window.carvisEkranKapandi = function () { U.toast('Ekran gözü kapandı (Carvis ayarlarından yeniden açabilirsin).'); };
   // açılışta: ekran gözü açık bırakılmışsa ve erişilebilirlik açıksa nokta geri gelsin
   setTimeout(function () { try { if (K && K.ekranGozuDurum) { var d = JSON.parse(K.ekranGozuDurum() || '{}'); if (d.acik && d.erisim && !d.nokta) K.ekranGozu(true); } } catch (e) {} }, 2500);
+  /* iPhone (kullanıcı, 2026-11-04: "iPhone'a aktarmak istiyorum"; Android'e özel işler için geçici çözümler):
+     uygulama bağlantılarıyla açma (iOS ilk seferde "açılsın mı?" diye sorabilir); Siri/Kestirme "…#carvis" adresiyle açınca Carvis hazır. */
+  var IOS_UYG = [[/youtube|yutup/, 'youtube://'], [/spotify/, 'spotify://'], [/whats ?app|vatsap/, 'whatsapp://'], [/instagram|insta/, 'instagram://'], [/chrome/, 'googlechrome://'],
+    [/claude/, 'claude://'], [/gmail|e-?posta|mail/, 'googlegmail://'], [/telegram/, 'tg://'], [/takvim|calendar/, 'calshow://'], [/harita|maps/, 'maps://'], [/netflix/, 'nflx://'],
+    [/twitter|\bx\b/, 'twitter://'], [/tiktok/, 'snssdk1233://'], [/notlar|notes/, 'mobilenotes://'], [/müzik|apple music/, 'music://'], [/dosyalar|files/, 'shareddocuments://'], [/drive/, 'googledrive://'], [/safari|tarayıcı/, 'x-web-search://']];
+  function iosUygulamaAc(ad) {
+    var a = String(ad || '').toLocaleLowerCase('tr'), e = IOS_UYG.filter(function (x) { return x[0].test(a); })[0];
+    if (!e) return 'Bu uygulamayı iPhone\'da açamıyorum; Siri\'ye "' + ad + '\'u aç" diyebilirsin.';
+    setTimeout(function () { try { location.href = e[1]; } catch (x) {} }, 300);
+    return ad + ' açılıyor (iPhone "açılsın mı?" diye sorarsa onayla).';
+  }
+  U.iosUygulamaAc = iosUygulamaAc;
+  function kisayolKontrol() { if (/^#carvis\b/.test(location.hash) && !K) { history.replaceState(null, '', location.pathname + '#kutuphane'); setTimeout(function () { if (!Carvis.acik) Carvis.ac(); document.body.classList.remove('cv-yazi-kapali'); }, 600); } }
+  window.addEventListener('hashchange', kisayolKontrol); setTimeout(kisayolKontrol, 1200);
+  /* Kota (kullanıcı, 2026-11-04: "kota dolmasın diye napalım"): bilgi sorularında kitap araması yapay zekâya sorulmadan ÖNCE cihazda yapılır
+     ve sonuçlar tek istekte gönderilir (araç döngüsü 2-3 istek yerine çoğu zaman 1); aynı bağımsız soru 14 gün hafızadan cevaplanır. */
+  var DURAK = /^(nedir|neden|niçin|nasıl|nedenini|açıkla|açıklar|anlat|anlatır|misin|mısın|musun|müsün|bana|şunu|bunu|onun|bunun|şunun|arasındaki|farkı|fark|nelerdir|hangi|hangisi|kaç|demek|olur|olan|olarak|için|gibi|daha|kısaca|biraz|lütfen|carvis|jarvis|peki|yani|şimdi|değil|veya|ile|ve|ya|ne|mi|mı|mu|mü|bir|bu|şu|o)$/;
+  function onAra(t, atla, araclar) {
+    if (atla || !/\?|nedir|neden|niçin|nasıl|açıkla|anlat|fark|mekanizma|ne demek|ne işe|hangi|kaç|görev|yapısı|özelli/i.test(t)) return Promise.resolve('');
+    var l = t.toLocaleLowerCase('tr').replace(/[^0-9a-zçğıöşüâîû\s-]/gi, ' ').split(/\s+/).filter(function (w) { return w.length > 3 && !DURAK.test(w); })
+      .map(function (w) { return w.replace(/(ların|lerin|ları|leri|ının|inin|unun|ünün|nın|nin|nun|nün|dır|dir|dur|dür|da|de|ta|te|ı|i|u|ü|ın|in|un|ün|a|e)$/, ''); }).filter(function (w) { return w.length > 2; });
+    l = l.sort(function (a, b) { return b.length - a.length; }).slice(0, 2);
+    var ara = (araclar || []).filter(function (a) { return a.name === 'kitapta_ara'; })[0], kav = (araclar || []).filter(function (a) { return a.name === 'kavram_getir'; })[0];
+    if (!ara || !l.length) return Promise.resolve('');
+    var isler = l.map(function (w) { return Promise.resolve(ara.execute({ sorgu: w })).catch(function () { return ''; }); });
+    if (kav) isler.push(Promise.resolve(kav.execute({ ad: l[0] })).catch(function () { return ''; }));
+    return Promise.race([Promise.all(isler), new Promise(function (ok) { setTimeout(function () { ok([]); }, 2500); })]).then(function (rr) {
+      return rr.map(function (x) { return typeof x === 'string' ? x : JSON.stringify(x); }).filter(function (x) { return x && x.length > 20 && !/^\[\]$|bulunamadı|sonuç yok/i.test(x); }).map(function (x) { return x.slice(0, 1400); }).join('\n').slice(0, 3200);
+    }).catch(function () { return ''; });
+  }
+  function onbAnahtar(t, kj, atla) {
+    var x = String(t || '').toLocaleLowerCase('tr').replace(/[^0-9a-zçğıöşü\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+    if (atla || x.length < 18 || /^(peki|bu|şu|o |onu|bunu|şunu|onun|bunun|devam|daha|tekrar|neden peki|ya )/.test(x) || /bugün|şimdi|saat|yarın|dün|plan|sınav|benim|ben |hatırla|kaç gün/.test(x)) return null;
+    var A = window.KitapAyristir; return A && A.fnv ? A.fnv('cvc1|' + (kj ? kj.id : '') + '|' + x) : null;
+  }
   Carvis.zamanimYok = function (kitapId, sira) {
     function bekle(kosul, ms) { return new Promise(function (ok) { var t0 = Date.now(); (function d() { var v = kosul(); if (v || Date.now() - t0 > ms) return ok(v); setTimeout(d, 400); })(); }); }
     var ac = kitapId ? Promise.all([Kitaplik.ac(kitapId), Kitaplik.bolumAc(kitapId, sira || 0)]).then(function (r) {
