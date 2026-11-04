@@ -277,7 +277,7 @@
     { id: 'edit', kisa: 'Edit', soru: 'Spesifik olarak bir edit\'in içerisinde kendini hayal ediyor musun? "Hayır" de ya da futbolcu yaz (ör. neymar / dybala).', ipucu: ['Hayır'], zorunlu: false },
     { id: 'tur', kisa: 'Tür', soru: 'Spesifik olarak istediğin bir tür var mı? Yoksa "yok" yaz.', ipucu: ['Yok'], zorunlu: false }
   ];
-  var Konusma = Object.assign({ adim: 0, cevaplar: {}, sanatci: [], mod: '', gecmis: [] }, oku(KONUSMA_ANAHTAR, null) || {});
+  var Konusma = Object.assign({ adim: 0, cevaplar: {}, sanatci: [], anilan: [], mod: '', gecmis: [] }, oku(KONUSMA_ANAHTAR, null) || {});
   var KonusmaBaglam = null; // toplu düşünme sırasında istem bölümü (yalnız o çağrıda dolu)
   var Isaret = oku(ISARET_ANAHTAR, {}); // { anahtar: { a, s, b: 'beğen' | 'beğenme' | 'alakasız', t } }
   function konusmaKaydet() { yaz(KONUSMA_ANAHTAR, Konusma); }
@@ -290,7 +290,7 @@
   }
   function konusmaYeniOturum() {
     if (Konusma.adim > 0) Konusma.gecmis = [{ t: Date.now(), cevaplar: Konusma.cevaplar, mod: Konusma.mod, sanatci: Konusma.sanatci }].concat(Konusma.gecmis || []).slice(0, 20);
-    Konusma.adim = 0; Konusma.cevaplar = {}; Konusma.sanatci = []; Konusma.mod = ''; konusmaKaydet();
+    Konusma.adim = 0; Konusma.cevaplar = {}; Konusma.sanatci = []; Konusma.anilan = []; Konusma.mod = ''; konusmaKaydet();
   }
   function konusmaOzet() {
     var c = Konusma.cevaplar || {}, p = [(c.nasil || 'belirtilmedi'), 'Mod: ' + (Konusma.mod === 'odak' ? 'görev odaklanma (enerji yüksek ya da yükseltilecek)' : 'düşünme (üzüntü yoluyla; yavaş ve içe dönük)')];
@@ -315,14 +315,41 @@
     ];
   }
   // Verilen tarza yakın bilinen sanatçılar: yapay zekâ önerir, kullanıcı onaylar
+  // Yapay zekâ kapalıysa yedek: cümleyi virgül / "ve" / "x" ile böl; her parça şarkı adı sayılır
+  function konusmaBol(metin) {
+    return String(metin || '').split(/,|;|\s+ve\s+|\s+x\s+|\s+and\s+|\//i).map(function (x) { return x.trim(); })
+      .filter(function (x) { return x.length > 1 && !/^(yok|hayır|hayir)$/i.test(x); }).slice(0, 8).map(function (x) { return { sarki: x, sanatci: '' }; });
+  }
+  // Cümlede adı geçen şarkılar/sanatçılar + verilen tarza yakın benzer sanatçılar (yapay zekâ)
   function konusmaSanatciOner(metin) {
-    var istem = 'Kullanıcı şu tarzda şarkı dinlemek istiyor: "' + metin + '". Bu tarza yakın, Spotify\'da bulunan bilinen sanatçıları 12 tane öner. Girdideki sanatçıları yazma. YALNIZ JSON yaz: {"sanatcilar":["Sanatçı adı"]}';
+    var istem = 'Kullanıcı şunu yazdı: "' + metin + '". 1) Cümlede adı geçen şarkıları ve sanatçıları çıkar. Yazılışı koru. Şarkı adı var ama sanatçısı belli değilse sanatci alanını boş bırak. "istiyorum", "falan olur", "biraz" gibi sözcükleri alma. 2) Bu tarza yakın, Spotify\'da bulunan bilinen 12 sanatçı öner; cümlede adı geçenleri bu listeye koyma. YALNIZ JSON yaz: {"anilan":[{"sarki":"","sanatci":""}],"benzer":["Sanatçı adı"]}';
     var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 30 sn\'de cevap vermedi')); }, 30000); });
     return Promise.race([U.Y.sample(istem, { cache: false, hafif: true }), zaman]).then(function (c) {
       var j = jsonAyikla(c.text || '');
-      return (j.sanatcilar || []).map(function (x) { return String(x || '').trim(); }).filter(function (x, i, d) { return x && d.indexOf(x) === i; }).slice(0, 12);
+      var anilan = (j.anilan || []).map(function (x) { return { sarki: String((x && x.sarki) || '').trim(), sanatci: String((x && x.sanatci) || '').trim() }; })
+        .filter(function (x) { return x.sarki || x.sanatci; }).slice(0, 8);
+      var benzer = (j.benzer || []).map(function (x) { return String(x || '').trim(); }).filter(function (x, i, d) { return x && d.indexOf(x) === i; }).slice(0, 12);
+      return { anilan: anilan, benzer: benzer };
     });
   }
+  // Adı geçen şarkılar Spotify'da aranır; bulunanlar listede tonlar gibi ilk sıraya girer. Yalnız sanatçı adı olanlar öneri olarak sunulur.
+  function konusmaDogrula(anilan) {
+    var bulunan = [], yok = [];
+    return anilan.reduce(function (z, a) {
+      return z.then(function () {
+        if (!a.sarki) return;
+        return trackAra(a.sarki, a.sanatci).then(function (t) {
+          var x = iz(t);
+          if (!x) { yok.push(a.sarki + (a.sanatci ? ' — ' + a.sanatci : '')); return; }
+          if (!bulunan.some(function (y) { return y.id === x.id; })) bulunan.push({ id: x.id, u: x.u, ad: x.a, sanatci: x.s });
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      return { bulunan: bulunan, yok: yok, sanatciler: anilan.filter(function (a) { return !a.sarki && a.sanatci; }).map(function (a) { return a.sanatci; }) };
+    });
+  }
+  // Adı geçen ve Spotify'da bulunan şarkılar: öneri istemine ton olarak girer (liste başında)
+  function konusmaAnilanTonlari() { return (Konusma.anilan || []).map(function (x) { return { id: x.id, u: x.u, ad: x.ad, sanatci: x.sanatci }; }); }
   // İşaretler (alt çubuk): beğen / beğenme / alakasız. Beğen ve beğenme ayrıca Geri'ye (öneri öğrenmesi) yazılır.
   function isaretle(a, s2, b) {
     var k = geriAnahtar(a, s2); if (k === '|') return;
@@ -579,7 +606,7 @@
   function oneriAnahtari(ruh) { return katla2(ruh) + '|' + tonlarAnahtari() + (Banger ? '|banger' : ''); }
   // İstemi kurar, yapay zekâyı çağırır, JSON'u okur. Ruh hâli uyumu 4'ün altındaki ve tekrar eden adaylar çıkarılır.
   function yeniAkis(ruh, tur, mevcut, onceki) {
-    var tonlar = tonListesi(), ornek = ruhOrnekleri(ruh);
+    var tonlar = tonListesi().concat(KonusmaBaglam ? konusmaAnilanTonlari() : []), ornek = ruhOrnekleri(ruh);
     var mevcutAd = (mevcut || []).map(function (x) { return x.a + ' — ' + String(x.s).split(',')[0]; });
     var istem = istemUret({
       ruh: ruh, tur: tur,
@@ -931,7 +958,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r103'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r104'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1360,14 +1387,14 @@
         if (!s.zorunlu) konusmaKap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'cip', type: 'button', onclick: function () { konusmaGonder(''); } }, ['Atla'])]));
       }
       if (sanatciSecim) {
-        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS · ' + (Konusma.adim + 1) + ' / ' + KONUSMA_SORULAR.length }), el('p', { text: 'Bu tarza yakın sanatçılar. Sevdiklerine dokun, sonra devam et.' })]));
+        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS · ' + (Konusma.adim + 1) + ' / ' + KONUSMA_SORULAR.length }), el('p', { text: 'Bu tarza yakın sanatçılar. Sevdiklerine dokun, sonra devam et.' + (sanatciSecim.bulunan && sanatciSecim.bulunan.length ? ' Listeye ilk sıraya girecek şarkılar: ' + sanatciSecim.bulunan.map(function (x) { return x.ad + ' — ' + x.sanatci; }).join(', ') + '.' : '') + (sanatciSecim.yok && sanatciSecim.yok.length ? ' Spotify\'da bulunamadı: ' + sanatciSecim.yok.join(', ') + '.' : '') })]));
         konusmaKap.appendChild(el('div', { class: 'sp-cipler' }, sanatciSecim.oneriler.map(function (a) { return el('button', { class: 'cip' + (sanatciSecim.secili[a] ? ' sp-cip-secili' : ''), type: 'button', onclick: function () { sanatciSecim.secili[a] = !sanatciSecim.secili[a]; konusmaCiz(); } }, [a]); })));
         konusmaKap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'dugme', type: 'button', onclick: function () { sanatciDevam(); } }, ['Seçilenlerle devam'])]));
       }
       var cevaplar = KONUSMA_SORULAR.slice(0, Konusma.adim).map(function (q) { return el('span', { text: '✓ ' + q.kisa + ': ' + (Konusma.cevaplar[q.id] || '—') }); });
       if (cevaplar.length) konusmaKap.appendChild(el('div', { class: 'sp-cevaplar' }, cevaplar));
       if (bitti) {
-        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS' }), el('p', { text: 'Cevapların kaydedildi. Toplu düşünüp listeyi kurayım mı?' })]));
+        konusmaKap.appendChild(el('div', { class: 'sp-balon' }, [el('b', { text: 'CARVIS' }), el('p', { text: 'Cevapların kaydedildi. Toplu düşünüp listeyi kurayım mı?' + (Konusma.anilan && Konusma.anilan.length ? ' Adı geçen şarkılar listeye giriyor: ' + Konusma.anilan.map(function (x) { return x.ad + ' — ' + x.sanatci; }).join(', ') + '.' : '') })]));
         if (!konusmaMesgul) konusmaKap.appendChild(el('div', { class: 'sp-satir' }, [el('button', { class: 'cip', type: 'button', onclick: function () { if (konusmaMesgul) { U.toast('Liste hazırlanıyor; bitince yeni oturum açabilirsin.'); return; } konusmaYeniOturum(); konusmaCiz(); } }, ['↻ Yeni oturum (soruları baştan sor)'])]));
       }
       oner.textContent = bitti ? 'Liste kur' : 'Gönder';
@@ -1387,13 +1414,18 @@
     }
     function sanatciAsama(m) {
       konusmaMesgul = true; konusmaCiz();
-      konusmaSanatciOner(m).then(function (liste) {
-        if (liste.length) sanatciSecim = { metin: m, oneriler: liste, secili: {} };
-        else konusmaCevapla(m);
-      }, function () {
-        U.toast('Sanatçı önerisi alınamadı; cevabın kaydedildi.');
-        konusmaCevapla(m);
-      }).then(function () { konusmaMesgul = false; konusmaCiz(); });
+      konusmaSanatciOner(m).then(null, function () {
+        U.toast('Sanatçı önerisi alınamadı; adı geçen şarkılar yine de aranıyor.');
+        return { anilan: konusmaBol(m), benzer: [] };
+      }).then(function (r) {
+        return konusmaDogrula(r.anilan).then(function (d) {
+          Konusma.anilan = d.bulunan; konusmaKaydet();
+          var secili = {}; d.sanatciler.forEach(function (s) { secili[s] = true; });
+          var oneriler = d.sanatciler.concat(r.benzer).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 14);
+          if (oneriler.length) sanatciSecim = { metin: m, oneriler: oneriler, secili: secili, bulunan: d.bulunan, yok: d.yok };
+          else konusmaCevapla(m);
+        });
+      }).then(function () { konusmaMesgul = false; konusmaCiz(); }, function () { konusmaMesgul = false; konusmaCiz(); });
     }
     function sanatciDevam() {
       if (!sanatciSecim) return;
