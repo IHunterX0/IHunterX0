@@ -23,6 +23,8 @@
     '.kd-kadran svg{width:100%;height:100%;overflow:visible}',
     '.kd-cark .bant{pointer-events:stroke;cursor:grab;touch-action:none}',
     '.kd-tutamak{pointer-events:auto;cursor:grab;touch-action:none}',
+    /* dokunmada tarayıcı kaydırmaya başlayıp sürüklemeyi iptal etmesin: üst kapsayıcılar da touch-action:none (SVG grubunda tek başına yetmiyor) */
+    '.kd-kadran,.kd-kadran svg,.kd-kadran .bant{touch-action:none}',
     '.kd-ipucu{display:none!important;position:absolute;top:3%;font:700 10.5px var(--f-kod,monospace);letter-spacing:.2em;color:rgba(140,255,240,.55);white-space:nowrap;transition:color .2s,text-shadow .2s;pointer-events:none}',
     '.kd-ipucu.sol{right:60%}.kd-ipucu.sag{left:60%}',
     '.kd-ipucu.on{color:#fff;text-shadow:0 0 12px #5ef0dc}',

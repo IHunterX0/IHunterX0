@@ -157,6 +157,8 @@
   function katla2(t) { return String(t || '').toLocaleLowerCase('tr').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim(); }
   function karistir(l) { l = l.slice(); for (var i = l.length - 1; i > 0; i--) { var j = Math.random() * (i + 1) | 0, t = l[i]; l[i] = l[j]; l[j] = t; } return l; }
   var Zevk = oku('spotify_zevk', '');
+  // ton ekle: kullanıcının eklediği örnek şarkılar (tohum); öneri bunlara göre kurulur
+  var Ornekler = oku('spotify_ornek', []);
   function kutuKaynak() {
     function yerelKutu() { return { t: 0, sarkilar: Dinlenen.map(function (x, i) { return { id: 'y' + i, u: null, a: x.a, s: x.s, k: 'son' }; }), listeler: [] }; }
     function sec(x) { return x && x.sarkilar && x.sarkilar.length ? x : yerelKutu(); }
@@ -607,7 +609,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r95'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r96'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1007,8 +1009,10 @@
       karisimKap.innerHTML = '<div class="yukleniyor">' + (bagli() && !Kutu ? 'Kütüphanen ilk kez taranıyor (bir kerelik), sonra seçilecek…' : (muzikModu() !== 'kutuphane' || tohumMu(ruh) ? 'Keşfediliyor: yapay zekâ liste kuruyor, şarkılar Spotify\'da tek tek doğrulanıyor (20-40 sn)…' : 'Ruh hâline göre seçiliyor…')) + '</div>';
       ruhKarisimCal(ruh, false, karisimKap).then(function () { oner.disabled = false; });
     }
-    oner.addEventListener('click', function () { calistir(giris.value); });
-    giris.addEventListener('keydown', function (e) { if (e.key === 'Enter') calistir(giris.value); });
+    // ruh metni + eklenen örnek şarkılar (" x " ile: tohum mantığı bunları Spotify'da bulup karışımı onlara göre kurar)
+    function ruhGirisi() { var t = giris.value.trim(); if (!Ornekler.length) return t; var ex = Ornekler.map(function (o) { return o.q; }).join(' x '); return t ? t + ' ' + ex : ex; }
+    oner.addEventListener('click', function () { calistir(ruhGirisi()); });
+    giris.addEventListener('keydown', function (e) { if (e.key === 'Enter') calistir(ruhGirisi()); });
     var modSec = el('select', { 'aria-label': 'Öneri kaynağı', style: 'background:var(--zemin);border:1px solid var(--cizgi);border-radius:6px;color:var(--metin);padding:6px 8px' });
     [['karisik', '🔀 Karışık: yeni keşifler + kütüphanem'], ['kesif', '🔭 Keşif: çoğu yeni şarkı'], ['kutuphane', '📚 Yalnız kütüphanem (hızlı)']].forEach(function (x) { modSec.appendChild(el('option', { value: x[0], text: x[1], selected: muzikModu() === x[0] ? true : null })); });
     modSec.addEventListener('change', function () { yaz('spotify_mod', modSec.value); });
@@ -1020,6 +1024,67 @@
     zevk.addEventListener('change', function () { Zevk = zevk.value.trim(); yaz('spotify_zevk', Zevk); U.toast('Zevkin kaydedildi'); });
     ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [zevk]));
     ruhKutu.appendChild(el('p', { class: 'sp-durum', text: bagli() ? 'Karışık/Keşif: yapay zekâ yeni şarkılar önerir, her biri Spotify\'da aranıp doğrulanır; uyanlar kütüphanenden de eklenir. Şarkı adları yazabilirsin: "youngblood x attention".' : 'Öneriler yazdığın zevkten ve Spotify\'da dinlediklerinden (Carvis açıkken öğrenir: ' + Dinlenen.length + ' şarkı) kurulur. İstersen aşağıdan Spotify hesabını da bağlayabilirsin.' }));
+    // ---- ton ekle · edit listesi · banger ----
+    var ornekGiris = el('input', { type: 'text', placeholder: 'Örnek şarkı: attention charlie puth', 'aria-label': 'Örnek şarkı' });
+    var ornekDug = el('button', { class: 'dugme', type: 'button' }, ['+ Ton ekle']);
+    var ornekCipler = el('div', { class: 'sp-cipler' });
+    function ornekCiz() {
+      ornekCipler.innerHTML = '';
+      Ornekler.forEach(function (o, i) {
+        ornekCipler.appendChild(el('button', { class: 'cip', type: 'button', title: 'Çıkarmak için dokun', onclick: function () { Ornekler.splice(i, 1); yaz('spotify_ornek', Ornekler); ornekCiz(); } }, [o.ad + ' — ' + o.sanatci + ' ✕']));
+      });
+    }
+    function ornekEkle() {
+      var q = ornekGiris.value.trim(); if (!q) { ornekGiris.focus(); return; }
+      ornekDug.disabled = true; ornekDug.textContent = 'Aranıyor…';
+      tohumBul(q).then(function (l) {
+        var t = l && l[0];
+        if (!t) throw new Error('"' + q + '" Spotify\'da bulunamadı');
+        if (!Ornekler.some(function (o) { return o.id === t.t.id; })) Ornekler.push({ q: q, id: t.t.id, ad: t.ad, sanatci: t.sanatci });
+        yaz('spotify_ornek', Ornekler); ornekGiris.value = ''; ornekCiz(); U.toast('Ton eklendi: ' + t.ad);
+      }).catch(function (e) { U.toast(String(e && e.message || e)); }).then(function () { ornekDug.disabled = false; ornekDug.textContent = '+ Ton ekle'; });
+    }
+    ornekDug.addEventListener('click', ornekEkle);
+    ornekGiris.addEventListener('keydown', function (e) { if (e.key === 'Enter') ornekEkle(); });
+    ornekCiz();
+    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [ornekGiris, ornekDug]));
+    ruhKutu.appendChild(ornekCipler);
+    // Edit listesi: web'de (Gemini + Google araması) ilgili edit'lerde çok kullanılan şarkılar; 60–80 sn sürebilir
+    var editGiris = el('input', { type: 'text', placeholder: 'Edit konusu: neymar / dybala', 'aria-label': 'Edit konusu' });
+    var editDug = el('button', { class: 'dugme ana', type: 'button' }, ['🎬 Edit listesi']);
+    var bangerDug = el('button', { class: 'dugme ana', type: 'button', title: 'Kendini kanıtlamış, herkesin bildiği hit şarkılar' }, ['🏆 Banger']);
+    function editListesi(konu) {
+      konu = String(konu || '').trim(); if (!konu) { editGiris.focus(); return; }
+      editDug.disabled = true; karisimKap.hidden = false;
+      var bekleme = el('div', { class: 'yukleniyor', text: 'Web\'de "' + konu + '" edit\'lerinde kullanılan şarkılar aranıyor… (60–80 sn sürebilir)' });
+      karisimKap.innerHTML = ''; karisimKap.appendChild(bekleme);
+      var zamanlar = [setTimeout(function () { bekleme.textContent = 'Kaynaklar okunuyor, şarkı adları toplanıyor…'; }, 25000), setTimeout(function () { bekleme.textContent = 'Spotify\'da tek tek doğrulanıyor…'; }, 55000)];
+      var soru = 'Tıp öğrencisi için müzik listesi. Konu: "' + konu + '". Bu konuyla ilgili (ör. TikTok, Instagram, YouTube edit/montajlarında) en çok kullanılan 25 şarkıyı web\'de ara. ' +
+        'Yalnız gerçekten var olan şarkılar; emin değilsen yazma. Yalnız JSON: {"sarkilar":["Sanatçı - Şarkı", ...]}';
+      var ara = (window.yerelGemini && window.yerelGemini.ara) ? window.yerelGemini.ara(soru, {}).then(function (r) { return r.metin || ''; }) : U.Y.sample(soru, { cache: false }).then(function (c) { return c.text || ''; });
+      var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('zaman aşımı (110 sn)')); }, 110000); });
+      Promise.race([ara, zaman]).then(function (metin) {
+        var adlar = (jsonAyikla(metin).sarkilar || []).map(String).filter(Boolean).slice(0, 25);
+        if (adlar.length < 5) throw new Error('edit şarkıları çıkarılamadı');
+        bekleme.textContent = 'Spotify\'da doğrulanıyor (' + adlar.length + ' şarkı)…';
+        var bulunan = [];
+        return adlar.reduce(function (z, ad) {
+          return z.then(function () {
+            return api('/search?type=track&limit=1&q=' + encodeURIComponent(ad)).then(function (sn) { var t = iz(sn && sn.tracks && sn.tracks.items && sn.tracks.items[0]); if (t) bulunan.push(t); }).catch(function () {});
+          });
+        }, Promise.resolve()).then(function () { return bulunan; });
+      }).then(function (bulunan) {
+        var g = {}, sarkilar = bulunan.filter(function (t) { if (g[t.id]) return false; g[t.id] = 1; return true; });
+        if (sarkilar.length < 5) throw new Error('Spotify\'da yeterli şarkı bulunamadı (' + sarkilar.length + ')');
+        var k = { id: Date.now().toString(36), ruh: 'edit: ' + konu, baslik: 'Edit · ' + konu, yorum: 'Edit şarkıları: web araması + Spotify doğrulaması (' + sarkilar.length + ' şarkı). Beğenmediğin şarkıyı atlayınca öneri öğrenir.', sarkilar: sarkilar, yeniAra: [], t: Date.now(), ince: false, edit: true };
+        sonKarisim = k; karisimSakla(k); karisimCiz(karisimKap, k);
+      }).catch(function (e) { karisimKap.innerHTML = ''; karisimKap.appendChild(el('p', { class: 'hata-metni', text: 'Edit listesi olmadı: ' + String(e && e.message || e) })); })
+        .then(function () { zamanlar.forEach(clearTimeout); editDug.disabled = false; });
+    }
+    editDug.addEventListener('click', function () { editListesi(editGiris.value); });
+    editGiris.addEventListener('keydown', function (e) { if (e.key === 'Enter') editListesi(editGiris.value); });
+    bangerDug.addEventListener('click', function () { calistir('banger: kendini kanıtlamış, herkesin bildiği, gerçekten banger klasik hit şarkılar'); });
+    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [editGiris, editDug, bangerDug]));
     var gecmis = karisimlar().slice(0, 6);
     if (gecmis.length > 1) {
       var gl = el('div', { class: 'sp-cipler' }, [el('span', { class: 'sp-durum', text: 'Son karışımlar:' })]);

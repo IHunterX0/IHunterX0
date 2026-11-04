@@ -100,7 +100,8 @@
         altlar.forEach(function (x) { x.remove(); }); altlar = [];
         var n = liste.length, yay = Math.min(Math.PI * 1.1, 0.42 * n), r2 = 0.17 + (n > 6 ? 0.03 : 0);
         sahne.classList.remove('cekmeceli');
-        if (n > 6) {
+        // ARŞİV her zaman çekmece (halka düzeni zamanlamaya göre üst üste binebiliyordu)
+        if (n > 6 || b.alt === null) {
           var izg = el('div'), ck = el('div', { class: 'mn-cekmece', role: 'menu', 'aria-label': b.ad }, [el('b', { text: b.ad }), izg]);
           liste.forEach(function (s) { izg.appendChild(el('button', { class: 'mn-alt', type: 'button', role: 'menuitem', text: s[1], title: s[1], onclick: function () { kapat(); git(s[0]); } })); });
           sahne.appendChild(ck); altlar.push(ck); sahne.classList.add('cekmeceli');
