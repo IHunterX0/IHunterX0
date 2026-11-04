@@ -53,7 +53,7 @@
     '.ai-metin p,.ai-metin li{border-radius:10px;transition:background .25s,box-shadow .25s;cursor:pointer}',
     '.ai-metin p:hover,.ai-metin li:hover{background:rgba(94,240,220,.06)}',
     '.ai-metin .ak-sec{background:rgba(94,240,220,.12)!important;box-shadow:inset 3px 0 0 #5ef0dc}',
-    '.ak-eylem{position:fixed;z-index:120;display:flex;gap:4px;padding:5px;border-radius:999px;background:rgba(4,20,26,.92);border:1px solid rgba(94,240,220,.4);box-shadow:0 8px 30px rgba(0,0,0,.5),0 0 18px rgba(94,240,220,.25);animation:akBelir .25s ease-out}',
+    '.ak-eylem{position:fixed;z-index:100000;display:flex;gap:4px;padding:5px;border-radius:999px;background:rgba(4,20,26,.92);border:1px solid rgba(94,240,220,.4);box-shadow:0 8px 30px rgba(0,0,0,.5),0 0 18px rgba(94,240,220,.25);animation:akBelir .25s ease-out}',
     '.ak-eylem button{border:0;background:transparent;color:#bff8ef;font:600 11px/1 var(--f-kod,monospace);letter-spacing:.1em;padding:8px 11px;border-radius:999px}',
     '.ak-eylem button:hover,.ak-eylem button:focus-visible{background:rgba(94,240,220,.18);color:#fff}',
     '.ak-sor{margin:6px 0 10px;display:grid;gap:6px}',
@@ -181,12 +181,13 @@
   document.addEventListener('click', function (e) {
     if (eylem && eylem.contains(e.target)) return;
     var p = e.target.closest && e.target.closest('.ai-metin p, .ai-metin li');
-    if (!p || e.target.closest('a, button, input, .ak-sor') || p.closest('.hp')) { eylemKapat(); return; }
+    if (!p || e.target.closest('a, button, input, textarea, .ak-sor')) { eylemKapat(); return; }
+    var yuzen = !!p.closest('.hp'); // kullanıcı, 2026-11-04: yüzen pencerelerde de metne dokunup soru sorabilmeli / 3B açabilmeli
     if (secilen === p) { eylemKapat(); return; }
     eylemKapat(); secilen = p; p.classList.add('ak-sec');
     var r = p.getBoundingClientRect();
     eylem = el('div', { class: 'ak-eylem', role: 'toolbar', 'aria-label': 'Paragraf' }, [
-      el('button', { type: 'button', onclick: function () { ayir(p); eylemKapat(); } }, ['⧉ AYIR']),
+      yuzen ? '' : el('button', { type: 'button', onclick: function () { ayir(p); eylemKapat(); } }, ['⧉ AYIR']),
       el('button', { type: 'button', onclick: function () { sor(p); eylemKapat(); } }, ['❓ SOR']),
       el('button', { type: 'button', onclick: function () { uc(p); eylemKapat(); } }, ['⬡ 3B'])]);
     document.body.appendChild(eylem);
