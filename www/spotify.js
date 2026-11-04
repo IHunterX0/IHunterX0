@@ -609,7 +609,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r96'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r97'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1056,27 +1056,54 @@
     function editListesi(konu) {
       konu = String(konu || '').trim(); if (!konu) { editGiris.focus(); return; }
       editDug.disabled = true; karisimKap.hidden = false;
-      var bekleme = el('div', { class: 'yukleniyor', text: 'Web\'de "' + konu + '" edit\'lerinde kullanılan şarkılar aranıyor… (60–80 sn sürebilir)' });
+      var bekleme = el('div', { class: 'yukleniyor', text: '"' + konu + '" için düşünülüyor… Üç ayrı aday liste kuruluyor (60–80 sn sürebilir).' });
       karisimKap.innerHTML = ''; karisimKap.appendChild(bekleme);
-      var zamanlar = [setTimeout(function () { bekleme.textContent = 'Kaynaklar okunuyor, şarkı adları toplanıyor…'; }, 25000), setTimeout(function () { bekleme.textContent = 'Spotify\'da tek tek doğrulanıyor…'; }, 55000)];
-      var soru = 'Tıp öğrencisi için müzik listesi. Konu: "' + konu + '". Bu konuyla ilgili (ör. TikTok, Instagram, YouTube edit/montajlarında) en çok kullanılan 25 şarkıyı web\'de ara. ' +
-        'Yalnız gerçekten var olan şarkılar; emin değilsen yazma. Yalnız JSON: {"sarkilar":["Sanatçı - Şarkı", ...]}';
-      var ara = (window.yerelGemini && window.yerelGemini.ara) ? window.yerelGemini.ara(soru, {}).then(function (r) { return r.metin || ''; }) : U.Y.sample(soru, { cache: false }).then(function (c) { return c.text || ''; });
-      var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('zaman aşımı (110 sn)')); }, 110000); });
-      Promise.race([ara, zaman]).then(function (metin) {
-        var adlar = (jsonAyikla(metin).sarkilar || []).map(String).filter(Boolean).slice(0, 25);
-        if (adlar.length < 5) throw new Error('edit şarkıları çıkarılamadı');
-        bekleme.textContent = 'Spotify\'da doğrulanıyor (' + adlar.length + ' şarkı)…';
+      var zamanlar = [];
+      function durum(m, s) { zamanlar.push(setTimeout(function () { bekleme.textContent = m; }, s)); }
+      durum('Edit kültürü araştırılıyor: aday listeler yazılıyor…', 0);
+      durum('Adaylar karşılaştırılıyor: hangisi gerçekten edit\'lerde çalıyor, hangisi akışa uyuyor…', 22000);
+      durum('En iyi 25 seçildi. Spotify\'da tek tek doğrulanıyor…', 48000);
+      function ask(q) {
+        return (window.yerelGemini && window.yerelGemini.ara) ? window.yerelGemini.ara(q, {}).then(function (r) { return r.metin || ''; }) : U.Y.sample(q, { cache: false }).then(function (c) { return c.text || ''; });
+      }
+      function listeAl(metin) { return (jsonAyikla(metin).sarkilar || []).map(String).filter(Boolean).slice(0, 25); }
+      var bagimsiz = "Tıp öğrencisi için müzik listesi. Konu: \"" + konu + "\". ";
+      var kurallar = " Yalnız gerçekten var olan şarkılar yaz; emin değilsen yazma. Yalnız JSON: {\"sarkilar\":[\"Sanatçı - Şarkı\", ...]} (20 şarkı)";
+      var acilar = [
+        bagimsiz + "Bu konuyla ilgili (TikTok, Instagram, YouTube edit/montajlarında) en çok kullanılan, enerjik ve tanınan şarkıları web'de ara." + kurallar,
+        bagimsiz + "Edit kültüründe bilinen ama her yerde çalınmayan, keşfedilmemiş ya da az tanınan şarkıları web'de ara; tempo ve ruh hâli çeşitli olsun." + kurallar,
+        bagimsiz + "Bu konunun izleyicilerinin yıllardır dinlediği, kendini kanıtlamış klasik ve hit şarkıları web'de ara." + kurallar
+      ];
+      var zaman = function (ms) { return new Promise(function (_, red) { setTimeout(function () { red(new Error('zaman aşımı')); }, ms); }); };
+      Promise.race([Promise.all(acilar.map(function (q) { return ask(q).then(listeAl).catch(function () { return []; }); })), zaman(100000)]).then(function (adaylar) {
+        var A = adaylar[0] || [], B = adaylar[1] || [], C = adaylar[2] || [];
+        if (A.length + B.length + C.length < 10) throw new Error('aday listeler çıkarılamadı');
+        var istem = "Üç aday müzik listesi var (A: edit'te en çok kullanılanlar, B: keşif, C: klasik hit). Konu: \"" + konu + "\".\n" +
+          "Hepsini karşılaştır ve en iyi 25 şarkıyı seç. Ölçütler: (1) gerçekten var olan şarkı (uydurma olmasın), (2) bu konunun edit/video dünyasında gerçekten çalma olasılığı, (3) listenin akışı ve enerji dengesi, (4) çeşitlilik: aynı sanatçıdan en çok 2 şarkı. " +
+          "Hangi listeden seçtiğini ve neden daha iyi olduğunu belirt.\n" +
+          "A: " + A.join(' | ') + "\nB: " + B.join(' | ') + "\nC: " + C.join(' | ') + "\n" +
+          "YALNIZ JSON: {\"gerekce\":\"A/B/C karşılaştırması 2-3 cümle\",\"secim\":[{\"sarki\":\"Sanatçı - Şarkı\",\"kaynak\":\"A|B|C\",\"neden\":\"kısa\"}]}";
+        var adaylarHepsi = A.concat(B, C);
+        return Promise.race([U.Y.sample(istem, { cache: false }), zaman(60000)]).then(function (c) {
+          var j = jsonAyikla(c.text || '');
+          var secim = (j.secim || []).map(function (x) { return String(x.sarki || ''); }).filter(Boolean);
+          var havuz = secim.concat(adaylarHepsi), gorulen = {}, sira = [];
+          havuz.forEach(function (ad) { var k = ad.toLowerCase(); if (!gorulen[k]) { gorulen[k] = 1; sira.push(ad); } });
+          return { liste: sira.slice(0, 40), gerekce: String(j.gerekce || '') };
+        }, function () { return { liste: adaylarHepsi.slice(0, 40), gerekce: 'karşılaştırma yapılamadı, adaylar sırayla alındı' }; });
+      }).then(function (sonuc) {
+        bekleme.textContent = 'Spotify\'da doğrulanıyor (' + sonuc.liste.length + ' aday)…';
         var bulunan = [];
-        return adlar.reduce(function (z, ad) {
+        return sonuc.liste.reduce(function (z, ad) {
           return z.then(function () {
+            if (bulunan.length >= 25) return;
             return api('/search?type=track&limit=1&q=' + encodeURIComponent(ad)).then(function (sn) { var t = iz(sn && sn.tracks && sn.tracks.items && sn.tracks.items[0]); if (t) bulunan.push(t); }).catch(function () {});
           });
-        }, Promise.resolve()).then(function () { return bulunan; });
-      }).then(function (bulunan) {
-        var g = {}, sarkilar = bulunan.filter(function (t) { if (g[t.id]) return false; g[t.id] = 1; return true; });
+        }, Promise.resolve()).then(function () { return { bulunan: bulunan, gerekce: sonuc.gerekce }; });
+      }).then(function (r) {
+        var g = {}, sarkilar = r.bulunan.filter(function (t) { if (g[t.id]) return false; g[t.id] = 1; return true; });
         if (sarkilar.length < 5) throw new Error('Spotify\'da yeterli şarkı bulunamadı (' + sarkilar.length + ')');
-        var k = { id: Date.now().toString(36), ruh: 'edit: ' + konu, baslik: 'Edit · ' + konu, yorum: 'Edit şarkıları: web araması + Spotify doğrulaması (' + sarkilar.length + ' şarkı). Beğenmediğin şarkıyı atlayınca öneri öğrenir.', sarkilar: sarkilar, yeniAra: [], t: Date.now(), ince: false, edit: true };
+        var k = { id: Date.now().toString(36), ruh: 'edit: ' + konu, baslik: 'Edit · ' + konu, yorum: (r.gerekce ? r.gerekce + ' ' : '') + '(' + sarkilar.length + ' şarkı, üç aday listeden karşılaştırmayla seçildi; Spotify\'da doğrulandı.)', sarkilar: sarkilar, yeniAra: [], t: Date.now(), ince: false, edit: true };
         sonKarisim = k; karisimSakla(k); karisimCiz(karisimKap, k);
       }).catch(function (e) { karisimKap.innerHTML = ''; karisimKap.appendChild(el('p', { class: 'hata-metni', text: 'Edit listesi olmadı: ' + String(e && e.message || e) })); })
         .then(function () { zamanlar.forEach(clearTimeout); editDug.disabled = false; });
