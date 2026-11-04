@@ -159,6 +159,8 @@
   var Zevk = oku('spotify_zevk', '');
   // ton ekle: kullanıcının eklediği örnek şarkılar (tohum); öneri bunlara göre kurulur
   var Ornekler = oku('spotify_ornek', []);
+  // banger modu: açıkken öneriler yalnızca kendini kanıtlamış hitlerden kurulur
+  var Banger = !!oku('spotify_banger', false);
   function kutuKaynak() {
     function yerelKutu() { return { t: 0, sarkilar: Dinlenen.map(function (x, i) { return { id: 'y' + i, u: null, a: x.a, s: x.s, k: 'son' }; }), listeler: [] }; }
     function sec(x) { return x && x.sarkilar && x.sarkilar.length ? x : yerelKutu(); }
@@ -314,6 +316,7 @@
         (sevilen.length ? 'SEVDİKLERİ: ' + sevilen.join('; ') + '\n' : '') + (atlanan.length ? 'ATLADIKLARI (bunlardan ve benzerlerinden kaçın): ' + atlanan.join('; ') + '\n' : '') +
         'KURALLAR: Spotify\'da GERÇEKTEN var olan şarkılar yaz (uydurma şarkı adı yazma; emin değilsen yazma). Aynı sanatçıdan en çok 2. Tanıdık ve az bilinen keşifleri dengele. Akış: başta tohuma en yakınlar, sonra yavaşça açıl.\n' +
         (havuz.length && kutuSayi ? 'Kullanıcının KENDİ şarkılarından da (numara|şarkı — sanatçı) yalnız gerçekten uyanları seç, en çok ' + kutuSayi + ' tane:\n' + havuz.map(function (x, i) { return i + '|' + x.a.slice(0, 50) + ' — ' + x.s.split(',')[0].slice(0, 30); }).join('\n') + '\n' : '') +
+        (Banger ? 'BANGER MODU (açık): yalnızca kendini kanıtlamış, herkesin bildiği, yıllardır dinlenen ve partilerde/edit\'lerde hep çalan hit şarkılar öner. Deneysel, az bilinen ve niş parçalardan kaçın.\n' : '') +
         'YALNIZ JSON yaz: {"baslik":"2-4 kelime","yorum":"1-2 samimi Türkçe cümle","yeni":[{"sanatci":"…","sarki":"…","neden":"en çok 8 kelime Türkçe"}],"kutuphane":[{"n":numara,"neden":"…"}]}\n"yeni" listesinde 26 şarkı olsun (bir kısmı Spotify\'da bulunamayabilir).';
       var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 60 sn\'de cevap vermedi')); }, 60000); });
       return Promise.race([U.Y.sample(istem, { cache: false }), zaman]).then(function (c) {
@@ -347,7 +350,7 @@
   }
   function ruhHalindenOner(ruh, taze) {
     ruh = String(ruh || '').trim(); if (!ruh) return Promise.reject(new Error('Ruh hâlini yaz.'));
-    var anahtar = katla2(ruh);
+    var anahtar = katla2(ruh) + (Banger ? '|banger' : '');
     var onceki = sonKarisim && Date.now() - (sonKarisim.t || 0) < 3 * 3600e3 && INCE.test(ruh) ? sonKarisim : null;
     var onbellek = taze || onceki ? null : karisimlar().filter(function (x) { return !x.yerel && katla2(x.ruh) === anahtar && Date.now() - x.t < 6 * 3600e3; })[0];
     if (onbellek) return Promise.resolve(Object.assign({}, onbellek, { yeniAra: [], onbellekten: true }));
@@ -373,6 +376,7 @@
         'Ayrıca zevkine uyan ama listede OLMAYAN, gerçekten var olan 4 şarkı öner.\n' +
         'YALNIZ JSON yaz: {"baslik":"2-4 kelime","yorum":"1-2 samimi Türkçe cümle","secim":[{"n":numara,"neden":"kısa gerekçe"}],"yeni":["Sanatçı - Şarkı"]}\n\n' +
         l.map(function (x, i) { return i + '|' + x.a.slice(0, 50) + ' — ' + x.s.split(',')[0].slice(0, 30); }).join('\n');
+      if (Banger) istem = 'BANGER MODU (açık): yalnızca kendini kanıtlamış, herkesin bildiği, yıllardır dinlenen ve partilerde/edit\'lerde hep çalan hit şarkılar öner. Deneysel, az bilinen ve niş parçalardan kaçın.\n' + istem;
       var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 30 sn\'de cevap vermedi')); }, 30000); });
       return Promise.race([U.Y.sample(istem, { cache: false, hafif: true }), zaman]).then(function (c) {
         var j = jsonAyikla(c.text || ''), g = {};
@@ -609,7 +613,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r97'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r98'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1052,7 +1056,10 @@
     // Edit listesi: web'de (Gemini + Google araması) ilgili edit'lerde çok kullanılan şarkılar; 60–80 sn sürebilir
     var editGiris = el('input', { type: 'text', placeholder: 'Edit konusu: neymar / dybala', 'aria-label': 'Edit konusu' });
     var editDug = el('button', { class: 'dugme ana', type: 'button' }, ['🎬 Edit listesi']);
-    var bangerDug = el('button', { class: 'dugme ana', type: 'button', title: 'Kendini kanıtlamış, herkesin bildiği hit şarkılar' }, ['🏆 Banger']);
+    var bangerCb = el('input', { type: 'checkbox', 'aria-label': 'Banger modu' });
+    bangerCb.checked = Banger;
+    var bangerEtiket = el('label', { class: 'sp-banger', style: 'display:inline-flex;align-items:center;gap:8px;cursor:pointer' }, [bangerCb, el('span', { text: '🏆 Banger modu: yalnız kendini kanıtlamış hitler' })]);
+    bangerCb.addEventListener('change', function () { Banger = bangerCb.checked; yaz('spotify_banger', Banger); U.toast(Banger ? 'Banger modu açık: öneriler hit şarkılardan' : 'Banger modu kapalı'); });
     function editListesi(konu) {
       konu = String(konu || '').trim(); if (!konu) { editGiris.focus(); return; }
       editDug.disabled = true; karisimKap.hidden = false;
@@ -1078,7 +1085,7 @@
       Promise.race([Promise.all(acilar.map(function (q) { return ask(q).then(listeAl).catch(function () { return []; }); })), zaman(100000)]).then(function (adaylar) {
         var A = adaylar[0] || [], B = adaylar[1] || [], C = adaylar[2] || [];
         if (A.length + B.length + C.length < 10) throw new Error('aday listeler çıkarılamadı');
-        var istem = "Üç aday müzik listesi var (A: edit'te en çok kullanılanlar, B: keşif, C: klasik hit). Konu: \"" + konu + "\".\n" +
+        var istem = (Banger ? "BANGER MODU: yalnız kendini kanıtlamış, herkesin bildiği hit şarkıları seç. " : "") + "Üç aday müzik listesi var (A: edit'te en çok kullanılanlar, B: keşif, C: klasik hit). Konu: \"" + konu + "\".\n" +
           "Hepsini karşılaştır ve en iyi 25 şarkıyı seç. Ölçütler: (1) gerçekten var olan şarkı (uydurma olmasın), (2) bu konunun edit/video dünyasında gerçekten çalma olasılığı, (3) listenin akışı ve enerji dengesi, (4) çeşitlilik: aynı sanatçıdan en çok 2 şarkı. " +
           "Hangi listeden seçtiğini ve neden daha iyi olduğunu belirt.\n" +
           "A: " + A.join(' | ') + "\nB: " + B.join(' | ') + "\nC: " + C.join(' | ') + "\n" +
@@ -1110,8 +1117,8 @@
     }
     editDug.addEventListener('click', function () { editListesi(editGiris.value); });
     editGiris.addEventListener('keydown', function (e) { if (e.key === 'Enter') editListesi(editGiris.value); });
-    bangerDug.addEventListener('click', function () { calistir('banger: kendini kanıtlamış, herkesin bildiği, gerçekten banger klasik hit şarkılar'); });
-    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [editGiris, editDug, bangerDug]));
+    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:10px' }, [editGiris, editDug]));
+    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [bangerEtiket]));
     var gecmis = karisimlar().slice(0, 6);
     if (gecmis.length > 1) {
       var gl = el('div', { class: 'sp-cipler' }, [el('span', { class: 'sp-durum', text: 'Son karışımlar:' })]);
