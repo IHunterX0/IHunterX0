@@ -113,6 +113,7 @@
           return { ik: /anatomi/.test(k.id) ? 'kemik' : /kimya/.test(k.id) ? 'molekul' : /istatistik/.test(k.id) ? 'grafik' : /fizik/.test(k.id) ? 'dalga' : 'kitap', ad: k.baslik.replace(/^1001\s*/, ''), alt: (top ? '%' + Math.round(100 * okunan / top) + ' okundu · ' : '') + (s ? 'kaldığın yerden aç' : 'baştan aç'), renk: k.renk || '#4fe0ff',
             git: function () { U.git(U.okuHash(k.id, s ? s.bolum : 0)); } }; });
         return (kitapli ? kit : []).concat([
+          { ik: 'kitap', ad: 'Kitaplar', alt: 'bütün kitapların çarkı', git: function () { location.hash = '#kitaplar'; } },
           { ik: 'pusula', ad: 'Program', alt: 'bugünkü dersler, pratikler, komite', git: function () { location.hash = '#pusula'; } },
           { ik: 'izgara', ad: 'Uygulamalar', alt: 'tabletteki uygulamalar', git: function () { location.hash = '#uygulamalar'; } },
           { ik: 'damla', ad: 'Sağlık', alt: 'su, vitamin, verim, uyku', git: function () { location.hash = '#saglik'; } },
@@ -176,6 +177,8 @@
      hücre düzeyinde istiyorum"): menülerden ve Carvis araçlarından çıkarıldı; kod duruyor, #lab-hareket adresiyle açılabilir. */
   (function () { var l = U.SEKMELER || []; for (var i = l.length - 1; i >= 0; i--) if (l[i] && l[i].id === 'lab-hareket') l.splice(i, 1); })();
   var arsivCss = document.createElement('style'); arsivCss.textContent = '.lab-dug[href*="lab-hareket"],.lab-dug[href*="lab-eklem"]{display:none!important}'; document.head.appendChild(arsivCss);
+  // #kitaplar: kitap çarkı doğrudan açılır (kısa yol çarkındaki "Kitaplar" ve adres çubuğu için); kaydırmadan da erişilir
+  window.addEventListener('hashchange', function () { if (location.hash === '#kitaplar') { history.replaceState(null, '', location.pathname + '#kutuphane'); var d = document.querySelector('.jv-durbun'); cark_ac(d || document.body, true); } });
   U.kisaYolCarki = function () { var d = document.querySelector('.jv-durbun'); cark_ac(d || document.body, false); };
 
   /* ---------- ana sayfa sadeleştirme + kurulum ---------- */
