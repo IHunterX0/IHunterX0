@@ -24,7 +24,7 @@
       'Görevin: bu bölümde onun büyük ihtimalle OTOMATİK DOLDURDUĞU ' + n + ' varsayımı bul ve her biri için tek, keskin, açık uçlu bir soru yaz.\n' +
       'Kurallar:\n- Soru bilginin kendisini değil, kurduğu yapının stres altındaki dayanıklılığını hedeflesin: koşulu değiştir, istisna, düzenleyici çelişki, gizli ara basamak, kısır döngü, sınır koşulu, benzer iki kavramı ayırt etme. Türleri çeşitlendir.\n' +
       '- Her sorunun cevabı YALNIZ aşağıdaki metinden kesin olarak çıkarılabilsin. Metinde olmayan bilgiyi sorma, uydurma; emin olmadığın sayı/sıra verme. Metnin dışında konu açma.\n' +
-      '- Çıkmış sorularda sınanan noktaları ve öğrencinin geçmiş yanlışlarını öncele.\n' +
+      '- ÇIKMIŞ SORULAR ana kaynaktır: sorular ağırlıklı olarak oradaki sınanan noktalardan türesin (çok sınavda çıkan öncelikli), ve okunan metinde karşılığı olsun. Kafandan yeni konu açma. Öğrencinin geçmiş yanlışlarını öncele.\n' +
       '- En az 2 soru "tuzak-onerme" türünde olsun: sorunun içine Jane\'in kayıtsızca, kendinden emin söylediği YANLIŞ bir önerme göm (ör. "X zaten sitozolde çalıştığına göre…"). Öğrenci önermeyi düzeltmeden cevaplarsa yakalanır. Bu türde "beklenen"in ilk maddesi "Önermedeki hata: …" olsun ve doğrusunu yazsın.\n' +
       '- Jane\'in üslubu (The Mentalist): sakin, kendini beğenmiş, oyuncu; soğuk okuma yapar ("Şu an aklından \'tabii ki X\' geçti, değil mi?"), dikkati başka yere çeker, kişinin içgüdüsel ilk cevabını tetikleyip sonra onu sorgular, şüphe eker. Kısa cümleler. Övmez, terapist dili yok, küçümsemez; isabetli ve adil. Öğrenciyi bir cevaba bağlanmaya zorlar.\n' +
       'Her soru için alanlar:\n"varsayim": öğrencinin büyük ihtimalle kurduğu yanlış ya da eksik varsayım (1 cümle)\n' +
@@ -57,6 +57,17 @@
     return { varsayim: String(q.varsayim || ''), tur: TUR_AD[q.tur] ? q.tur : 'gizli-basamak', soru: String(q.soru), beklenen: b, ipucu: String(q.ipucu || ''), cozum: String(q.cozum || ''),
       takip: String(q.takip || ''), takip_beklenen: dizi(q.takip_beklenen), konu: String(q.konu || '') };
   }
+  // bölümün çıkmış sorularından kısa özet (sınav sayısına göre sıralı); Jane'in soruları bunlara dayansın diye
+  U.cikmisOzet = function (kj, bolum) {
+    if (!kj || !bolum || !U.Kitaplik) return Promise.resolve('');
+    return U.Kitaplik.sorular(kj.id).then(function (l) {
+      return l.filter(function (q) { return q.bolum === bolum.id && !q.deneme; }).map(function (q) {
+        var yil = {}; (q.varyantlar || []).forEach(function (v) { if (v.sinav && /\d{2}-\d{2}/.test(v.sinav)) yil[v.sinav] = 1; });
+        var v = (q.varyantlar || [])[0] || {}, n = Object.keys(yil).length;
+        return { n: n, s: '• ' + (q.konu || '') + ' (' + n + ' sınavda çıktı): "' + duz(v.govde || '').slice(0, 220) + '"' };
+      }).sort(function (a, b) { return b.n - a.n; }).slice(0, 10).map(function (x) { return x.s; }).join('\n');
+    }).catch(function () { return ''; });
+  };
   function kalibre(kj, bolum, tur, guven, durum) {
     U.depoGuncelle('janeKalibrasyon', function (v) { v.liste = (v.liste || []).concat([{ t: Date.now(), kitap: kj.id, sira: bolum.sira, tur: tur, guven: guven, durum: durum }]).slice(-1500); }, 300).catch(function () {});
   }

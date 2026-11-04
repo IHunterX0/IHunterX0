@@ -86,8 +86,17 @@
     return aday[0];
   }
 
-  function soruIstem(metin) {
+  var cikmisMemo = { k: '', v: '' };
+  function cikmisAl() {
+    var kj = U.Durum && U.Durum.aktifKitap, b = U.Durum && U.Durum.aktifBolum;
+    if (!kj || !b || !U.cikmisOzet) return Promise.resolve('');
+    var k = kj.id + '|' + b.id;
+    if (cikmisMemo.k === k) return Promise.resolve(cikmisMemo.v);
+    return U.cikmisOzet(kj, b).then(function (v) { cikmisMemo = { k: k, v: v }; return v; });
+  }
+  function soruIstem(metin, cikmis) {
     return 'Sen Patrick Jane\'sin (The Mentalist): sakin, kendinden emin, biraz oyuncu; isabetli ve adil. Bir tıp öğrencisi şu paragrafı okudu:\n"""' + metin + '"""\n' +
+      (cikmis ? 'BU BÖLÜMÜN ÇIKMIŞ SORULARI (sınavda sınanan noktalar; soruyu mümkünse bunlardan birine dayandır ve paragrafta karşılığı olan bir noktayı seç):\n' + cikmis + '\n' : '') +
       'Tek bir kısa soru sor. Soru, metinde AÇIKÇA yazan bir olguyu, mekanizmayı, sayıyı ya da ayırt edici noktayı yoklasın; öğrencinin yanlış anlayabileceği bir yere dokunsun. YASAK: "metinde ... var mı", "paragrafta cevap var mı", "bunu okudun mu" gibi meta sorular; metinde olmayan bilgi. Soru en çok 25 kelime olsun.\n' +
       'YALNIZ JSON: {"soru":"…","anahtar":"doğru cevabın 1-2 cümlelik özü"}';
   }
@@ -149,7 +158,7 @@
     if (!p) { siradaki = okumaSn + 60; return; }
     mesgul = true;
     var metin = p.textContent.trim().slice(0, 900);
-    Y.sample.json(soruIstem(metin)).then(function (j) {
+    cikmisAl().then(function (c) { return Y.sample.json(soruIstem(metin, c)); }).then(function (j) {
       mesgul = false;
       var soru = String((j && j.soru) || '').trim(), anahtar = String((j && j.anahtar) || '').trim();
       if (!soru || !anahtar || !okumada() || !bos()) { siradaki = okumaSn + 120; return; }
