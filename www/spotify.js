@@ -322,7 +322,7 @@
   }
   // Cümlede adı geçen şarkılar/sanatçılar + verilen tarza yakın benzer sanatçılar (yapay zekâ)
   function konusmaSanatciOner(metin) {
-    var istem = 'Kullanıcı şunu yazdı: "' + metin + '". 1) Cümlede adı geçen şarkıları ve sanatçıları çıkar. Yazılışı koru. Şarkı adı var ama sanatçısı belli değilse sanatci alanını boş bırak. "istiyorum", "falan olur", "biraz" gibi sözcükleri alma. 2) Bu tarza yakın, Spotify\'da bulunan bilinen 12 sanatçı öner; cümlede adı geçenleri bu listeye koyma. YALNIZ JSON yaz: {"anilan":[{"sarki":"","sanatci":""}],"benzer":["Sanatçı adı"]}';
+    var istem = 'Kullanıcı şunu yazdı: "' + metin + '". 1) Cümlede adı geçen şarkıları ve sanatçıları çıkar. Yazılışı koru. Tek başına geçen her ad bir ŞARKI adıdır: sanatci alanını boş bırak. Sanatçı yalnızca açıkça belirtilmişse (ör. köşeli parantez, "tarafından", "şarkı - sanatçı") sanatci alanına yaz. "istiyorum", "falan olur", "biraz" gibi sözcükleri alma. 2) Bu tarza yakın, Spotify\'da bulunan bilinen 12 sanatçı öner; cümlede adı geçenleri bu listeye koyma. YALNIZ JSON yaz: {"anilan":[{"sarki":"","sanatci":""}],"benzer":["Sanatçı adı"]}';
     var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 30 sn\'de cevap vermedi')); }, 30000); });
     return Promise.race([U.Y.sample(istem, { cache: false, hafif: true }), zaman]).then(function (c) {
       var j = jsonAyikla(c.text || '');
@@ -338,7 +338,7 @@
     return anilan.reduce(function (z, a) {
       return z.then(function () {
         if (!a.sarki) return;
-        return trackAra(a.sarki, a.sanatci).then(function (t) {
+        return (a.sanatci ? trackAra(a.sarki, a.sanatci) : tekTohum(a.sarki)).then(function (t) {
           var x = iz(t);
           if (!x) { yok.push(a.sarki + (a.sanatci ? ' — ' + a.sanatci : '')); return; }
           if (!bulunan.some(function (y) { return y.id === x.id; })) bulunan.push({ id: x.id, u: x.u, ad: x.a, sanatci: x.s });
@@ -958,7 +958,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r104'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r105'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
