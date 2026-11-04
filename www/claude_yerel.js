@@ -6,6 +6,8 @@
   var MODEL = 'gemini-3.5-flash', YEDEK_MODEL = 'gemini-3.5-flash-lite';
   var API = 'https://generativelanguage.googleapis.com/v1beta/models/';
   var K = window.AndroidKopru || null;
+  // claude.ai içinde (Artifact) açıldıysa gerçek yetenekler kullanılır: yapay zekâ Claude hesabından, veriler hesapta senkron (kullanıcı, 2026-11-04: iPhone'da bilgisayarsız kullanım)
+  if (!K && window.claude && typeof window.claude.use === 'function' && !window.claude.__yerel) return;
 
   /* ---------- IndexedDB ---------- */
   function idbAc() {
@@ -513,5 +515,5 @@
   // iPhone/tarayıcı: çevrimdışı önbellek (Android WebView'da gerekmez, dosyalar APK'nın içinde)
   if (!K && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
   var harita = { db: db, user: user, sample: sample, assets: assets, downloads: downloads };
-  window.claude = { use: function (ad) { return Promise.resolve(harita[ad] || null); } };
+  window.claude = { __yerel: true, use: function (ad) { return Promise.resolve(harita[ad] || null); } };
 })();
