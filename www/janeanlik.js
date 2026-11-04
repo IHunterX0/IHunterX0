@@ -34,12 +34,19 @@
   function mola() { var P = U.Pomodoro && U.Pomodoro.anlik ? U.Pomodoro.anlik() : null; return !!(P && P.calisiyor && P.mod !== 'calis'); }
   function bos() {
     if (window.Carvis && (window.Carvis.konusuyor || window.Carvis.acik)) return false;
-    if (document.querySelector('.bm-kutu, .pm-akis, .jane-anlik, .yan-panel.acik, .mn, .ae-halka, .kd-tekerlek, .holo.acik')) return false;
+    if (document.querySelector('.bm-kutu, .pm-akis, .jane-anlik, .mn, .ae-halka, .kd-tekerlek, .holo.acik')) return false;
     return true;
   }
 
+  // öncelik: açık yan panel (Zamanım yok vb.) > son dokunulan pencere > kitap
+  function kaynakKok() {
+    var y = document.querySelector('.yan-panel.acik .yp-govde') || document.querySelector('.yan-panel.acik');
+    if (y) return y;
+    if (kok && document.body.contains(kok)) return kok;
+    return document.querySelector('.metin');
+  }
   function paragrafSec() {
-    var koku = (kok && document.body.contains(kok)) ? kok : document.querySelector('.metin');
+    var koku = kaynakKok();
     if (!koku) return null;
     var orta = innerHeight / 2, en = null, fark = 1e9;
     Array.prototype.forEach.call(koku.querySelectorAll('p, li'), function (p) {
@@ -107,7 +114,7 @@
 
   setInterval(function () {
     if (KAPALI) return;
-    if (!okumada()) return;
+    if (!okumada() && !document.querySelector('.yan-panel.acik')) return;
     okumaSn += 5;
     if (okumaSn < siradaki) return;
     if (kartVar || mesgul) return;

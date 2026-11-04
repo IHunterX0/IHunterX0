@@ -179,3 +179,4 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 - r87 (yama, taban r78 APK): Jane anlık sorular artık kaydırdığın/dokunduğun pencereden sorar (yan panel, yüzen pencere ya da kitap); aralık 30–45 sn; günlük üst sınır 300.
 - r88: Jane anlık soru aralığı rastgele 20–90 sn.
 - r89: Jane aralığı kart kapandıktan sonra başlar, en az 45 sn; cevap gönderilince kapanma zamanlayıcısı durur.
+- r90: açık yan panel (Zamanım yok vb.) Jane'in soru kaynağı; panel açıkken soru engellenmez.
