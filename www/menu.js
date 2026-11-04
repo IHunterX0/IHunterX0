@@ -29,7 +29,8 @@
     '.mn-nokta{position:fixed;left:max(14px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top));z-index:200;width:34px;height:34px;border-radius:50%;border:0;background:radial-gradient(circle,#c9fff6 0 14%,rgba(94,240,220,.55) 20%,rgba(94,240,220,.08) 55%,transparent 70%);box-shadow:0 0 18px rgba(94,240,220,.45);animation:mnNefes 3.6s ease-in-out infinite;cursor:pointer}',
     '@keyframes mnNefes{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1.08);opacity:1}}',
     'body.rl-acik .mn-nokta{display:none}',
-    '.mn{position:fixed;inset:0;z-index:400;display:grid;place-items:center;background:radial-gradient(circle at 50% 50%,rgba(4,30,36,.78),rgba(1,6,9,.94) 70%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:mnAc .35s ease-out}',
+    '.mn{position:fixed;inset:0;z-index:400;display:grid;place-items:center;background:radial-gradient(circle at 50% 50%,rgba(4,30,36,.93),rgba(1,6,9,.97) 70%);animation:mnAc .35s ease-out;contain:strict}',
+    'body.mn-acik #ana{visibility:hidden}',,
     '@keyframes mnAc{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1}}',
     '.mn-sahne{position:relative;width:min(92vmin,640px);height:min(92vmin,640px)}',
     '.mn-sahne svg.mn-halka{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;animation:mnDon 40s linear infinite}',
@@ -44,6 +45,14 @@
     '.mn-dugum.aktif::after{content:"";position:absolute;bottom:8px;width:6px;height:6px;border-radius:50%;background:#8ffff0;box-shadow:0 0 8px #8ffff0}',
     '.mn-alt{position:absolute;left:50%;top:50%;padding:8px 13px;border-radius:999px;border:0;background:radial-gradient(120% 160% at 50% 50%,rgba(94,240,220,.14),transparent 70%);box-shadow:0 0 0 1px rgba(110,255,235,.3);color:#e6fffb;font:600 12.5px var(--f-govde,system-ui);white-space:nowrap;transform:translate(-50%,-50%) scale(.4);opacity:0;transition:transform .5s cubic-bezier(.2,1.3,.4,1),opacity .35s;cursor:pointer}',
     '.mn-alt.gor{opacity:1}',
+    /* kullanıcı, 2026-11-04: çok seçenekli bölümde (Arşiv) seçenekler üst üste binip kenardan kesiliyordu → halkanın boş ortasında iki sütunlu çekmece */
+    '.mn-cekmece{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);width:54%;max-height:56%;overflow:auto;padding:12px 10px 10px;border-radius:26px;z-index:6;opacity:0;transition:opacity .3s,transform .4s cubic-bezier(.2,1.2,.4,1);' +
+      'background:radial-gradient(120% 120% at 50% 0%,rgba(94,240,220,.12),rgba(2,12,16,.92) 70%);box-shadow:0 0 0 1px rgba(110,255,235,.35),0 0 40px rgba(94,240,220,.18),inset 0 1px 0 rgba(200,255,250,.15)}',
+    '.mn-cekmece.gor{opacity:1;transform:translate(-50%,-50%) scale(1)}',
+    '.mn-cekmece b{display:block;text-align:center;font:700 11px var(--f-kod,monospace);letter-spacing:.3em;color:#8ffff0;margin:0 0 10px;text-shadow:0 0 10px rgba(94,240,220,.6)}',
+    '.mn-cekmece div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.mn-cekmece .mn-alt{padding:7px 8px;font-size:12px}',
+    '.mn-cekmece .mn-alt{position:static;transform:none;opacity:1;width:100%;overflow:hidden;text-overflow:ellipsis;transition:box-shadow .2s,background .2s}',
+    '.mn-sahne.cekmeceli .mn-orta{opacity:.15;pointer-events:none}',
     '.mn-alt:hover,.mn-alt:focus-visible{box-shadow:0 0 0 1px #8ffff0,0 0 18px rgba(94,240,220,.5)}',
     '.mn-alt-sayfa{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:10px}',
     '.mn-alt-sayfa button{background:transparent;border:0;box-shadow:0 0 0 1px rgba(110,255,235,.3);color:#cffff6;border-radius:999px;padding:9px 16px;font:600 12px var(--f-kod,monospace);letter-spacing:.14em}',
@@ -90,6 +99,14 @@
         dugumler.forEach(function (x) { x.classList.toggle('secili', x === d); });
         altlar.forEach(function (x) { x.remove(); }); altlar = [];
         var n = liste.length, yay = Math.min(Math.PI * 1.1, 0.42 * n), r2 = 0.17 + (n > 6 ? 0.03 : 0);
+        sahne.classList.remove('cekmeceli');
+        if (n > 6) {
+          var izg = el('div'), ck = el('div', { class: 'mn-cekmece', role: 'menu', 'aria-label': b.ad }, [el('b', { text: b.ad }), izg]);
+          liste.forEach(function (s) { izg.appendChild(el('button', { class: 'mn-alt', type: 'button', role: 'menuitem', text: s[1], title: s[1], onclick: function () { kapat(); git(s[0]); } })); });
+          sahne.appendChild(ck); altlar.push(ck); sahne.classList.add('cekmeceli');
+          requestAnimationFrame(function () { ck.classList.add('gor'); });
+          return;
+        }
         liste.forEach(function (s, k) {
           var aa = a + (n === 1 ? 0 : -yay / 2 + k / (n - 1) * yay), cx = Math.cos(a) * R + Math.cos(aa) * r2, cy = Math.sin(a) * R + Math.sin(aa) * r2;
           var x = el('button', { class: 'mn-alt', type: 'button', text: s[1], onclick: function () { kapat(); git(s[0]); } });
@@ -104,11 +121,12 @@
       el('button', { type: 'button', text: '⌕ ARA', onclick: function () { kapat(); var a = document.getElementById('aramaAc'); if (a) a.click(); } }),
       el('button', { type: 'button', text: '⚙ AYARLAR', onclick: function () { kapat(); var b = document.querySelector('.cv-balon button[aria-label="Carvis ayarları"]'); if (b) b.click(); } })]);
     acik = el('div', { class: 'mn', role: 'dialog', 'aria-label': 'Menü' }, [sahne, arama]);
+    document.body.classList.add('mn-acik');
     acik.addEventListener('click', function (e) { if (e.target === acik) kapat(); });
     document.body.appendChild(acik);
     if (window.JarvisKure) new window.JarvisKure(cv, { kucuk: true, serit: 2, iplik: 4, nokta: 100, kosul: function () { return !!acik; } });
   }
-  function kapat() { if (!acik) return; var a = acik; acik = null; a.style.transition = 'opacity .25s'; a.style.opacity = '0'; setTimeout(function () { a.remove(); }, 260); }
+  function kapat() { document.body.classList.remove('mn-acik'); if (!acik) return; var a = acik; acik = null; a.style.transition = 'opacity .25s'; a.style.opacity = '0'; setTimeout(function () { a.remove(); }, 260); }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && acik) kapat(); });
   window.addEventListener('hashchange', kapat);
 

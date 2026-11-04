@@ -69,7 +69,7 @@
     if (window.IntersectionObserver) new IntersectionObserver(function (l) { gorunur = l[0].isIntersecting; }).observe(cv);
     this.ciz = function (t) {
       if (!gorunur || !cv.isConnected || (o.kosul && !o.kosul())) return;
-      if (document.body.classList.contains('ae-halka-acik') && !cv.closest('.ae-halka')) return; // uygulama çemberi açıkken arkadaki küreler çizilmez
+      if ((document.body.classList.contains('ae-halka-acik') && !cv.closest('.ae-halka')) || (document.body.classList.contains('mn-acik') && !cv.closest('.mn'))) return; // uygulama çemberi açıkken arkadaki küreler çizilmez
       if (!w) boyut();
       var R = Math.min(w, h) / 2, cx = w / 2, cy = h / 2, E = Enerji.v, zs = t * 0.001 * Enerji.hiz;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h);

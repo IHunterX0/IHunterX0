@@ -13,7 +13,7 @@
      zil + sesli haber; mola önerisi; "aklıma geldi" notu (dikkat dağıtanı yaz, sonra bak);
      çalışma bitince 3 soruluk hızlı tekrar (o bölümün çıkmış sorularından, yapay zekâsız);
      günlük hedef, seri (gün), son 7 gün çubukları. Carvis için U.Pomodoro API. */
-  var VARSAYILAN = { calis: 25, mola: 5, uzunMola: 15, dongu: 4, otomatik: true, sesli: true, zil: true, hedef: 120, tekrar: true, otoBaslat: true };
+  var VARSAYILAN = { calis: 25, mola: 5, uzunMola: 15, dongu: 4, otomatik: true, sesli: true, zil: true, hedef: 120, tekrar: true, otoBaslat: true, akilli: true };
   var DUZENLER = [
     { ad: 'Klasik', calis: 25, mola: 5, uzunMola: 15, dongu: 4, not: 'Yeni konu, dikkat dağınıkken' },
     { ad: 'Derin', calis: 50, mola: 10, uzunMola: 20, dongu: 3, not: 'Okuma + not çıkarma' },
@@ -73,19 +73,48 @@
     U.depoGuncelle('pomodoro', function (v) { v.gun = v.gun || {}; var g = v.gun[bugun()] = v.gun[bugun()] || { adet: 0, dk: 0 }; g.adet++; g.dk += dk; v.saat = v.saat || {}; var sa = new Date().getHours(); v.saat[sa] = (v.saat[sa] || 0) + 1; }, 500);
   }
   var sonDakika = 0;
+  /* Akıllı pomodoro (kullanıcı, 2026-11-04: "pomodoro sistemini bir tık daha akıllı yapalım"):
+     1) akış koruma: süre bittiğinde son 45 sn içinde etkinsen zorla mola yok, "+10 dk?" sorar (en çok 2 kez, sonra mola şart);
+     2) öğrenen süre: her seansın planı/uzatması/dağılması saklanır; aynı gün dilimindeki son seanslara göre yeni seans ±5-10 dk ayarlanır;
+     3) yorgunluk: bugün çalıştıkça kısa mola uzar (her 90 dk'da +1, en çok +5); gece geç ve çok çalışılmışsa günü kapatmayı önerir. */
+  function dilim(sa) { return sa < 6 ? 'gece' : sa < 12 ? 'sabah' : sa < 17 ? 'oglen' : sa < 22 ? 'aksam' : 'gece'; }
+  function akisSor(p) {
+    Saat._akisSoruyor = true; Saat.bitis = Date.now() + 30000;
+    var SURE = 20, kalan = SURE;
+    var say = el('b', { text: String(SURE) });
+    var uz = el('button', { class: 'dugme ana', type: 'button', text: '+10 dk akış' }), mo = el('button', { class: 'dugme', type: 'button', text: 'Molaya geç' });
+    var k = el('div', { class: 'pm-akis', role: 'alertdialog', 'aria-label': 'Akış' }, [el('div', {}, [el('b', { text: 'Akıştasın.' }), el('span', { text: (Saat.calisDk || p.calis) + ' dk doldu ama hâlâ çalışıyorsun. Bölmeyeyim mi?' })]), el('div', { class: 'pm-akis-d' }, [mo, uz, say])]);
+    document.body.appendChild(k); if (p.zil) zil(1);
+    var z = setInterval(function () { kalan--; say.textContent = String(kalan); if (kalan <= 0) son(false); }, 1000);
+    function son(uzat) {
+      clearInterval(z); k.remove(); Saat._akisSoruyor = false;
+      if (uzat) { Saat._uzatma = (Saat._uzatma || 0) + 1; Saat.bitis = Date.now() + 10 * 60000; sakla(); toast('⏱ +10 dk. Akışı bozmuyorum.'); cipCiz(); return; }
+      Saat._akisGecti = true; Saat.bitis = Date.now(); sakla(); tik();
+    }
+    uz.addEventListener('click', function () { son(true); }); mo.addEventListener('click', function () { son(false); });
+  }
   function gecis() {
-    ayarlar().then(function (a) {
-      var p = a.pomodoro, m;
+    Promise.all([ayarlar(), Depo.oku('pomodoro').catch(function () { return {}; })]).then(function (r) {
+      var a = r[0], pv = r[1] || {}, p = a.pomodoro, m;
+      if (Saat.mod === 'calis' && p.akilli !== false && !Saat._akisGecti && !Saat._akisSoruyor && (Saat._uzatma || 0) < 2 && Date.now() - Oto.sonHareket < 45000 && !document.hidden) { akisSor(p); return; }
       if (Saat.mod === 'calis') {
-        Saat.sayac++; pomodoroKaydet(p.calis);
+        var gercek = (Saat.calisDk || p.calis) + 10 * (Saat._uzatma || 0);
+        Saat.sayac++; pomodoroKaydet(gercek);
+        var sa = new Date().getHours();
+        var kayit = { t: Date.now(), dilim: dilim(sa), plan: Saat.calisDk || p.calis, uzatma: Saat._uzatma || 0, bos: !!Saat._bos }; // asenkron güncellemeden önce sabitle
+        U.depoGuncelle('pomodoro', function (v) { v.uyum = (v.uyum || []).concat([kayit]).slice(-80); }, 300);
         var uzun = Saat.sayac % Math.max(1, p.dongu) === 0;
         Saat.mod = uzun ? 'uzun' : 'mola';
-        var dk = uzun ? p.uzunMola : p.mola;
-        m = (uzun ? 'Harika, ' + Saat.sayac + '. pomodoro bitti. Uzun mola: ' : 'Mola zamanı: ') + dk + ' dakika. ' + MOLA_ONERI[Math.floor(Math.random() * MOLA_ONERI.length)];
+        var gunDk = ((pv.gun || {})[bugun()] || {}).dk || 0, ek = p.akilli !== false && !uzun ? Math.min(5, Math.floor((gunDk + gercek) / 90)) : 0;
+        var dk = (uzun ? p.uzunMola : p.mola) + ek;
+        m = (uzun ? 'Harika, ' + Saat.sayac + '. pomodoro bitti. Uzun mola: ' : 'Mola zamanı: ') + dk + ' dakika' + (ek ? ' (bugün ' + Math.round((gunDk + gercek) / 60 * 10) / 10 + ' saat çalıştın, mola biraz uzun)' : '') + '. ' +
+          ((Saat._uzatma || 0) >= 2 ? 'Bu blokta 20 dakika uzattın; şimdi beynin molayı hak etti. ' : '') + MOLA_ONERI[Math.floor(Math.random() * MOLA_ONERI.length)];
+        if (p.akilli !== false && (sa >= 23 || sa < 5) && gunDk + gercek >= 240) { var anah = 'pm_gec_' + bugun(); try { if (!localStorage.getItem(anah)) { localStorage.setItem(anah, '1'); m += ' Saat geç ve bugün ' + Math.round((gunDk + gercek) / 60) + ' saati geçtin. Uykusuz ezber tutmaz; bugünü burada kapatmayı düşün.'; } } catch (e) {} }
+        Saat._uzatma = 0; Saat._bos = false; Saat._akisGecti = false;
         Saat.bitis = Date.now() + dk * 60000;
         if (p.tekrar) Saat.tekrarBekliyor = true;
       } else {
-        Saat.mod = 'calis'; Saat.bitis = Date.now() + p.calis * 60000; sonDakika = Date.now();
+        Saat.mod = 'calis'; Saat.bitis = Date.now() + (Saat.calisDk || p.calis) * 60000; sonDakika = Date.now(); Saat._uzatma = 0; Saat._bos = false; Saat._akisGecti = false;
         m = 'Mola bitti. ' + (Saat.hedef ? Saat.hedef.ad + ' ile devam.' : 'Çalışmaya devam.');
       }
       if (!p.otomatik) { Saat.duraklatildi = true; Saat.kalanMs = Saat.bitis - Date.now(); m += ' Başlamak için saate dokun.'; }
@@ -105,14 +134,25 @@
   var Pomodoro = U.Pomodoro = {
     anlik: function () { return { calisiyor: !!(Saat.calisiyor && !Saat.duraklatildi), mod: Saat.mod }; }, // müzik önerisi bağlamı
     baslat: function (dk, hedef, oto) {
-      return ayarlar().then(function (a) {
+      return Promise.all([ayarlar(), Depo.oku('pomodoro').catch(function () { return {}; })]).then(function (r) {
+        var a = r[0];
         if (dk) U.depoGuncelle('plan', function (v) { v.pomodoro = Object.assign({}, VARSAYILAN, v.pomodoro || {}, { calis: Math.max(5, Math.min(180, +dk)) }); }, 300);
-        var c = dk ? +dk : a.pomodoro.calis;
+        var c = dk ? +dk : a.pomodoro.calis; Saat._akilliNot = '';
+        if (!dk && a.pomodoro.akilli !== false) {
+          var dl = dilim(new Date().getHours()), l = ((r[1] || {}).uyum || []).filter(function (x) { return x.dilim === dl; }).slice(-6);
+          if (l.length >= 3) {
+            var uz = l.filter(function (x) { return x.uzatma > 0; }).length / l.length, bs = l.filter(function (x) { return x.bos; }).length / l.length;
+            var uzOrt = l.reduce(function (t, x) { return t + x.uzatma; }, 0) / l.length;
+            var d = (uz >= 0.5 ? (uzOrt >= 1.5 ? 10 : 5) : 0) - (bs >= 0.5 ? 5 : 0);
+            if (d) { var c2 = Math.max(15, Math.min(60, c + d)); if (c2 !== c) { Saat._akilliNot = (d > 0 ? 'Bu saatlerde genelde uzatıyorsun' : 'Bu saatlerde dikkatin erken dağılıyor') + ': ' + c2 + ' dk ayarladım'; c = c2; } }
+          }
+        }
         Object.assign(Saat, { calisDk: c, calisiyor: true, duraklatildi: false, mod: 'calis', bitis: Date.now() + c * 60000, hedef: hedef || Saat.hedef || null, tekrarBekliyor: false });
         if (!Saat.ilk || Date.now() - Saat.ilk > 12 * 3600000) { Saat.sayac = 0; Saat.ilk = Date.now(); }
         sonDakika = Date.now(); sakla(); cipCiz();
         if (!oto && Saat.hedef && Saat.hedef.kitap != null && Saat.hedef.sira != null && U.okuHash) U.git(U.okuHash(Saat.hedef.kitap, Saat.hedef.sira));
-        return c + ' dakikalık pomodoro başladı' + (Saat.hedef ? ': ' + Saat.hedef.ad : '') + '.';
+        Saat._uzatma = 0; Saat._bos = false; Saat._akisGecti = false;
+        return c + ' dakikalık pomodoro başladı' + (Saat.hedef ? ': ' + Saat.hedef.ad : '') + '.' + (Saat._akilliNot ? ' (' + Saat._akilliNot + ')' : '');
       });
     },
     duraklat: function () { if (!Saat.calisiyor) return 'Çalışan saat yok.'; if (Saat.duraklatildi) { Saat.duraklatildi = false; Saat.bitis = Date.now() + Saat.kalanMs; sonDakika = Date.now(); sakla(); cipCiz(); return 'Devam ediyor.'; } Saat.duraklatildi = true; Saat.kalanMs = Saat.bitis - Date.now(); sakla(); cipCiz(); return 'Duraklatıldı.'; },
@@ -135,9 +175,13 @@
     'background:radial-gradient(120% 100% at 50% 0%,rgba(94,240,220,.16),rgba(2,12,16,.92) 70%);box-shadow:0 0 0 1px rgba(110,255,235,.5),0 0 60px rgba(94,240,220,.3);animation:bmGir .4s cubic-bezier(.2,.9,.2,1.2)}' +
     '@keyframes bmGir{from{opacity:0;transform:translate(-50%,-46%) scale(.9)}}.bm-kutu h3{margin:6px 0 4px;font-size:22px;letter-spacing:.04em;text-shadow:0 0 14px rgba(94,240,220,.7)}.bm-kutu p{margin:0 0 14px;color:#bfe9e3;font-size:14px}' +
     '.bm-halka{width:84px;height:84px;margin:0 auto}.bm-halka circle{transition:stroke-dashoffset 1s linear}.bm-kutu .dugme{margin:4px}';
+  bmCss.textContent += '.pm-akis{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:1200;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;max-width:min(560px,92vw);padding:12px 16px;border-radius:22px;color:#e9fffb;' +
+    'background:radial-gradient(120% 140% at 50% 0%,rgba(94,240,220,.16),rgba(2,12,16,.94) 70%);box-shadow:0 0 0 1px rgba(110,255,235,.5),0 0 40px rgba(94,240,220,.25);animation:bmGir .4s cubic-bezier(.2,.9,.2,1.2)}' +
+    '.pm-akis > div:first-child{display:flex;flex-direction:column;gap:2px;min-width:200px;flex:1}.pm-akis > div:first-child b{font-size:16px;text-shadow:0 0 12px rgba(94,240,220,.6)}.pm-akis span{font-size:13.5px;color:#bfe9e3}' +
+    '.pm-akis-d{display:flex;align-items:center;gap:8px}.pm-akis-d > b{font:700 13px var(--f-kod,monospace);color:#8ffff0;min-width:22px;text-align:center}';
   document.head.appendChild(bmCss);
   function buradaMisin(bos) {
-    Oto.soruyor = true;
+    Oto.soruyor = true; Saat._bos = true;
     var SURE = 45, kalan = SURE, C = 2 * Math.PI * 36;
     var halka = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); halka.setAttribute('viewBox', '0 0 84 84'); halka.setAttribute('class', 'bm-halka');
     halka.innerHTML = '<circle cx="42" cy="42" r="36" fill="none" stroke="rgba(94,240,220,.15)" stroke-width="5"/><circle cx="42" cy="42" r="36" fill="none" stroke="#5ef0dc" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="0" transform="rotate(-90 42 42)" style="filter:drop-shadow(0 0 6px #5ef0dc)"/><text x="42" y="49" text-anchor="middle" fill="#effffc" style="font:300 20px monospace">' + SURE + '</text>';
@@ -182,7 +226,7 @@
     otoAcik().then(function (acik) {
       if (!acik || Saat.calisiyor) return;
       var h = calismaHedefi(); Oto.sonHareket = Date.now(); Oto.otoDurdu = false;
-      Pomodoro.baslat(null, h, true).then(function (m) { toast('⏱ Pomodoro kendiliğinden başladı' + (h ? ': ' + h.ad : '') + '. Uzaklaşırsan duraklar.'); });
+      Pomodoro.baslat(null, h, true).then(function (m) { toast('⏱ Pomodoro kendiliğinden başladı' + (h ? ': ' + h.ad : '') + (Saat._akilliNot ? ' · ' + Saat._akilliNot : '') + '. Uzaklaşırsan duraklar.'); });
     });
   }
   window.addEventListener('hashchange', function () {
@@ -313,7 +357,7 @@
       function alanlar() {
         ayarKap.innerHTML = '';
         [sayi('Çalış (dk)', 'calis', 5, 180), sayi('Mola (dk)', 'mola', 1, 60), sayi('Uzun mola', 'uzunMola', 5, 60), sayi('Uzun mola her', 'dongu', 1, 8), sayi('Günlük hedef (dk)', 'hedef', 15, 720),
-          kutu('Otomatik geçiş', 'otomatik'), kutu('Sesli haber', 'sesli'), kutu('Zil + titreşim', 'zil'), kutu('Molada hızlı tekrar', 'tekrar'), kutu('Otomatik başlat / duraklat', 'otoBaslat')].forEach(function (x) { ayarKap.appendChild(x); });
+          kutu('Otomatik geçiş', 'otomatik'), kutu('Sesli haber', 'sesli'), kutu('Zil + titreşim', 'zil'), kutu('Molada hızlı tekrar', 'tekrar'), kutu('Otomatik başlat / duraklat', 'otoBaslat'), kutu('Akıllı (akış koruma, öğrenen süre, yorgunluk)', 'akilli')].forEach(function (x) { ayarKap.appendChild(x); });
       }
       alanlar();
       // aklıma geldi
