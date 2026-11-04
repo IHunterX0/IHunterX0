@@ -121,8 +121,8 @@
   function istek1(model, govde, o, akis) {
     var k = anahtar(); if (!k) return Promise.reject(hata('not_granted', 'Gemini anahtarı yok'));
     var url = API + model + (akis ? ':streamGenerateContent?alt=sse' : ':generateContent');
-    // Yanıt başlığı 25 sn içinde gelmezse (model takıldı) iptal et ve sıradakine geç
-    var ac = new AbortController(), zaman = false, zm = setTimeout(function () { zaman = true; ac.abort(); }, 25000);
+    // Yanıt başlığı gelmezse (model takıldı) iptal et ve sıradakine geç. Uzun düşünen çağrılar o.zamanAsimi ile süre uzatır (varsayılan 25 sn).
+    var ac = new AbortController(), zaman = false, zm = setTimeout(function () { zaman = true; ac.abort(); }, (o && o.zamanAsimi) || 25000);
     if (o && o.signal) { if (o.signal.aborted) ac.abort(); else o.signal.addEventListener('abort', function () { ac.abort(); }); }
     return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(govde), signal: ac.signal }).then(function (r) {
       clearTimeout(zm);

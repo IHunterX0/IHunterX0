@@ -619,8 +619,9 @@
       mevcut: tur === 'ekle' ? mevcutAd : [],
       banger: Banger
     });
-    var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 100 sn\'de cevap vermedi')); }, 100000); });
-    return Promise.race([U.Y.sample(istem, { cache: false }), zaman]).then(function (c) {
+    // Liste kuran model düşünerek çalışır: 2,5 dk'ya kadar beklenir (yanıt başlığı süresi de aynı tutulur)
+    var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 150 sn\'de cevap vermedi')); }, 150000); });
+    return Promise.race([U.Y.sample(istem, { cache: false, zamanAsimi: 150000 }), zaman]).then(function (c) {
       var j = jsonAyikla(c.text || '');
       var adaylar = (j.sarkilar || []).filter(function (x) { return x && x.sarki && x.sanatci && (x.ruh_uyumu == null || +x.ruh_uyumu >= 4); })
         .sort(function (a, b) { return (+a.sira || 0) - (+b.sira || 0); })
@@ -958,7 +959,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r105'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.04-r106'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1364,7 +1365,7 @@
     function calistir(ruh) {
       if (!String(ruh || '').trim()) { giris.focus(); return; }
       giris.value = ruh; oner.disabled = true; hemenDug.disabled = true; karisimKap.hidden = false;
-      karisimKap.innerHTML = '<div class="yukleniyor">' + (bagli() && !Kutu ? 'Kütüphanen taranıyor: ilk seferde 60–80 sn sürer, sonra öneriler hızlı gelir…' : (muzikModu() !== 'kutuphane' || tohumMu(ruh) ? 'Keşfediliyor: yapay zekâ liste kuruyor, şarkılar Spotify\'da tek tek doğrulanıyor (20-40 sn)…' : 'Ruh hâline göre seçiliyor…')) + '</div>';
+      karisimKap.innerHTML = '<div class="yukleniyor">' + (bagli() && !Kutu ? 'Kütüphanen taranıyor: ilk seferde 60–80 sn sürer, sonra öneriler hızlı gelir…' : (muzikModu() !== 'kutuphane' || tohumMu(ruh) ? 'Keşfediliyor: yapay zekâ liste kuruyor, şarkılar Spotify\'da tek tek doğrulanıyor (1–3 dk sürebilir)…' : 'Ruh hâline göre seçiliyor…')) + '</div>';
       ruhKarisimCal(ruh, false, karisimKap).then(function () { oner.disabled = false; hemenDug.disabled = false; });
     }
     // ruh hâli yalnızca yazılan metin; tonlar (ton kutusundaki örnek şarkılar) öneri istemine ayrıca girer
@@ -1440,7 +1441,7 @@
       if (konusmaMesgul) return;
       KonusmaBaglam = konusmaBaglamKur(); konusmaMesgul = true; konusmaCiz();
       karisimKap.hidden = false;
-      karisimKap.innerHTML = '<div class="yukleniyor">Toplu düşünüyorum: cevapların, işaretlerin ve kütüphanen birlikte değerlendiriliyor (20–40 sn)…</div>';
+      karisimKap.innerHTML = '<div class="yukleniyor">Toplu düşünüyorum: cevapların, işaretlerin ve kütüphanen birlikte değerlendiriliyor (1–3 dk sürebilir)…</div>';
       var bitir = function () { KonusmaBaglam = null; konusmaMesgul = false; konusmaCiz(); };
       ruhKarisimCal(konusmaOzet(), true, karisimKap).then(bitir, bitir);
     }
