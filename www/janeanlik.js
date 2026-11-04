@@ -59,24 +59,55 @@
     if (kok && document.body.contains(kok) && !kok.closest('.kenarda')) return kok;
     return document.querySelector('.metin');
   }
-  function paragrafSec() {
-    var koku = kaynakKok();
-    if (!koku) return null;
-    var orta = innerHeight / 2, en = null, fark = 1e9;
-    Array.prototype.forEach.call(koku.querySelectorAll('p, li'), function (p) {
+  // okunan paragraflar: ekranda gerçekten geçen metin (kaydırdığın yerler). Önemli kutular (tuzak, hoca, sınav notu, formül) öne alınır.
+  var okunan = [];
+  function okunanlariTara() {
+    var koku = kaynakKok(); if (!koku) return;
+    koku.querySelectorAll('p, li').forEach(function (p) {
       var r = p.getBoundingClientRect();
-      if (r.height < 10 || r.bottom < 0 || r.top > innerHeight) return;
-      if (p.textContent.trim().length < 60) return;
-      var d = Math.abs((r.top + r.bottom) / 2 - orta); if (d < fark) { fark = d; en = p; }
+      if (r.height < 10 || r.top < 0 || r.bottom > innerHeight) return;
+      if (p.textContent.trim().length < 80 || p.dataset.jo === '1') return;
+      p.dataset.jo = '1'; okunan.push(p); if (okunan.length > 120) okunan.shift();
     });
-    return en;
+  }
+  function paragrafSec() {
+    okunanlariTara();
+    var koku = kaynakKok(); if (!koku) return null;
+    var aday = okunan.filter(function (p) { return document.body.contains(p) && koku.contains(p); });
+    if (!aday.length) return null;
+    var skor = function (p) {
+      var s = Math.random() * 0.5, co = p.closest('.co');
+      if (co) { s += 3; if (/tuzak|sınav|hoca|dikkat|formül|ayırt|önemli/i.test(co.textContent)) s += 2; }
+      if (p.querySelector('strong, b')) s += 1;
+      var n = p.textContent.length; if (n >= 120 && n <= 700) s += 1;
+      return s;
+    };
+    aday.sort(function (x, y) { return skor(y) - skor(x); });
+    return aday[0];
   }
 
   function soruIstem(metin) {
     return 'Sen Patrick Jane\'sin (The Mentalist): sakin, kendinden emin, biraz oyuncu; isabetli ve adil. Bir tıp öğrencisi şu paragrafı okudu:\n"""' + metin + '"""\n' +
-      'Tek bir kısa, sivri soru sor: öğrencinin bu paragrafta büyük ihtimalle yanlış anlayacağı ya da kendi kafasından dolduracağı noktayı yokla. Soru yalnız bu paragraftan cevaplanabilsin; metinde olmayan bilgi kullanma. Soru en çok 25 kelime olsun.\n' +
+      'Tek bir kısa soru sor. Soru, metinde AÇIKÇA yazan bir olguyu, mekanizmayı, sayıyı ya da ayırt edici noktayı yoklasın; öğrencinin yanlış anlayabileceği bir yere dokunsun. YASAK: "metinde ... var mı", "paragrafta cevap var mı", "bunu okudun mu" gibi meta sorular; metinde olmayan bilgi. Soru en çok 25 kelime olsun.\n' +
       'YALNIZ JSON: {"soru":"…","anahtar":"doğru cevabın 1-2 cümlelik özü"}';
   }
+  // soru, paragrafta geçen bir olguya dayanmalı: ayırt edici kelimelerinin yarısından fazlası metinde geçmeli
+  var DURDUR = { metin: 1, metinde: 1, paragraf: 1, paragrafta: 1, cevap: 1, cevabı: 1, öğrenci: 1, soru: 1, neden: 1, nedir: 1, nasıl: 1, hangi: 1, hangisi: 1, bunu: 1, olarak: 1, şekilde: 1, nedeni: 1, anlamı: 1, mıdır: 1, midir: 1, mudur: 1, değil: 1, olduğu: 1, sence: 1, kadar: 1, sonra: 1, önce: 1 };
+  function normal(s) { return String(s || '').toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]+/g, ' '); }
+  function metinde(soru, metin) {
+    var m = ' ' + normal(metin) + ' ';
+    var kel = normal(soru).split(' ').filter(function (w) { return w.length >= 5 && !DURDUR[w]; });
+    if (!kel.length) return false;
+    var hit = kel.filter(function (w) { return m.indexOf(' ' + w) >= 0 || m.indexOf(w) >= 0; }).length;
+    return hit >= Math.max(1, Math.ceil(kel.length / 2));
+  }
+  U.okunanMetin = function () {
+    okunanlariTara();
+    var y = aktifYan(); if (!y) return '';
+    var koku = y.querySelector('.yp-govde') || y;
+    return okunan.filter(function (p) { return document.body.contains(p) && koku.contains(p) && !p.closest('[class*="js-"]'); })
+      .map(function (p) { return p.textContent.trim(); }).join('\n').slice(-9000);
+  };
   function geriBildirimIstem(soru, anahtar, cevap) {
     return 'Patrick Jane olarak öğrencinin cevabına 1-2 kısa cümleyle karşılık ver. Soru: ' + soru + '\nDoğru cevabın özü: ' + anahtar + '\nÖğrencinin cevabı: """' + cevap + '"""\n' +
       'Doğruysa kısaca kabul et ve cevabındaki en zayıf noktayı ima et; yanlış ya da eksikse hangi varsayımın çöktüğünü söyle. Övme, dolgu yok. YALNIZ JSON: {"jane":"…"}';
@@ -122,6 +153,7 @@
       mesgul = false;
       var soru = String((j && j.soru) || '').trim(), anahtar = String((j && j.anahtar) || '').trim();
       if (!soru || !anahtar || !okumada() || !bos()) { siradaki = okumaSn + 120; return; }
+      if (!metinde(soru, metin)) { siradaki = okumaSn + 60; return; } // metinde karşılığı olmayan soru: atla
       kartGoster(soru, anahtar, metin);
     }).catch(function () { mesgul = false; siradaki = okumaSn + 900; });
   }
@@ -130,6 +162,7 @@
     if (KAPALI) return;
     if (!okumada() && !aktifYan()) return;
     okumaSn += 5;
+    okunanlariTara();
     if (okumaSn < siradaki) return;
     if (kartVar || mesgul) return;
     if (gunluk().n >= 300) { siradaki = okumaSn + 1800; return; }

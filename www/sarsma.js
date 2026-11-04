@@ -16,14 +16,14 @@
   var TUR_AD = { 'gizli-basamak': 'Gizli basamak', 'mikro-kisit': 'Mikro kısıt', 'duzenleyici-celiski': 'Düzenleyici çelişki', 'kisir-dongu': 'Kısır döngü', 'sinir-kosulu': 'Sınır koşulu', 'ayirt-etme': 'Ayırt etme', 'kosul-degistir': 'Koşulu değiştir', 'tuzak-onerme': 'Gizli yanlış önerme', 'geri-donus': 'Geri dönüş' };
   var GUVEN = [['emin', 'Eminim'], ['saniyorum', 'Sanırım'], ['tahmin', 'Tahmin']];
 
-  function uretIstem(kj, bolum, cikmis, eksik, n) {
-    return 'Sen Patrick Jane\'sin (The Mentalist). Bir tıp öğrencisi aşağıdaki bölümün kısa özetini okudu ve konuyu bildiğini düşünüyor. ' +
+  function uretIstem(kj, bolum, cikmis, eksik, n, okunan) {
+    return 'Sen Patrick Jane\'sin (The Mentalist). Bir tıp öğrencisi aşağıdaki metni okudu (yalnız okuduğu kısım) ve konuyu bildiğini düşünüyor. ' +
       'Onun bilişsel profili: mekanizmayı ve genel mantığı çok hızlı kurar; ama genel mantığı kurunca aradaki mikro ayrıntıları (hangi enzim, hangi hücre bölmesi, kofaktör, ' +
       'düzenleyici sinyal, istisna, sıra/yön/sayı) kendi makro mantığıyla ("böyle olmak zorunda") doldurup bunu gerçek bilgi sanma riski taşır. Didaktik düzeltmeden sıkılır, ' +
       'yapısına yönelik isabetli saldırıdan öğrenir.\n' +
       'Görevin: bu bölümde onun büyük ihtimalle OTOMATİK DOLDURDUĞU ' + n + ' varsayımı bul ve her biri için tek, keskin, açık uçlu bir soru yaz.\n' +
       'Kurallar:\n- Soru bilginin kendisini değil, kurduğu yapının stres altındaki dayanıklılığını hedeflesin: koşulu değiştir, istisna, düzenleyici çelişki, gizli ara basamak, kısır döngü, sınır koşulu, benzer iki kavramı ayırt etme. Türleri çeşitlendir.\n' +
-      '- Her sorunun cevabı YALNIZ aşağıdaki metinden kesin olarak çıkarılabilsin. Metinde olmayan bilgiyi sorma, uydurma; emin olmadığın sayı/sıra verme.\n' +
+      '- Her sorunun cevabı YALNIZ aşağıdaki metinden kesin olarak çıkarılabilsin. Metinde olmayan bilgiyi sorma, uydurma; emin olmadığın sayı/sıra verme. Metnin dışında konu açma.\n' +
       '- Çıkmış sorularda sınanan noktaları ve öğrencinin geçmiş yanlışlarını öncele.\n' +
       '- En az 2 soru "tuzak-onerme" türünde olsun: sorunun içine Jane\'in kayıtsızca, kendinden emin söylediği YANLIŞ bir önerme göm (ör. "X zaten sitozolde çalıştığına göre…"). Öğrenci önermeyi düzeltmeden cevaplarsa yakalanır. Bu türde "beklenen"in ilk maddesi "Önermedeki hata: …" olsun ve doğrusunu yazsın.\n' +
       '- Jane\'in üslubu (The Mentalist): sakin, kendini beğenmiş, oyuncu; soğuk okuma yapar ("Şu an aklından \'tabii ki X\' geçti, değil mi?"), dikkati başka yere çeker, kişinin içgüdüsel ilk cevabını tetikleyip sonra onu sorgular, şüphe eker. Kısa cümleler. Övmez, terapist dili yok, küçümsemez; isabetli ve adil. Öğrenciyi bir cevaba bağlanmaya zorlar.\n' +
@@ -34,15 +34,17 @@
       '"cozum": Jane ağzından 3-5 cümle: hangi varsayım çöküyor, doğru mekanizma, akılda kalan ayırt etme anahtarı\n' +
       '"takip": öğrenci doğru cevaplarsa soracağın daha zor stres testi sorusu (1-2 cümle; yine metne dayalı)\n"takip_beklenen": 2-3 kısa madde (dizi)\n"konu": 2-5 kelime\n' +
       'YALNIZ JSON: {"sorular":[{"varsayim":"…","tur":"…","soru":"…","beklenen":["…"],"ipucu":"…","cozum":"…","takip":"…","takip_beklenen":["…"],"konu":"…"}]}\n\n' +
-      'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\n"""\n' + (U.bolumOzu ? U.bolumOzu(bolum, 9000) : '') + '\n"""\n\n' +
+      'BÖLÜM: ' + (bolum.kisa || bolum.baslik) + '\nOKUNAN METİN:\n"""\n' + (okunan || '') + '\n"""\n\n' +
       'ÇIKMIŞ SORULAR (bu bölüm):\n' + (cikmis || '(yok)') + '\n\nÖĞRENCİNİN BU BÖLÜMDEKİ YANLIŞLARI:\n' + (eksik || '(yok)');
   }
   function puanIstem(soru, beklenen, cevap, guven, son, davranis) {
     return 'Patrick Jane olarak bir tıp öğrencisinin açık uçlu cevabını değerlendir.\nSORU: ' + soru + '\nDOĞRU CEVABIN ÖZÜ:\n- ' + beklenen.join('\n- ') +
       '\nÖĞRENCİNİN CEVABI: """' + cevap + '"""\nÖĞRENCİNİN GÜVENİ: ' + guven + '\nDAVRANIŞI (gözlenen, gerçek): ' + (davranis || '-') + '\n' + (son ? 'BU SON DENEME.\n' : 'İLK DENEME (bir hakkı daha var).\n') +
-      'Kurallar: Yalnız özdeki kritik noktalara bak; ifade farkı, yazım hatası, Türkçe/Latince farkı önemsiz. Eksik ama yanlış bir şey söylemeyen cevap = "kismen". ' +
-      'Kanıtsız eklenmiş YANLIŞ ayrıntı (yanlış enzim, yön, bölme, sayı) = "yanlis" — bu otomatik doldurmadır, "cokme" alanında açıkça adını koy.\n' +
-      'Soruda gizli bir yanlış önerme varsa ve öğrenci onu düzeltmeden kabul ettiyse cevap en fazla "kismen"dir; bunu "cokme"de belirt.\n' +
+      'Kurallar: YALNIZ SORUNUN SORDUĞU noktaya bak. Soruda istenmeyen ek bilgi, kapsam dışı ayrıntı ya da öğrencinin ekstra söylediği doğru şeyler eksik sayılmaz. Soruyu doğru karşılıyorsa "dogru" de. ' +
+      'İfade farkı, yazım hatası, Türkçe/Latince farkı önemsiz. "kismen" yalnız sorunun istediği kritik noktanın bir parçası eksikse verilir. ' +
+      'Sorunun istediği noktada YANLIŞ ya da uydurma bir bilgi varsa "yanlis"; "cokme" alanında açıkça adını koy.\n' +
+      'Soru metninde Jane\'in sunduğu bir önerme yanlışsa ve öğrenci onu düzeltmeden kabul ettiyse cevap en fazla "kismen"dir.\n' +
+      'Bu öğrenci tek cevap veriyor; ikinci şans yok. Cevabı olduğu gibi değerlendir.\n' +
       '"jane": Patrick Jane\'in tepkisi, 2-4 cümle; sakin, oyuncu, kendinden emin, isabetli. DAVRANIŞ verisinden soğuk okuma yap (ör. "Üç kez sildin. İlk yazdığın neydi?", "Başlamadan önce 12 saniye bekledin; bildiğin bir şeyi beklemezsin."); veride olmayanı uydurma. Doğruysa övme: kısaca kabul et, cevabındaki en zayıf halkayı ima et. ' +
       (!son ? 'Kısmen/yanlışsa DOĞRU CEVABI SÖYLEME; hangi varsayımın çöktüğünü yüzüne vur. ' : 'Bu son deneme: kısmen/yanlışsa doğru cevabı açıkça söyleyebilirsin. ') +
       'Güveni "emin" olduğu hâlde yanlışsa bunu özellikle vurgula ("Emindin. İşte tam da bu yüzden tehlikelisin…" gibi).\n' +
@@ -76,7 +78,8 @@
     turNo = turNo || 1;
     kutu.innerHTML = ''; kutu.hidden = false;
     var yuk = el('div', { class: 'yukleniyor', text: 'Jane bölümü okuyor, seni nerede yakalayacağını seçiyor…' }); kutu.appendChild(yuk);
-    var anahtar = fnv('janeSorgu2|' + kj.id + '|' + bolum.id + '|' + turNo);
+    var okunanM = U.okunanMetin ? U.okunanMetin() : '';
+    var anahtar = fnv('janeSorgu3|' + kj.id + '|' + bolum.id + '|' + turNo + '|' + okunanM.length + '|' + okunanM.slice(-300));
     var son = null, blofSayisi = 0, blofKandi = 0; // son cevabın davranışı (Jane'in soğuk okuması için)
     function okuma() {
       if (!son) return 'Rahat ol. Sadece birkaç soru. Ama her cevabında bir şey saklıyorsun ve ben onu bulacağım.';
@@ -97,7 +100,7 @@
     var yeni = U.AI.onbellekOku(anahtar).then(function (onb) {
       if (onb && onb.json) return onb.json;
       return (veriFn ? veriFn() : Promise.resolve(['', ''])).then(function (r) {
-        return Y.sample.json(uretIstem(kj, bolum, r[0], r[1], TUR)).then(function (j) { U.AI.onbellekYaz(anahtar, { json: j, eylem: 'jane-sorgu', kitap: kj.id, t: Date.now() }); return j; });
+        return Y.sample.json(uretIstem(kj, bolum, r[0], r[1], TUR, okunanM || (U.bolumOzu ? U.bolumOzu(bolum, 2500) : ''))).then(function (j) { U.AI.onbellekYaz(anahtar, { json: j, eylem: 'jane-sorgu', kitap: kj.id, t: Date.now() }); return j; });
       });
     });
     Promise.all([geri, yeni]).then(function (r) {
@@ -122,7 +125,7 @@
         if (i >= l.length) return bitir();
         sayac(); var q = l[i]; var kart = el('div', { class: 'js-kart' + (q.geri ? ' geri' : '') }); sahne.appendChild(kart);
         kart.appendChild(el('div', { class: 'js-etiket', text: (TUR_AD[q.tur] || '') + (q.geri ? ' · ' + (q.bolumAd || '') + ' · geçen sefer emindin ve yanıldın' : '') + (q.konu ? ' · ' + q.konu : '') }));
-        sor(kart, q, q.soru, q.beklenen, 2, false, function (durum, ilkDurum, ilkGuven) {
+        sor(kart, q, q.soru, q.beklenen, 1, false, function (durum, ilkDurum, ilkGuven) {
           if (q.geri) otoGuncelle(q, durum === 'dogru');
           else if (ilkGuven === 'emin' && ilkDurum !== 'dogru') { otoEkle(kj, bolum, q); sonuc.oto.push(q.varsayim || q.konu || q.soru); }
           // ikinci denemede toparlanan cevap sağlam sayılmaz
@@ -199,7 +202,7 @@
             bek.remove(); var durum = /^(dogru|kismen|yanlis)$/.test(j && j.durum) ? j.durum : 'kismen';
             son = dv; son.durum = durum;
             // blöf: doğru cevapta bazen "hayır" der; cevabının arkasında duruyor musun?
-            if (durum === 'dogru' && deneme === 1 && !takip && guven !== 'tahmin' && blofSayisi < 2 && Math.random() < 0.4) {
+            if (durum === 'dogru' && !takip && guven !== 'tahmin' && blofSayisi < 3 && Math.random() < 0.5) {
               blofSayisi++;
               var bl = el('div', { class: 'js-jane cevap blof' }, [el('div', { class: 'jane-av', text: 'PJ' }), el('div', {}, [el('b', { class: 'js-hukum', text: 'Hmm. Hayır.' }), el('p', { text: ['Bunu gerçekten düşünerek mi yazdın? Yüzünden okunuyor, emin değilsin.', 'İlginç. Çoğu kişi tam buraya basıyor. Bir daha düşün.', 'Yanlış. …En azından ben öyle düşünüyorum. Sen?'][Math.floor(Math.random() * 3)] })])]);
               var dur = el('button', { class: 'dugme ana', type: 'button', text: 'Cevabımın arkasındayım' }), deg = el('button', { class: 'dugme kucuk', type: 'button', text: 'Haklısın, değiştireyim' });
