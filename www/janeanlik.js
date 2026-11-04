@@ -22,7 +22,8 @@
   function bugunAnahtar() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function gunluk() { try { var v = JSON.parse(localStorage.getItem('janeAnlikGun') || '{}'); return v.g === bugunAnahtar() ? v : { g: bugunAnahtar(), n: 0 }; } catch (e) { return { g: bugunAnahtar(), n: 0 }; } }
   function gunlukYaz(v) { try { localStorage.setItem('janeAnlikGun', JSON.stringify(v)); } catch (e) {} }
-  function sonrakiAralik() { return 20 + Math.floor(Math.random() * 71); } // 20–90 sn, rastgele
+  // kart kapandıktan sonra sayaç baştan başlar: en az 45 sn, en çok 105 sn (rastgele)
+  function sonrakiAralik() { return 45 + Math.floor(Math.random() * 61); }
   // kaydırdığın / dokunduğun pencere: Zamanım yok paneli, yüzen pencere ya da kitap; soru oradan sorulur
   function kokBul(t) { if (!t || !t.closest) return; var k = t.closest('.yan-panel, .hp, .yp-govde, .ai-metin, .sohbet-akis, .zy-alan, .metin, .okuma-alani'); if (k) kok = k; }
 
@@ -81,7 +82,7 @@
     cevapla.addEventListener('click', function () { cevapla.remove(); cevapAlani.hidden = false; if (zamanlayici) clearTimeout(zamanlayici); zamanlayici = setTimeout(kapat, 120000); try { girdi.focus({ preventScroll: true }); } catch (e) {} });
     gonder.addEventListener('click', function () {
       var c = girdi.value.trim(); if (c.length < 2) return;
-      gonder.disabled = true; sonuc.hidden = false; sonuc.textContent = 'Jane tartıyor…';
+      if (zamanlayici) clearTimeout(zamanlayici); gonder.disabled = true; sonuc.hidden = false; sonuc.textContent = 'Jane tartıyor…';
       Y.sample.json(geriBildirimIstem(soru, anahtar, c)).then(function (j) {
         sonuc.innerHTML = ''; sonuc.appendChild(el('p', { text: String((j && j.jane) || 'Not aldım.') }));
         zamanlayici = setTimeout(kapat, 9000);

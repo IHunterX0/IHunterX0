@@ -178,3 +178,4 @@ Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 - r86 (yama, taban r78 APK): **Jane anlık sorular** (janeanlik.js): okuma sayfasında, sen etkinken 8–18 dk'da bir, ekranın ortasındaki paragraftan tek soru; günde en çok 8; Carvis konuşurken / pomodoro molasında / kutu açıkken çıkmaz; 60 sn'de kendiliğinden kapanır. Kapatma: localStorage jane_anlik=0.
 - r87 (yama, taban r78 APK): Jane anlık sorular artık kaydırdığın/dokunduğun pencereden sorar (yan panel, yüzen pencere ya da kitap); aralık 30–45 sn; günlük üst sınır 300.
 - r88: Jane anlık soru aralığı rastgele 20–90 sn.
+- r89: Jane aralığı kart kapandıktan sonra başlar, en az 45 sn; cevap gönderilince kapanma zamanlayıcısı durur.
