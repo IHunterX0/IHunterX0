@@ -1,6 +1,6 @@
 /* Tüm dersi 0'dan öğren (r120). Rota: #kurs-<kitap>.
    Akış: plan (toplam yaklaşık 45 dk) → seviye ölçme (isteğe bağlı, 3 dk) → konu döngüsü → her 4 konuda karışık tekrar → çıkmış mini sınav.
-   Konu adımları: kanca (Patrick Jane'in sorusu, dikkat) · çekirdek (üç temel bilgi) · türetme (çekirdekten formüle) · kontrol (çıkmış soru) · kapanış (kendi cümlen).
+   Konu adımları: çekirdek (temel bilgiler) · türetme (çekirdekten detaya, gösterim) · uygulama (sen türetirsin, Jane değerlendirir) · kontrol (çıkmış soru) · kapanış.
    İçerik: www/kurs_icerik.js (KursIcerik). Yapay zekâ kullanılmaz.
    "Bilmiyorum" gerçek bilgisizlik sayılır. */
 (function () {
@@ -206,43 +206,6 @@
     var METIN_STIL = 'width:100%;background:var(--zemin);color:var(--metin);border:1px solid var(--cizgi);border-radius:10px;padding:8px;font:15px/1.5 var(--f-govde,system-ui)';
     function devamDugmesi(metin, fn) { return el('div', { class: 'kurs-eylem' }, [el('button', { class: 'dugme ana', type: 'button', text: metin, onclick: fn })]); }
 
-    // 1) Kanca (dikkat): önce bir soru. Cevabını yaz ya da "Bilmiyorum" de; doğrusu her hâlde gösterilir.
-    var kanca = (icerik && icerik.kanca) ? { ad: 'Kanca', ciz: function (kap, bitir) {
-      kap.appendChild(el('div', { class: 'kurs-mat', text: 'Patrick Jane soruyor' }));
-      kap.appendChild(el('div', { class: 'kurs-soru', text: icerik.kanca.soru }));
-      var ta = el('textarea', { rows: '2', 'aria-label': 'Tahminin', style: METIN_STIL });
-      kap.appendChild(ta);
-      var janeYer = el('div', { class: 'kurs-kart', hidden: true });
-      kap.appendChild(janeYer);
-      var cozum = el('div', { class: 'kurs-kart', hidden: true }, [
-        el('div', { class: 'kurs-mat', text: 'Doğrusu' }),
-        el('p', { text: icerik.kanca.cevap }),
-        el('p', { class: 'var-etiket', text: icerik.kanca.neden })
-      ]);
-      var devam = devamDugmesi('Devam', bitir); devam.hidden = true;
-      var eylem = el('div', { class: 'kurs-eylem' }, [
-        el('button', { class: 'dugme', type: 'button', text: 'Bilmiyorum', onclick: acDogru }),
-        el('button', { class: 'dugme ana', type: 'button', text: 'Cevapla', onclick: cevapla })
-      ]);
-      function acDogru() { cozum.hidden = false; eylem.hidden = true; devam.hidden = false; }
-      // Cevabı Patrick Jane değerlendirir (yapay zekâ varsa). Boşsa, yapay zekâ yoksa ya da hata verirse doğrusu doğrudan gösterilir.
-      function cevapla() {
-        var c = ta.value.trim();
-        if (c.length < 2 || !U.Y || !U.Y.sample || !U.Y.sample.json) return acDogru();
-        eylem.hidden = true; janeYer.hidden = false; janeYer.innerHTML = '';
-        janeYer.appendChild(el('p', { text: 'Jane tartıyor…' }));
-        U.Y.sample.json(janeIstem(icerik.kanca.soru, icerik.kanca.cevap, c)).then(function (j) {
-          janeYer.innerHTML = '';
-          janeYer.appendChild(el('div', { class: 'kurs-mat', text: 'Patrick Jane' }));
-          janeYer.appendChild(el('p', { text: String((j && j.jane) || 'Not aldım.') }));
-          acDogru();
-        }).catch(function () { janeYer.hidden = true; acDogru(); });
-      }
-      kap.appendChild(cozum);
-      kap.appendChild(eylem);
-      kap.appendChild(devam);
-    } } : null;
-
     // 2) Çekirdek: üç temel bilgi, tek tek.
     var cekirdek = (icerik && icerik.cekirdek && icerik.cekirdek.length) ? { ad: 'Çekirdek', ciz: function (kap, bitir) {
       var c = icerik.cekirdek, i = 0, alan = el('div', { class: 'kurs-kart' });
@@ -266,14 +229,46 @@
         alan.appendChild(el('div', { class: 'kurs-hedef', text: 'Türet · ' + t.baslik }));
         t.adimlar.slice(0, i + 1).forEach(function (a, j) { alan.appendChild(el('p', { text: (j + 1) + '. ' + a })); });
         if (i + 1 < t.adimlar.length) { alan.appendChild(devamDugmesi('Sonraki adım', function () { i++; goster(); })); return; }
-        alan.appendChild(el('div', { class: 'kurs-mat', text: 'Şimdi sen' }));
-        alan.appendChild(el('p', { text: t.kendin }));
-        var cevap = el('p', { class: 'var-etiket', text: t.kendinCevap, hidden: true });
-        var gosterBtn = el('button', { class: 'dugme', type: 'button', text: 'Cevabı göster', onclick: function () { cevap.hidden = false; gosterBtn.hidden = true; } });
-        alan.appendChild(cevap);
-        alan.appendChild(el('div', { class: 'kurs-eylem' }, [gosterBtn, el('button', { class: 'dugme ana', type: 'button', text: 'Devam', onclick: bitir })]));
+        alan.appendChild(devamDugmesi('Devam', bitir));
       }
       goster();
+    } } : null;
+
+    // Uygulama: çekirdekten bir detayı sen türet. Jane değerlendirir; doğrusu her hâlde gösterilir.
+    var uygulama = (icerik && icerik.turet && icerik.turet.kendin) ? { ad: 'Uygulama', ciz: function (kap, bitir) {
+      kap.appendChild(el('div', { class: 'kurs-mat', text: 'Şimdi sen türet · Jane değerlendirir' }));
+      kap.appendChild(el('div', { class: 'kurs-soru', text: icerik.turet.kendin }));
+      var ta = el('textarea', { rows: '2', 'aria-label': 'Tahminin', style: METIN_STIL });
+      kap.appendChild(ta);
+      var janeYer = el('div', { class: 'kurs-kart', hidden: true });
+      kap.appendChild(janeYer);
+      var cozum = el('div', { class: 'kurs-kart', hidden: true }, [
+        el('div', { class: 'kurs-mat', text: 'Doğrusu' }),
+        el('p', { text: icerik.turet.kendinCevap }),
+        el('p', { class: 'var-etiket', text: 'Aynı mantığı bir sonraki detaya uygula.' })
+      ]);
+      var devam = devamDugmesi('Devam', bitir); devam.hidden = true;
+      var eylem = el('div', { class: 'kurs-eylem' }, [
+        el('button', { class: 'dugme', type: 'button', text: 'Bilmiyorum', onclick: acDogru }),
+        el('button', { class: 'dugme ana', type: 'button', text: 'Cevapla', onclick: cevapla })
+      ]);
+      function acDogru() { cozum.hidden = false; eylem.hidden = true; devam.hidden = false; }
+      // Cevabı Patrick Jane değerlendirir (yapay zekâ varsa). Boşsa, yapay zekâ yoksa ya da hata verirse doğrusu doğrudan gösterilir.
+      function cevapla() {
+        var c = ta.value.trim();
+        if (c.length < 2 || !U.Y || !U.Y.sample || !U.Y.sample.json) return acDogru();
+        eylem.hidden = true; janeYer.hidden = false; janeYer.innerHTML = '';
+        janeYer.appendChild(el('p', { text: 'Jane tartıyor…' }));
+        U.Y.sample.json(janeIstem(icerik.turet.kendin, icerik.turet.kendinCevap, c)).then(function (j) {
+          janeYer.innerHTML = '';
+          janeYer.appendChild(el('div', { class: 'kurs-mat', text: 'Patrick Jane' }));
+          janeYer.appendChild(el('p', { text: String((j && j.jane) || 'Not aldım.') }));
+          acDogru();
+        }).catch(function () { janeYer.hidden = true; acDogru(); });
+      }
+      kap.appendChild(cozum);
+      kap.appendChild(eylem);
+      kap.appendChild(devam);
     } } : null;
 
     // 4) Kontrol: çıkmış sorulardan bir soru. "Bilmiyorum" da geçerli bir cevaptır.
@@ -294,7 +289,7 @@
     } };
 
     // Hızlı mod (seviye ölçmede doğru cevaplanan konu): kontrol · kapanış. İçerik yoksa yalnız kontrol ve kapanış.
-    var sira = icerik ? (k.mod === 'hizli' ? [kontrol, kapanis] : [kanca, cekirdek, turet, kontrol, kapanis]) : [kontrol, kapanis];
+    var sira = icerik ? (k.mod === 'hizli' ? [kontrol, kapanis] : [cekirdek, turet, uygulama, kontrol, kapanis]) : [kontrol, kapanis];
     return sira.filter(Boolean);
   }
 
