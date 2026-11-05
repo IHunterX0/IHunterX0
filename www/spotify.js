@@ -226,6 +226,8 @@
   var Ornekler = oku('spotify_ornek', []);
   // banger modu: açıkken öneriler yalnızca kendini kanıtlamış hitlerden kurulur
   var Banger = !!oku('spotify_banger', false);
+  // Sözsüz tercih (kullanıcı, 2026-11-05: ders ve okuma sırasında sözlü parça dikkati böler). Varsayılan kapalı.
+  var Sozsuz = !!oku('spotify_sozsuz', false);
   function kutuKaynak() {
     function yerelKutu() { return { t: 0, sarkilar: Dinlenen.map(function (x, i) { return { id: 'y' + i, u: null, a: x.a, s: x.s, k: 'son' }; }), listeler: [] }; }
     function sec(x) { return x && x.sarkilar && x.sarkilar.length ? x : yerelKutu(); }
@@ -504,6 +506,7 @@
       '- Atlananlar ve zaten listede olanlar (tekrar önerme): ' + satirlar(p.atlanan),
       '- Önceki liste (yalnızca ince ayar isteğinde; havayı koru, istenen yönde değiştir): ' + satirlar(p.onceki),
       '- Banger modu: ' + (p.banger ? 'açık' : 'kapalı'),
+      '- Sözsüz tercih (ders ve okuma için): ' + (p.sozsuz ? 'açık. Parçaların çoğu sözsüz ya da sözü az olsun; sözü yoğun, ağıt tarzı ve duygusal vokal parçalar en çok bir-iki tane.' : 'kapalı'),
       '- İstek türü: ' + p.tur,
       '- Mevcut liste (yalnızca "ekle" modunda): ' + satirlar(p.mevcut),
       '',
@@ -603,7 +606,7 @@
   function tonListesi() { return Ornekler.map(function (o) { return { id: o.id, u: o.u || null, ad: o.ad, sanatci: o.sanatci }; }); }
   function tonlarAnahtari() { return Ornekler.map(function (o) { return o.id || o.ad; }).join(','); }
   // Önbellek anahtarı: ruh hâli + ton seti + banger. Karışım kaydına yazılır, öneri öncesi bununla eşleştirilir.
-  function oneriAnahtari(ruh) { return katla2(ruh) + '|' + tonlarAnahtari() + (Banger ? '|banger' : ''); }
+  function oneriAnahtari(ruh) { return katla2(ruh) + '|' + tonlarAnahtari() + (Banger ? '|banger' : '') + (Sozsuz ? '|sozsuz' : ''); }
   // İstemi kurar, yapay zekâyı çağırır, JSON'u okur. Ruh hâli uyumu 4'ün altındaki ve tekrar eden adaylar çıkarılır.
   function yeniAkis(ruh, tur, mevcut, onceki) {
     var tonlar = tonListesi().concat(KonusmaBaglam ? konusmaAnilanTonlari() : []), ornek = ruhOrnekleri(ruh);
@@ -617,7 +620,7 @@
       profil: kutuProfili(), mod: muzikModu(), konusma: KonusmaBaglam,
       atlanan: atlananListe().concat(tur === 'ekle' ? mevcutAd : []),
       mevcut: tur === 'ekle' ? mevcutAd : [],
-      banger: Banger
+      banger: Banger, sozsuz: Sozsuz
     });
     // Liste kuran model düşünerek çalışır: 2,5 dk'ya kadar beklenir (yanıt başlığı süresi de aynı tutulur)
     var zaman = new Promise(function (_, red) { setTimeout(function () { red(new Error('yapay zekâ 150 sn\'de cevap vermedi')); }, 150000); });
@@ -959,7 +962,7 @@
 
   /* ---------------- şimdi çalıyor + mini oynatıcı ---------------- */
   /* ---------------- YEREL MOD: Android medya oturumu (Web API yok, kota yok, Premium yok, uygulama değişmez) ---------------- */
-  var SURUM = '2026.11.04-r106'; window.CARVIS_SURUM = SURUM;
+  var SURUM = '2026.11.05-r107'; window.CARVIS_SURUM = SURUM;
   var YEREL = !!(K && K.spotifyDurum && K.spotifyCal);
   function yDurum() { if (!YEREL) return null; try { return JSON.parse(K.spotifyDurum() || '{}'); } catch (e) { return null; } }
   // ı/i birleştirilir: "Do I Clench" Türkçe küçültmede "do ı clench" olur, kullanıcı "do i clench" yazar
@@ -1502,6 +1505,10 @@
     bangerCb.checked = Banger;
     var bangerEtiket = el('label', { class: 'sp-banger', style: 'display:inline-flex;align-items:center;gap:8px;cursor:pointer' }, [bangerCb, el('span', { text: '🏆 Banger modu: yalnız kendini kanıtlamış hitler' })]);
     bangerCb.addEventListener('change', function () { Banger = bangerCb.checked; yaz('spotify_banger', Banger); U.toast(Banger ? 'Banger modu açık: öneriler hit şarkılardan' : 'Banger modu kapalı'); });
+    var sozsuzCb = el('input', { type: 'checkbox', 'aria-label': 'Sözsüz tercih' });
+    sozsuzCb.checked = Sozsuz;
+    var sozsuzEtiket = el('label', { class: 'sp-sozsuz', style: 'display:inline-flex;align-items:center;gap:8px;cursor:pointer' }, [sozsuzCb, el('span', { text: '🎧 Sözsüz: ders ve okuma için' })]);
+    sozsuzCb.addEventListener('change', function () { Sozsuz = sozsuzCb.checked; yaz('spotify_sozsuz', Sozsuz); U.toast(Sozsuz ? 'Sözsüz açık: öneriler sözsüz ya da sözü az parçalardan' : 'Sözsüz kapalı'); });
     function editListesi(konu) {
       konu = String(konu || '').trim(); if (!konu) return;
       karisimKap.hidden = false;
@@ -1562,7 +1569,7 @@
       }).catch(function (e) { karisimKap.innerHTML = ''; karisimKap.appendChild(el('p', { class: 'hata-metni', text: 'Edit şarkıları eklenemedi: ' + String(e && e.message || e) })); })
         .then(function () { zamanlar.forEach(clearTimeout); });
     }
-    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [bangerEtiket]));
+    ruhKutu.appendChild(el('div', { class: 'sp-satir', style: 'margin-top:8px' }, [bangerEtiket, sozsuzEtiket]));
     var gecmis = karisimlar().slice(0, 6);
     if (gecmis.length > 1) {
       var gl = el('div', { class: 'sp-cipler' }, [el('span', { class: 'sp-durum', text: 'Son karışımlar:' })]);

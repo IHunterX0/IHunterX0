@@ -456,7 +456,7 @@
 
   /* ---------------- kişiselleştirme: profil, hafıza, selam, yankı süzgeci ---------------- */
   // Profil cihazda (localStorage) + kişisel depoda (Depo 'carvisProfil'); hangisi yeniyse o geçerli.
-  var Profil = { ad: '', hitap: 'ad', ton: 'patrick', selam: true, hafiza: [], t: 0 };
+  var Profil = { ad: '', hitap: 'ad', ton: 'patrick', selam: true, hafiza: [], t: 0, elestiri: 'net' };
   try { Object.assign(Profil, JSON.parse(localStorage.getItem('carvisProfil') || '{}')); } catch (e) {}
   U.Depo.oku('carvisProfil').then(function (v) { if (v && (v.t || 0) > (Profil.t || 0)) Object.assign(Profil, v); if (!Profil.tonSecildi) Profil.ton = 'patrick'; }).catch(function () {});
   if (!Profil.tonSecildi) Profil.ton = 'patrick'; // kullanıcı (2026-11-02): "Patrick Jane gibi rollendir" — kendisi başka üslup seçmediyse
@@ -468,6 +468,14 @@
     resmi: 'Resmî ve saygılı, "siz" diye; espri yok, yalnız bilgi.',
     koc: 'Disiplinli bir koç gibi: motive edici, hedef ve süre hatırlatan, bahaneyi nazikçe geri çeviren.'
   };
+  // Eleştiri sertliği (kullanıcı: keskin ve sade, ama yalnız iddiaya; kişiye hüküm yok). Varsayılan net. Ayarlar ve profil_ayarla ile değişir.
+  var ELESTIRI = {
+    yumusak: 'Eleştiri yumuşak: önce doğru kısmı söyle, yanlışı tek bir soruyla göster, doğrusunu ardından ver.',
+    net: 'Eleştiri net: yanlış iddiayı açıkça söyle, nedenini tek cümleyle ver, doğrusunu göster.',
+    sert: 'Eleştiri sert: çelişkiyi doğrudan ve kısa söyle ("Bu iddia tutmuyor: ..."). Yumuşatma, dolambaçlı yol yok.'
+  };
+  var KISI_KURAL = 'Her seviyede kural: kişi hakkında hüküm verme (ör. "tembelsin", "yetersizsin", "dikkatsizsin" deme). Yalnız iş, iddia ve yöntem hakkında konuş. Doğruysa tek cümleyle "doğru" de, övgü yazma.';
+  function elestiriKurali() { return (ELESTIRI[Profil.elestiri] || ELESTIRI.net) + ' ' + KISI_KURAL; }
   function hitap() { return Profil.hitap === 'efendim' ? 'efendim' : Profil.hitap === 'hocam' ? 'hocam' : Profil.hitap === 'ad' && Profil.ad ? Profil.ad : ''; }
   // Kısa çalışma durumu (60 sn önbellek): pomodoro, en yakın sınav, vadeli kart, en zayıf yer
   var durumOnbellek = { t: 0, v: null };
@@ -512,6 +520,8 @@
       if (bp && bp.adet) l.push('Bugün ' + bp.adet + ' pomodoro tamamladı');
       var es = r[3]; if (es && es.uygulamalar && es.uygulamalar.length) { var ilk = es.uygulamalar[0], m = /: (\d+) dk/.exec(ilk); if (m && +m[1] >= 20) l.push('Ekran süresi: bugün en çok ' + ilk + ' (ders kaydı ' + es.ders_dk + ' dk)'); }
       if (oncekiSoru) { var ara = Math.round((simdi - oncekiSoru) / 60000); if (ara >= 30) l.push('Bir önceki sorusundan bu yana ' + ara + ' dakika geçti'); }
+      var acikIs = ((r[2] || {}).acik || []).slice(-1)[0]; // pomodoro'da kapanışta "tutmadı" denen seansın ilk adımı (3 gün)
+      if (acikIs && simdi - acikIs.t < 3 * 864e5) l.push('Açık kalan ilk adım (kullanıcı seansta yazdı): "' + String(acikIs.m).slice(0, 90) + '"');
       if (bugunSoru >= 3) l.push('Bu oturumda ' + bugunSoru + '. sorusu');
       return l.join('; ');
     }).catch(function () { return ''; });
@@ -521,7 +531,7 @@
   function profilMetni() {
     return Promise.all([calismaDurumu(), gozlemler(), U.Depo.oku('janeOto').catch(function () { return {}; })]).then(function (rr) { var d = rr[0], gz = rr[1], jo = (rr[2] && rr[2].liste) || [];
       var s = new Date(), saat = s.getHours();
-      var l = ['KULLANICI: ' + (Profil.ad ? 'adı ' + Profil.ad + '. ' : '') + (hitap() ? 'Ona "' + hitap() + '" diye hitap et (her cümlede değil, ara sıra). ' : '') + 'Üslup: ' + (TONLAR[Profil.ton] || TONLAR.jarvis),
+      var l = ['KULLANICI: ' + (Profil.ad ? 'adı ' + Profil.ad + '. ' : '') + (hitap() ? 'Ona "' + hitap() + '" diye hitap et (her cümlede değil, ara sıra). ' : '') + 'Üslup: ' + (TONLAR[Profil.ton] || TONLAR.jarvis) + ' ' + elestiriKurali(),
         'Şu an: ' + s.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }) + ', saat ' + ('0' + saat).slice(-2) + ':' + ('0' + s.getMinutes()).slice(-2) + (saat >= 0 && saat < 5 ? ' (gece geç saat: gerekirse uykuyu nazikçe hatırlat)' : '') + '.'];
       if (d) l.push('Çalışma durumu: bugün ' + d.dk + '/' + d.hedef + ' dk, ' + d.seri + ' gün seri' + (d.saat ? ', pomodoro: ' + d.saat : '') + (d.sinav ? ', en yakın sınav ' + U.sinavAdi(d.sinav) + ' (' + d.sinav.gun + ' gün' + (d.sinav.komite ? '; komite: anatomi, biyokimya, biyofizik, biyoistatistik aynı testte, ayrı ders sınavı yok' : '') + ')' : '') + (d.vadeli ? ', ' + d.vadeli + ' vadeli kart' : '') + (d.ilkIs ? ', sıradaki iş: ' + d.ilkIs : '') + '. Bunu yalnız ilgiliyse kullan.');
       // Akademik hedef (kullanıcı, 2026-11-02): 1. sınıf, yurt dışında PhD/akademik kariyer; sınav haftası tamamen sınava yönelik
@@ -584,9 +594,9 @@
       { name: 'unut', description: 'Hafızadan bir maddeyi siler (anahtar kelimeyle eşleşen). "hepsi" verilirse tamamını.',
         inputSchema: { type: 'object', properties: { bilgi: { type: 'string' } }, required: ['bilgi'] },
         execute: function (g) { var q = katla(String(g.bilgi || '')), once = Profil.hafiza.length; Profil.hafiza = q === 'hepsi' ? [] : Profil.hafiza.filter(function (h) { return katla(h.m).indexOf(q) < 0; }); profilKaydet(); return (once - Profil.hafiza.length) + ' madde silindi.'; } },
-      { name: 'profil_ayarla', description: 'Kullanıcının adını, hitap biçimini ya da konuşma üslubunu değiştirir.',
-        inputSchema: { type: 'object', properties: { ad: { type: 'string' }, hitap: { type: 'string', enum: ['ad', 'efendim', 'hocam', 'yok'] }, ton: { type: 'string', enum: ['patrick', 'jarvis', 'samimi', 'resmi', 'koc'] } } },
-        execute: function (g) { if (g.ad) Profil.ad = String(g.ad).slice(0, 40); if (g.hitap) Profil.hitap = g.hitap; if (g.ton && TONLAR[g.ton]) { Profil.ton = g.ton; Profil.tonSecildi = true; } profilKaydet(); return 'Tamam: ' + JSON.stringify({ ad: Profil.ad, hitap: Profil.hitap, ton: Profil.ton }); } }
+      { name: 'profil_ayarla', description: 'Kullanıcının adını, hitap biçimini, konuşma üslubunu ya da eleştiri sertliğini (yumusak / net / sert) değiştirir.',
+        inputSchema: { type: 'object', properties: { ad: { type: 'string' }, hitap: { type: 'string', enum: ['ad', 'efendim', 'hocam', 'yok'] }, ton: { type: 'string', enum: ['patrick', 'jarvis', 'samimi', 'resmi', 'koc'] }, elestiri: { type: 'string', enum: ['yumusak', 'net', 'sert'] } } },
+        execute: function (g) { if (g.ad) Profil.ad = String(g.ad).slice(0, 40); if (g.hitap) Profil.hitap = g.hitap; if (g.ton && TONLAR[g.ton]) { Profil.ton = g.ton; Profil.tonSecildi = true; } if (g.elestiri && ELESTIRI[g.elestiri]) Profil.elestiri = g.elestiri; profilKaydet(); return 'Tamam: ' + JSON.stringify({ ad: Profil.ad, hitap: Profil.hitap, ton: Profil.ton, elestiri: Profil.elestiri }); } }
     ];
   }
   // ⚙ Ayarlar paneli
@@ -597,10 +607,12 @@
     var ad = el('input', { type: 'text', value: Profil.ad || '', placeholder: 'Adın', style: stil });
     var hit = el('select', { style: stil }); [['ad', 'Adımla'], ['efendim', '"Efendim"'], ['hocam', '"Hocam"'], ['yok', 'Hitapsız']].forEach(function (x) { hit.appendChild(el('option', { value: x[0], text: x[1], selected: Profil.hitap === x[0] ? true : null })); });
     var ton = el('select', { style: stil }); [['patrick', 'Patrick Jane (gözlemci, muzip, zeki)'], ['jarvis', 'Jarvis (kibar, ince espri)'], ['samimi', 'Samimi'], ['resmi', 'Resmî'], ['koc', 'Koç (motive edici)']].forEach(function (x) { ton.appendChild(el('option', { value: x[0], text: x[1], selected: Profil.ton === x[0] ? true : null })); });
+    var elest = el('select', { style: stil }); [['net', 'Net (varsayılan): yanlışı açıkça düzelt'], ['sert', 'Sert: kısa ve keskin, yumuşatmadan'], ['yumusak', 'Yumuşak: önce doğru kısım, sonra soru']].forEach(function (x) { elest.appendChild(el('option', { value: x[0], text: x[1], selected: (Profil.elestiri || 'net') === x[0] ? true : null })); });
     var selam = el('input', { type: 'checkbox', checked: Profil.selam ? true : null });
-    function kaydet() { Profil.ad = ad.value.trim(); Profil.hitap = hit.value; if (Profil.ton !== ton.value) Profil.tonSecildi = true; Profil.ton = ton.value; Profil.selam = selam.checked; profilKaydet(); }
-    [ad, hit, ton, selam].forEach(function (x) { x.addEventListener('change', kaydet); });
-    govde.appendChild(satir('Adın', ad)); govde.appendChild(satir('Sana nasıl hitap etsin?', hit)); govde.appendChild(satir('Üslup', ton));
+    function kaydet() { Profil.ad = ad.value.trim(); Profil.hitap = hit.value; if (Profil.ton !== ton.value) Profil.tonSecildi = true; Profil.ton = ton.value; Profil.elestiri = elest.value; Profil.selam = selam.checked; profilKaydet(); }
+    [ad, hit, ton, elest, selam].forEach(function (x) { x.addEventListener('change', kaydet); });
+    govde.appendChild(satir('Adın', ad)); govde.appendChild(satir('Sana nasıl hitap etsin?', hit)); govde.appendChild(satir('Üslup', ton)); govde.appendChild(satir('Eleştiri', elest));
+    govde.appendChild(el('p', { class: 'var-etiket', text: 'Her seviyede geçerli: kişi hakkında hüküm yok; yalnız iş ve iddia düzeltilir.' }));
     govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [selam, 'Günün ilk açılışında selam + kısa durum (sınava kalan gün, vadeli kart, seri)']));
     if (K && K.arkaPlan) {
       var ap = el('input', { type: 'checkbox', checked: K.arkaPlanMi() ? true : null });

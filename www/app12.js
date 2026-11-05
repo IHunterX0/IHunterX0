@@ -72,6 +72,42 @@
   function pomodoroKaydet(dk) {
     U.depoGuncelle('pomodoro', function (v) { v.gun = v.gun || {}; var g = v.gun[bugun()] = v.gun[bugun()] || { adet: 0, dk: 0 }; g.adet++; g.dk += dk; v.saat = v.saat || {}; var sa = new Date().getHours(); v.saat[sa] = (v.saat[sa] || 0) + 1; }, 500);
   }
+  /* Seans ölçütü (kullanıcı, 2026-11-05): seans başında "bitti ölçütü" ve "ilk adım" (isteğe bağlı); seans bitince "tuttu mu?".
+     Tutmadıysa açık kalan işin tek somut ilk adımı yazılır (Masicampo & Baumeister 2011: ayrıntılı plan, yarım hedefin zihinsel yükünü azaltır).
+     Puan ya da ödül yok: düz kayıt. */
+  function olcutBekletir() {
+    if (!Saat.olcut || !Saat.olcut.ad) return;
+    var o = Saat.olcut; Saat.olcut = null; sakla();
+    U.depoGuncelle('pomodoro', function (v) { v.bekleyen = { ad: o.ad, adim: o.adim || '', t: Date.now() }; }, 200).then(function () { if (Saat._olcutYenile) Saat._olcutYenile(); }); // panel açıksa kart hemen görünür
+  }
+  function gunDe(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function olcutCiz(kap) {
+    Depo.oku('pomodoro').then(function (v) {
+      kap.innerHTML = '';
+      var b = v.bekleyen;
+      if (b) {
+        var alan = el('div'), tuttu = el('button', { class: 'dugme kucuk ana', type: 'button', text: '✓ Tuttu' }), tutmadi = el('button', { class: 'dugme kucuk', type: 'button', text: '↷ Tutmadı' });
+        tuttu.addEventListener('click', function () { U.depoGuncelle('pomodoro', function (w) { w.tamam = (w.tamam || []).concat([{ m: b.ad, t: Date.now() }]).slice(-80); delete w.bekleyen; }, 200).then(function () { olcutCiz(kap); }); });
+        tutmadi.addEventListener('click', function () {
+          var adim = el('input', { type: 'text', maxlength: '160', 'aria-label': 'Açık kalan işin ilk adımı', value: b.adim || '', placeholder: 'Bir sonraki somut adım (tek satır)', class: 'pm-seans' });
+          var kaydetDug = el('button', { class: 'dugme kucuk ana', type: 'button', text: 'Kaydet' });
+          alan.innerHTML = ''; alan.appendChild(el('p', { class: 'var-etiket', text: 'Tamam. Açık kalanın tek somut ilk adımı yeter; bir sonraki seansın ilk satırı olur.' })); alan.appendChild(adim); alan.appendChild(kaydetDug);
+          kaydetDug.addEventListener('click', function () {
+            var m = adim.value.trim() || b.ad;
+            U.depoGuncelle('pomodoro', function (w) { w.acik = (w.acik || []).concat([{ m: m.slice(0, 160), ad: b.ad, t: Date.now() }]).slice(-30); delete w.bekleyen; }, 200).then(function () { olcutCiz(kap); });
+          });
+        });
+        kap.appendChild(el('div', { class: 'pm-tekrar' }, [el('b', { text: '🎯 Son seansın ölçütü' }), el('p', { text: '“' + b.ad + '” tuttu mu?' }), el('div', { class: 'yp-dugmeler' }, [tuttu, tutmadi]), alan]));
+      }
+      if ((v.acik || []).length) {
+        var l = el('ul', { class: 'var-etiket' });
+        v.acik.slice(-6).reverse().forEach(function (x) { l.appendChild(el('li', {}, [x.m + ' ', el('button', { class: 'cip', type: 'button', text: '✓ Hallettim', onclick: function () { U.depoGuncelle('pomodoro', function (w) { w.acik = (w.acik || []).filter(function (z) { return z.t !== x.t; }); }, 200).then(function () { olcutCiz(kap); }); } })])); });
+        kap.appendChild(el('h4', { text: 'Açık ilk adımlar' })); kap.appendChild(l);
+      }
+      var bugunK = (v.tamam || []).filter(function (x) { return gunDe(x.t) === bugun(); });
+      if (bugunK.length) { var l2 = el('ul', { class: 'var-etiket' }); bugunK.forEach(function (x) { l2.appendChild(el('li', { text: x.m })); }); kap.appendChild(el('h4', { text: 'Bugün kapananlar' })); kap.appendChild(l2); }
+    });
+  }
   var sonDakika = 0;
   /* Akıllı pomodoro (kullanıcı, 2026-11-04: "pomodoro sistemini bir tık daha akıllı yapalım"):
      1) akış koruma: süre bittiğinde son 45 sn içinde etkinsen zorla mola yok, "+10 dk?" sorar (en çok 2 kez, sonra mola şart);
@@ -99,7 +135,7 @@
       if (Saat.mod === 'calis' && p.akilli !== false && !Saat._akisGecti && !Saat._akisSoruyor && (Saat._uzatma || 0) < 2 && Date.now() - Oto.sonHareket < 45000 && !document.hidden) { akisSor(p); return; }
       if (Saat.mod === 'calis') {
         var gercek = (Saat.calisDk || p.calis) + 10 * (Saat._uzatma || 0);
-        Saat.sayac++; pomodoroKaydet(gercek);
+        olcutBekletir(); Saat.sayac++; pomodoroKaydet(gercek);
         var sa = new Date().getHours();
         var kayit = { t: Date.now(), dilim: dilim(sa), plan: Saat.calisDk || p.calis, uzatma: Saat._uzatma || 0, bos: !!Saat._bos }; // asenkron güncellemeden önce sabitle
         U.depoGuncelle('pomodoro', function (v) { v.uyum = (v.uyum || []).concat([kayit]).slice(-80); }, 300);
@@ -157,7 +193,7 @@
     },
     duraklat: function () { if (!Saat.calisiyor) return 'Çalışan saat yok.'; if (Saat.duraklatildi) { Saat.duraklatildi = false; Saat.bitis = Date.now() + Saat.kalanMs; sonDakika = Date.now(); sakla(); cipCiz(); return 'Devam ediyor.'; } Saat.duraklatildi = true; Saat.kalanMs = Saat.bitis - Date.now(); sakla(); cipCiz(); return 'Duraklatıldı.'; },
     atla: function () { if (!Saat.calisiyor) return 'Çalışan saat yok.'; Saat.duraklatildi = false; Saat.bitis = Date.now(); tik(); return 'Sonraki aşamaya geçildi.'; },
-    durdur: function () { Saat.calisiyor = false; Saat.duraklatildi = false; sakla(); cipCiz(); return 'Saat durdu.'; },
+    durdur: function () { if (Saat.mod === 'calis') olcutBekletir(); Saat.calisiyor = false; Saat.duraklatildi = false; sakla(); cipCiz(); return 'Saat durdu.'; },
     durum: function () {
       return Promise.all([Depo.oku('pomodoro'), Depo.oku('sure'), ayarlar()]).then(function (r) {
         var g = (r[0].gun || {})[bugun()] || { adet: 0, dk: 0 }, s = r[1][bugun()] || {}, top = 0; Object.keys(s).forEach(function (k) { top += s[k]; });
@@ -325,8 +361,12 @@
         atlaDug = el('button', { class: 'dugme', type: 'button', text: '⏭ Atla', onclick: function () { Pomodoro.atla(); } }),
         bitirDug = el('button', { class: 'dugme', type: 'button', text: '■ Bitir', onclick: function () { Pomodoro.durdur(); ciz(); } });
       govde.appendChild(el('div', { class: 'yp-dugmeler', style: 'justify-content:center' }, [basDug, durDug, atlaDug, bitirDug]));
+      var olcutKap = el('div'); govde.appendChild(olcutKap); // bekleyen "tuttu mu?", açık ilk adımlar, bugün kapananlar
       var seans = el('select', { class: 'pm-seans', 'aria-label': 'Bu seansın hedefi' }); seansSecenekleri(seans);
       govde.appendChild(el('label', { class: 'var-etiket', style: 'display:grid;gap:4px;margin:6px 0' }, ['Bu seansta ne çalışacaksın?', seans]));
+      var olcutAd = el('input', { type: 'text', maxlength: '140', 'aria-label': 'Bitti ölçütü', placeholder: 'ör. 3. alt bölümün 5 kavramını kendi cümlemle yazmış olurum', value: Saat.olcut ? Saat.olcut.ad : '', class: 'pm-seans' });
+      var olcutAdim = el('input', { type: 'text', maxlength: '140', 'aria-label': 'İlk adım', placeholder: 'ör. 20:00’de masada, ilk 5 dakika yalnız okuma', value: Saat.olcut ? (Saat.olcut.adim || '') : '', class: 'pm-seans' });
+      govde.appendChild(el('div', { style: 'display:grid;gap:6px;margin:6px 0' }, [el('label', { class: 'var-etiket', style: 'display:grid;gap:4px' }, ['Bitti ölçütü (seans bitince ne olmuş olmalı?)', olcutAd]), el('label', { class: 'var-etiket', style: 'display:grid;gap:4px' }, ['İlk adım (ne zaman, nerede, ne?)', olcutAdim]), el('p', { class: 'var-etiket', text: 'İkisi de isteğe bağlı. Doldurursan seans bitince "tuttu mu?" diye sorarım.' })]));
       var tekrarKap = el('div'); govde.appendChild(tekrarKap);
       function ciz() {
         var top = Saat.mod === 'calis' ? p.calis : Saat.mod === 'uzun' ? p.uzunMola : p.mola, k = Saat.calisiyor ? kalanMs() : p.calis * 60000;
@@ -340,8 +380,13 @@
         if (Saat.tekrarBekliyor && Saat.mod !== 'calis' && !tekrarKap.children.length) hizliTekrar(tekrarKap);
       }
       Saat._ciz = ciz;
-      var gozlem = new MutationObserver(function () { if (!document.body.contains(govde)) { Saat._ciz = null; gozlem.disconnect(); } }); gozlem.observe(document.body, { childList: true, subtree: true });
-      basDug.addEventListener('click', function () { var h = null; try { h = seans.value ? JSON.parse(seans.value) : null; } catch (e) {} Saat.hedef = h; Pomodoro.baslat(null, h).then(ciz); });
+      var gozlem = new MutationObserver(function () { if (!document.body.contains(govde)) { Saat._ciz = null; Saat._olcutYenile = null; gozlem.disconnect(); } }); gozlem.observe(document.body, { childList: true, subtree: true });
+      basDug.addEventListener('click', function () {
+        var h = null; try { h = seans.value ? JSON.parse(seans.value) : null; } catch (e) {} Saat.hedef = h;
+        if (Saat.calisiyor && Saat.mod === 'calis') olcutBekletir(); // "↺ Baştan" bu seansı kapatır: ölçütü sor
+        var oa = olcutAd.value.trim(); Saat.olcut = oa ? { ad: oa.slice(0, 140), adim: olcutAdim.value.trim().slice(0, 140), t: Date.now() } : null;
+        Pomodoro.baslat(null, h).then(function () { olcutCiz(olcutKap); ciz(); });
+      });
       // düzenler + ayarlar
       var duzenKap = el('div', { class: 'pm-duzen' });
       DUZENLER.forEach(function (d) {
@@ -370,6 +415,7 @@
       // istatistik
       var ozet = el('div'); govde.appendChild(ozet);
       Promise.all([Depo.oku('sure'), Kitaplik.katalog(), Depo.oku('pomodoro')]).then(function (r) { ozet.appendChild(sureOzeti(r[0], r[1], r[2], p)); });
+      olcutCiz(olcutKap); Saat._olcutYenile = function () { olcutCiz(olcutKap); };
       ciz();
     });
   });
