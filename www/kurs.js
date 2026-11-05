@@ -50,7 +50,7 @@
         .filter(function (x) { return !x.b.ozel; }).map(function (x) {
           var soru = sorular.filter(function (q) { return q.bolum === x.b.id && !q.deneme && soruVar(q); })
             .sort(function (a, c) { return String(a.id).localeCompare(String(c.id), 'tr', { numeric: true }); });
-          return { sira: x.sira, ad: x.b.kisa || x.b.baslik || ('Bölüm ' + (x.sira + 1)), soru: soru, soruSayi: soru.length };
+          return { sira: x.sira, id: x.b.id, ad: x.b.kisa || x.b.baslik || ('Bölüm ' + (x.sira + 1)), soru: soru, soruSayi: soru.length };
         });
       return { kj: kj, konular: konular };
     });
@@ -95,7 +95,7 @@
   function yeniDurum(kid, veri, secim) {
     var liste = (secim && secim.length) ? secim.slice() : veri.konular.map(function (k, i) { return i; });
     return { kid: kid, toplamDk: VARSAYILAN_DK, asama: 'plan', konu: 0, adim: 0, secim: liste,
-      konular: veri.konular.map(function (k, i) { return { no: i, sira: k.sira, ad: k.ad, soruSayi: k.soruSayi, mod: 'tam', dk: 0 }; })
+      konular: veri.konular.map(function (k, i) { return { no: i, sira: k.sira, id: k.id, ad: k.ad, soruSayi: k.soruSayi, mod: 'tam', dk: 0 }; })
         .filter(function (k) { return liste.indexOf(k.no) >= 0; }),
       sonuc: {}, kapanis: {}, eksik: [], seviyeSorular: [], seviyeIdx: 0, seviyeCevap: [],
       mini: null, miniIdx: 0, miniSonuc: [], karisikIdx: 0, karisikListe: [] };
@@ -201,8 +201,9 @@
     var kontrolQ = kv.soru.slice(0, 1);
     // İçerik konu konumuna göre eşlenir (k.sira kitap bölüm numarasıdır; giriş bölümü 1'den başlayabilir).
     var konuNo = (typeof k.no === 'number') ? k.no : st.konular.indexOf(k);
-    var icerikListe = (window.KursIcerik && window.KursIcerik[kid]) || null;
-    var icerik = (icerikListe && konuNo >= 0 && icerikListe[konuNo]) || null;
+    var icerikListe = (window.KursIcerik && window.KursIcerik[kid]) || [];
+    var icerik = (icerikListe.filter(function (e) { return e.bolum === k.id; })[0]) ||
+      (konuNo >= 0 && icerikListe[konuNo] && !icerikListe[konuNo].bolum ? icerikListe[konuNo] : null);
     var METIN_STIL = 'width:100%;background:var(--zemin);color:var(--metin);border:1px solid var(--cizgi);border-radius:10px;padding:8px;font:15px/1.5 var(--f-govde,system-ui)';
     function devamDugmesi(metin, fn) { return el('div', { class: 'kurs-eylem' }, [el('button', { class: 'dugme ana', type: 'button', text: metin, onclick: fn })]); }
 
