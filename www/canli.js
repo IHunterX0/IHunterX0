@@ -80,7 +80,7 @@
       if (kalici && ic && !ic.textContent.trim()) { var du = b.querySelector('.cv-durum'); ic.textContent = (du && du.textContent.trim()) || 'C.A.R.V.I.S.'; ic.dataset.p = ''; }
       kap.classList.toggle('cv-kalici', kalici);
       if (acik) { var kt = kap.getBoundingClientRect(); if (kt.height) ds.setProperty('--cv-alt', Math.round(innerHeight - kt.top + 10) + 'px'); }
-    }, 300);
+    }, 600);
     return true;
   }
   if (!kur()) { var d = setInterval(function () { if (kur()) clearInterval(d); }, 400); setTimeout(function () { clearInterval(d); }, 20000); }

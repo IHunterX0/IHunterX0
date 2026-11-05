@@ -51,17 +51,19 @@
 
   /* ---- canvas: büyük çubuklu küre + kitaplara uzanan ince ışık çubukları (üzerlerinde dışa akan ışık) ---- */
   function sahneCiz(cv, durum) {
-    var g = cv.getContext('2d'), N = 340, nok = [], t0 = performance.now(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    var g = cv.getContext('2d'), N = (window.CarvisPerf && CarvisPerf.mod() === 'akici') ? 340 : 240, nok = [], t0 = performance.now(), dpr = Math.min(2, window.devicePixelRatio || 1);
     for (var i = 0; i < N; i++) { var y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963; nok.push([Math.cos(th) * r, y, Math.sin(th) * r, 0.55 + 0.45 * Math.abs(Math.sin(i * 12.9898))]); }
     // kullanıcı, 2026-11-03: "çubuklu küre tasarımını görmek istemiyorum, yeni Carvis tasarımını istiyorum" → JarvisKure (jarvis.js) üst katmanda
     var jk = null, jkO = null, jkS = 0;
     if (window.JarvisKure && cv.parentNode) { jk = document.createElement('canvas'); jk.setAttribute('aria-hidden', 'true'); jk.style.cssText = 'position:absolute;pointer-events:none;z-index:1'; cv.parentNode.insertBefore(jk, cv.nextSibling); jkO = new window.JarvisKure(jk, { serit: 3, iplik: 5, nokta: 130 }); }
+    // görünürlük: IntersectionObserver (her karede getBoundingClientRect ile zorlanmış yerleşim yok)
+    var gorunur = true; if (window.IntersectionObserver) new IntersectionObserver(function (l) { gorunur = l[0].isIntersecting; }).observe(cv);
     (function kare() {
       if (!document.body.contains(cv)) return;
       requestAnimationFrame(kare);
-      if (document.hidden) return;
-      var bx = cv.getBoundingClientRect(); if (bx.right < 0 || bx.left > innerWidth || bx.width < 10) return;
-      var w = cv.clientWidth, h = cv.clientHeight;
+      if (document.hidden || !gorunur) return;
+      var w = cv.clientWidth, h = cv.clientHeight; if (w < 10) return;
+      var dpr = window.CarvisPerf ? CarvisPerf.dpr(2) : Math.min(2, window.devicePixelRatio || 1);
       if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
       var t = (performance.now() - t0) / 1000;
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);

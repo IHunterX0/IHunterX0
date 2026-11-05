@@ -14,7 +14,7 @@
   var el = U.el, $ = U.$, $$ = U.$$, body = document.body, root = document.documentElement;
 
   var seviye = 'max'; try { seviye = localStorage.getItem('hx_seviye') || 'max'; } catch (e) {}
-  function max() { return seviye === 'max'; }
+  function max() { return seviye === 'max' && !(window.CarvisPerf && CarvisPerf.stil() === 'sade'); }
   function sakin() { return body.classList.contains('fx-okuma') || /^#?lab-/.test(location.hash.slice(1)) || document.hidden; }
 
   var css = document.createElement('style');
@@ -60,8 +60,9 @@
   var cv = el('canvas', { class: 'hx-sahne', 'aria-hidden': 'true' });
   var arka = $('#fxArka'); if (arka) arka.after(cv); else body.prepend(cv);
   var ctx = cv.getContext('2d'), W = 0, H = 0, DPR = 1, calisiyor = false, son = 0, t0 = performance.now();
-  function boyut() { DPR = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  function boyut() { DPR = window.CarvisPerf ? CarvisPerf.dpr(1.5) : Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
   addEventListener('resize', boyut); boyut();
+  var kirli = false; // tuvalde çizim kaldı mı: boşken her karede temizlemek yerine bir kez temizlenir
   function egim() { var s = getComputedStyle(root); return { x: +s.getPropertyValue('--hx') || 0, y: +s.getPropertyValue('--hy') || 0 }; }
   var eg = { x: 0, y: 0 }, egT = 0;
 
@@ -113,7 +114,9 @@
     var dt = Math.min(0.1, (simdi - son) / 1000); son = simdi;
     if (simdi - egT > 200) { egT = simdi; eg = egim(); }
     var t = (simdi - t0) / 1000;
-    ctx.clearRect(0, 0, W, H);
+    var aktif = body.classList.contains('hx-merkez') || iz.length > 0;
+    if (!aktif) { if (kirli) { ctx.clearRect(0, 0, W, H); kirli = false; } return; } // çizilecek bir şey yok
+    ctx.clearRect(0, 0, W, H); kirli = true;
     ctx.globalCompositeOperation = 'lighter';
     if (false) { // DNA sarmalları kaldırıldı (kullanıcı, 2026-11-03: kenar doldurmak için, iyi görünmüyor)
       var R = Math.min(46, W * 0.035), ust = 90 + eg.y * 10, boy = H - 140;
@@ -167,7 +170,7 @@
   var nabizZ = null;
   function nabiz() { if (!max()) return; body.classList.add('hx-nabiz'); clearTimeout(nabizZ); nabizZ = setTimeout(function () { body.classList.remove('hx-nabiz'); }, 120); }
   if (window.Holo && window.Holo.kelime) { var eskiK = window.Holo.kelime; window.Holo.kelime = function () { nabiz(); return eskiK.apply(this, arguments); }; }
-  setInterval(function () { var c = window.Carvis; body.classList.toggle('hx-carvis', !!(c && c.acik) && max()); if (c && c.konusuyor && max() && Math.random() < 0.5) nabiz(); }, 260);
+  setInterval(function () { var c = window.Carvis; body.classList.toggle('hx-carvis', !!(c && c.acik) && max()); if (c && c.konusuyor && max() && Math.random() < 0.5) nabiz(); }, 520);
 
   seviyeUygula();
 })();

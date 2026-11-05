@@ -225,7 +225,7 @@
     });
   }
   new MutationObserver(panelDuzenle).observe(body, { childList: true });
-  var panelGozcu = setInterval(function () { var y = $('.yan-panel'); if (y) { new MutationObserver(panelDuzenle).observe(y, { childList: true }); panelDuzenle(); clearInterval(panelGozcu); } }, 500);
+  var panelGozcu = setInterval(function () { var y = $('.yan-panel'); if (y) { new MutationObserver(panelDuzenle).observe(y, { childList: true }); panelDuzenle(); clearInterval(panelGozcu); } }, 1500);
 
   window.HoloPencere = { ac: pencereAc, ayir: ayir, liste: function () { return pencereler; } };
 })();

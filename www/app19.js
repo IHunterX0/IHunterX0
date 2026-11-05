@@ -78,8 +78,8 @@
   var cv = el('canvas', { id: 'fxArka', 'aria-hidden': 'true' }); document.body.prepend(cv);
   document.body.appendChild(el('div', { class: 'fx-tarama', 'aria-hidden': 'true' }));
   (function () {
-    var g = cv.getContext('2d'), dpr = Math.min(1.5, window.devicePixelRatio || 1), N = 46, p = [], son = 0, t0 = performance.now();
-    function boy() { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }
+    var g = cv.getContext('2d'), dpr = window.CarvisPerf ? CarvisPerf.dpr(1.5) : Math.min(1.5, window.devicePixelRatio || 1), N = (window.CarvisPerf && CarvisPerf.mod() === 'akici') ? 46 : 30, p = [], son = 0, t0 = performance.now();
+    function boy() { dpr = window.CarvisPerf ? CarvisPerf.dpr(1.5) : Math.min(1.5, window.devicePixelRatio || 1); cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }
     boy(); addEventListener('resize', boy);
     for (var i = 0; i < N; i++) p.push({ x: Math.random(), y: Math.random(), vx: (Math.random() - .5) * .00012, vy: (Math.random() - .5) * .00012, r: .6 + Math.random() * 1.4 });
     function ciz(z) {
@@ -103,7 +103,7 @@
     }
     (function dongu(z) {
       requestAnimationFrame(dongu);
-      if (document.hidden || z - son < 50) return; // ~20 FPS yeter
+      if (document.hidden || (window.CarvisPerf && CarvisPerf.arkaPlanKapali()) || z - son < (window.CarvisPerf ? (CarvisPerf.mod() === 'akici' ? 50 : CarvisPerf.mod() === 'pil' ? 120 : 80) : 50)) return; // akıcı ~20 kare; dengeli ~12; pil ~8. Sade stilde ya da pil modunda okuma ekranında durur
       son = z; ciz(z);
     })(performance.now());
     if (AZ) ciz(performance.now());

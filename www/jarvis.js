@@ -61,7 +61,7 @@
     var serit = o.serit != null ? o.serit : 3, iplik = o.iplik != null ? o.iplik : 7, nokta = o.nokta != null ? o.nokta : 160;
     var tohum = [Math.random() * 10, Math.random() * 10, Math.random() * 10, Math.random() * 10];
     function boyut() {
-      var r = cv.getBoundingClientRect(); dpr = Math.min(o.kucuk ? 2 : 1.5, window.devicePixelRatio || 1);
+      var r = cv.getBoundingClientRect(); dpr = window.CarvisPerf ? CarvisPerf.dpr(o.kucuk ? 2 : 1.5) : Math.min(o.kucuk ? 2 : 1.5, window.devicePixelRatio || 1);
       w = Math.max(1, Math.round(r.width * dpr)); h = Math.max(1, Math.round(r.height * dpr));
       if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
     }
@@ -278,7 +278,7 @@
     new JarvisKure(c, { kucuk: true, serit: 1, iplik: 3, nokta: 90 });
     var b = el('div', { class: 'jv-buyuk', 'aria-hidden': 'true' }, [el('canvas')]); document.body.appendChild(b);
     new JarvisKure(b.firstChild, { serit: 3, iplik: 6, nokta: 150, kosul: function () { return b.classList.contains('acik') && !document.body.classList.contains('jv-merkez'); } });
-    setInterval(function () { b.classList.toggle('acik', !!(window.Carvis && window.Carvis.acik)); }, 250);
+    setInterval(function () { b.classList.toggle('acik', !!(window.Carvis && window.Carvis.acik)); }, 1000);
     return true;
   }
   if (!dugmeKur()) { var dn = 0, z = setInterval(function () { if (dugmeKur() || ++dn > 40) clearInterval(z); }, 250); }

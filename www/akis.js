@@ -89,7 +89,7 @@
     if (c && c.parentNode !== kapsul) { if (ortaYer.parentNode === kapsul) kapsul.replaceChild(c, ortaYer); else kapsul.insertBefore(c, kapsul.children[1] || null); }
     if (m && m.parentNode !== kapsul) { if (sagYer.parentNode === kapsul) kapsul.replaceChild(m, sagYer); else kapsul.appendChild(m); }
   }
-  setInterval(tasi, 800); setTimeout(tasi, 200);
+  setInterval(tasi, 1600); setTimeout(tasi, 200);
   // aşağı kaydırırken saklan, yukarı kaydırırken ya da durunca görün
   var sonY = 0, zm = null;
   window.addEventListener('scroll', function () {

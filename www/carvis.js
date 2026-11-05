@@ -476,6 +476,9 @@
   };
   var KISI_KURAL = 'Her seviyede kural: kişi hakkında hüküm verme (ör. "tembelsin", "yetersizsin", "dikkatsizsin" deme). Yalnız iş, iddia ve yöntem hakkında konuş. Doğruysa tek cümleyle "doğru" de, övgü yazma.';
   function elestiriKurali() { return (ELESTIRI[Profil.elestiri] || ELESTIRI.net) + ' ' + KISI_KURAL; }
+  // Etkileşim kuralları (r108): tek soru, açıklama kontrolü, yanlışta önce varsayım. GPT ve Gemini raporlarındaki işe yarar öneriler; kullanıcının "sert ama iddiaya" tercihiyle uyumlu.
+  var ETKILESIM = 'ETKİLEŞİM KURALLARI: Bir yanıtta en fazla bir soru sor. Öğrenci bir mekanizmayı kendi cümleleriyle anlatırsa: doğru basamakları tek cümleyle onayla, eksik ara basamaklardan en fazla üçünü soru olarak sor, cevabı kendin verme. Yanlış bir cevapta doğruyu hemen verme: önce bozulan varsayımı tek cümleyle göster; iki denemeden sonra doğruyu açıkla. Kişi hakkında hüküm ve övgü yazma.';
+  function derinlikKurali() { var d = Profil.derinlik || 'orta'; return 'Yanıt derinliği: ' + (d === 'kisa' ? 'kısa (en çok 2–3 cümle)' : d === 'derin' ? 'derin (mekanizma ve gerekçe; yine de dolgu yok)' : 'orta (kısa gerekçeyle)') + '.'; }
   function hitap() { return Profil.hitap === 'efendim' ? 'efendim' : Profil.hitap === 'hocam' ? 'hocam' : Profil.hitap === 'ad' && Profil.ad ? Profil.ad : ''; }
   // Kısa çalışma durumu (60 sn önbellek): pomodoro, en yakın sınav, vadeli kart, en zayıf yer
   var durumOnbellek = { t: 0, v: null };
@@ -542,7 +545,7 @@
       if (gz) l.push('GÖZLEMLER (gerçek veri; çıkarım yaparken yalnız bunlara ve sohbete dayan): ' + gz + '.');
       // Jane sarsılma turunda "emin ama yanlış" çıkan varsayımlar: öğrencinin otomatik doldurma noktaları; konu açılınca kısaca uyar
       if (jo.length) l.push('OTOMATİK DOLDURMA NOKTALARI (Jane turunda emin olup yanıldığı; ilgili konu açılırsa bu tuzağa tek cümleyle dikkat çek): ' + jo.slice(-5).map(function (x) { return (x.konu || '') + ': ' + String(x.varsayim || x.soru || '').slice(0, 110); }).join(' | ') + '.');
-      l.push(DUSUNME);
+      l.push(ETKILESIM, derinlikKurali(), DUSUNME);
       if (Profil.hafiza.length) l.push('HAFIZAN (kullanıcının sana söyledikleri; uygun düştüğünde kullan, tekrar tekrar söyleme):\n- ' + Profil.hafiza.slice(-25).map(function (h) { return h.m; }).join('\n- '));
       l.push('Kullanıcı kendisi hakkında kalıcı bir bilgi/tercih söylerse ("sabahları çalışırım", "bana kısa anlat", "kardiyolojiyi seviyorum") ya da "bunu hatırla" derse hatirla aracını kullan; "unut" derse unut. "Bana X de", "daha resmi/samimi konuş" derse profil_ayarla.');
       return l.join('\n');
@@ -613,6 +616,14 @@
     [ad, hit, ton, elest, selam].forEach(function (x) { x.addEventListener('change', kaydet); });
     govde.appendChild(satir('Adın', ad)); govde.appendChild(satir('Sana nasıl hitap etsin?', hit)); govde.appendChild(satir('Üslup', ton)); govde.appendChild(satir('Eleştiri', elest));
     govde.appendChild(el('p', { class: 'var-etiket', text: 'Her seviyede geçerli: kişi hakkında hüküm yok; yalnız iş ve iddia düzeltilir.' }));
+    // Performans (kare hızı · pil), görünüm ve yanıt derinliği (r108): hepsi kullanıcı seçimi; varsayılanlar dengeli
+    var perfSec = el('select', { style: stil }); [['akici', 'Akıcı: sınırsız kare (en çok pil)'], ['dengeli', 'Dengeli (varsayılan)'], ['pil', 'Pil: en az ısınma (15 kare)']].forEach(function (x) { perfSec.appendChild(el('option', { value: x[0], text: x[1], selected: (window.CarvisPerf ? CarvisPerf.mod() : 'dengeli') === x[0] ? true : null })); });
+    perfSec.addEventListener('change', function () { if (window.CarvisPerf) CarvisPerf.modAyarla(perfSec.value); });
+    var gorunumSec = el('select', { style: stil }); [['holo', 'Holo (varsayılan): parıltı, toz, arka plan'], ['sade', 'Sade: parıltı ve toz kapalı']].forEach(function (x) { gorunumSec.appendChild(el('option', { value: x[0], text: x[1], selected: (window.CarvisPerf ? CarvisPerf.stil() : 'holo') === x[0] ? true : null })); });
+    gorunumSec.addEventListener('change', function () { if (window.CarvisPerf) CarvisPerf.stilAyarla(gorunumSec.value); });
+    var derinSec = el('select', { style: stil }); [['kisa', 'Kısa: 2–3 cümle'], ['orta', 'Orta (varsayılan)'], ['derin', 'Derin: mekanizma ve gerekçe']].forEach(function (x) { derinSec.appendChild(el('option', { value: x[0], text: x[1], selected: (Profil.derinlik || 'orta') === x[0] ? true : null })); });
+    derinSec.addEventListener('change', function () { Profil.derinlik = derinSec.value; profilKaydet(); });
+    govde.appendChild(satir('Performans (kare hızı · pil)', perfSec)); govde.appendChild(satir('Görünüm', gorunumSec)); govde.appendChild(satir('Yanıt derinliği', derinSec));
     govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [selam, 'Günün ilk açılışında selam + kısa durum (sınava kalan gün, vadeli kart, seri)']));
     if (K && K.arkaPlan) {
       var ap = el('input', { type: 'checkbox', checked: K.arkaPlanMi() ? true : null });
