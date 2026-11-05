@@ -49,14 +49,17 @@
   function mdHtml(t, kj) {
     var parcalar = [], kodlar = [];
     t = String(t || '').replace(/```(\w*)\n([\s\S]*?)```/g, function (_, dil, kod) { kodlar.push({ dil: dil, kod: kod }); return '\u0000K' + (kodlar.length - 1) + '\u0000'; });
-    var satirlar = esc(t).split('\n'), html = [], liste = null;
+    var satirlar = (window.Matematik ? Matematik.tekSatir(esc(t)) : esc(t)).split('\n'), html = [], liste = null;
     function satirIc(s) {
-      return s.replace(/\[test:([a-z0-9]+)\]/g, '<span class="sohbet-test" data-test="$1"></span>')
+      var mat = [];
+      if (window.Matematik) s = Matematik.koru(s, mat);
+      s = s.replace(/\[test:([a-z0-9]+)\]/g, '<span class="sohbet-test" data-test="$1"></span>')
         .replace(/\[([^\]\n]{1,300})\]\((https?:\/\/[^\s)"<>]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>').replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\[kaynak:([a-z0-9-]+)\|(\d+)\|([^|\]]*)\|([^\]]+)\]/g, function (_, k, b, blok, et) {
           return '<a class="capraz kaynak-bag" href="#' + U.okuHash(k, +b) + '" data-blok="' + blok + '">' + et + '</a>';
         });
+      return window.Matematik ? Matematik.geri(s, mat) : s;
     }
     satirlar.forEach(function (s) {
       var m;
