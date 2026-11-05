@@ -10,7 +10,7 @@
   var SAYAC_ANAHTAR = 'sinav_sayac', MOD_ANAHTAR = 'sinav_modu', DENEME_DK = 90;
 
   var css = document.createElement('style');
-  css.textContent = '#sinavCip{position:fixed;left:16px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:59;height:40px;min-width:40px;padding:0 10px;border-radius:20px;border:1px solid #ffb84d;background:rgba(6,12,17,.92);color:#ffe2b0;font:600 13px var(--f-kod,monospace)}' +
+  css.textContent = '#sinavCip{position:fixed;left:calc(max(20px,env(safe-area-inset-left,0px)) + 13px);bottom:calc(106px + env(safe-area-inset-bottom,0px));z-index:59;height:40px;min-width:40px;padding:0 10px;border-radius:20px;border:1px solid #ffb84d;background:rgba(6,12,17,.92);color:#ffe2b0;font:600 13px var(--f-kod,monospace)}' +
     '#sinavCip.acil{border-color:#ff6b6b;color:#ffb3b3}#sinavCip[hidden]{display:none}' +
     '.sm-satir{display:grid;gap:4px;padding:8px 0;border-top:1px dashed var(--cizgi)}.sm-satir small{color:var(--metin-sonuk)}';
   document.head.appendChild(css);
