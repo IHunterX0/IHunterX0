@@ -640,7 +640,7 @@
     govde.appendChild(satir('Jane öğretme sıklığı', ogretmeSec));
     govde.appendChild(el('div', { class: 'al-dugmeler', style: 'margin:10px 0;display:flex;gap:8px;flex-wrap:wrap' }, [
       el('button', { class: 'dugme', type: 'button', onclick: function () { if (window.CarvisAlarm) CarvisAlarm.ac(); } }, ['⏰ Alarmlar']),
-      el('button', { class: 'dugme ana', type: 'button', onclick: function () { Carvis.ac(); Carvis.soru('Bana bir şey öğret: kitaptan ya da bilimsel olarak kesin doğru, kısa bir mekanizma seç; tek cümleyle anlat, sonra bana tek bir kısa soru sor.', true); } }, ['🎓 Bana bir şey öğret'])
+      el('button', { class: 'dugme ana', type: 'button', onclick: function () { Carvis.ac(); Carvis.soru('Bana bir şey öğret: kitaptan ya da bilimsel olarak kesin doğru, kısa bir mekanizma seç; tek cümleyle anlat, sonra bana tek bir kısa soru sor.', true); } }, ['🎓 Bana bir şey öğret']), el('button', { class: 'dugme', type: 'button', onclick: function () { if (window.JaneDers) JaneDers.ac(); } }, ['📖 Konu anlatımı'])
     ]));
     govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [selam, 'Günün ilk açılışında selam + kısa durum (sınava kalan gün, vadeli kart, seri)']));
     if (K && K.arkaPlan) {
