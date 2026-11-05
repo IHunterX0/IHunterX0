@@ -407,6 +407,7 @@
       l.push(t);
     });
     l = l.concat(hafizaAraclari());
+    if (window.CarvisAlarm) l = l.concat(CarvisAlarm.araclar()); // alarm_kur, alarm_listele, alarm_sil (r109)
     // kullanıcı, 2026-11-03: "Carvis ekranımı görebilsin" — gerektiğinde ekrandaki metni okur (her istekte göndermek kota yerdi)
     l.push({ name: 'ekrana_bak', description: 'Kullanıcının şu an ekranda gördüğünü döndürür (sayfa, başlık, görünen metin). "bu", "şu", "ekrandaki", "burada", "bunu açıkla" gibi ifadelerde önce bunu çağır.',
       inputSchema: { type: 'object', properties: {} }, execute: function () { var d = Carvis._disEkran; return (d && Date.now() - d.t < 180000 ? 'KULLANICININ PAYLAŞTIĞI DIŞ EKRAN (' + (d.uygulama || d.paket) + '):\n' + String(d.metin || '').slice(0, 3000) + '\n\n--- CARVIS EKRANI ---\n' : '') + ekranMetni(); } });
@@ -478,6 +479,13 @@
   function elestiriKurali() { return (ELESTIRI[Profil.elestiri] || ELESTIRI.net) + ' ' + KISI_KURAL; }
   // Etkileşim kuralları (r108): tek soru, açıklama kontrolü, yanlışta önce varsayım. GPT ve Gemini raporlarındaki işe yarar öneriler; kullanıcının "sert ama iddiaya" tercihiyle uyumlu.
   var ETKILESIM = 'ETKİLEŞİM KURALLARI: Bir yanıtta en fazla bir soru sor. Öğrenci bir mekanizmayı kendi cümleleriyle anlatırsa: doğru basamakları tek cümleyle onayla, eksik ara basamaklardan en fazla üçünü soru olarak sor, cevabı kendin verme. Yanlış bir cevapta doğruyu hemen verme: önce bozulan varsayımı tek cümleyle göster; iki denemeden sonra doğruyu açıkla. Kişi hakkında hüküm ve övgü yazma.';
+  // Öğretme sıklığı (r109): kullanıcı "daha çok öğret" istedi; sıklığı kendisi seçer. Öğretici not doğru ve kesin olmalı.
+  function ogretmeKurali() {
+    var o = Profil.ogretme || 'orta';
+    return 'Öğretme sıklığı: ' + (o === 'az' ? 'az. Öğretici not yalnız öğrenci istediğinde ya da bir yanlışı açıklarken.'
+      : o === 'sik' ? 'sık. Her yanıtta tek cümlelik bir öğretici not ekle (doğru ve kesin olmalı), ardından en çok bir soru sor.'
+      : 'orta (varsayılan). Her yanıtta değil, arada bir: kısa bir mekanizma ya da ilginç bir bilgi notunu tek cümleyle ver ve öğrenciye tek kısa soru sor. Yanıtta toplam en çok bir soru olsun. Emin olmadığın bilgiyi ekleme.');
+  }
   function derinlikKurali() { var d = Profil.derinlik || 'orta'; return 'Yanıt derinliği: ' + (d === 'kisa' ? 'kısa (en çok 2–3 cümle)' : d === 'derin' ? 'derin (mekanizma ve gerekçe; yine de dolgu yok)' : 'orta (kısa gerekçeyle)') + '.'; }
   function hitap() { return Profil.hitap === 'efendim' ? 'efendim' : Profil.hitap === 'hocam' ? 'hocam' : Profil.hitap === 'ad' && Profil.ad ? Profil.ad : ''; }
   // Kısa çalışma durumu (60 sn önbellek): pomodoro, en yakın sınav, vadeli kart, en zayıf yer
@@ -545,7 +553,7 @@
       if (gz) l.push('GÖZLEMLER (gerçek veri; çıkarım yaparken yalnız bunlara ve sohbete dayan): ' + gz + '.');
       // Jane sarsılma turunda "emin ama yanlış" çıkan varsayımlar: öğrencinin otomatik doldurma noktaları; konu açılınca kısaca uyar
       if (jo.length) l.push('OTOMATİK DOLDURMA NOKTALARI (Jane turunda emin olup yanıldığı; ilgili konu açılırsa bu tuzağa tek cümleyle dikkat çek): ' + jo.slice(-5).map(function (x) { return (x.konu || '') + ': ' + String(x.varsayim || x.soru || '').slice(0, 110); }).join(' | ') + '.');
-      l.push(ETKILESIM, derinlikKurali(), DUSUNME);
+      l.push(ETKILESIM, derinlikKurali(), ogretmeKurali(), DUSUNME);
       if (Profil.hafiza.length) l.push('HAFIZAN (kullanıcının sana söyledikleri; uygun düştüğünde kullan, tekrar tekrar söyleme):\n- ' + Profil.hafiza.slice(-25).map(function (h) { return h.m; }).join('\n- '));
       l.push('Kullanıcı kendisi hakkında kalıcı bir bilgi/tercih söylerse ("sabahları çalışırım", "bana kısa anlat", "kardiyolojiyi seviyorum") ya da "bunu hatırla" derse hatirla aracını kullan; "unut" derse unut. "Bana X de", "daha resmi/samimi konuş" derse profil_ayarla.');
       return l.join('\n');
@@ -624,6 +632,14 @@
     var derinSec = el('select', { style: stil }); [['kisa', 'Kısa: 2–3 cümle'], ['orta', 'Orta (varsayılan)'], ['derin', 'Derin: mekanizma ve gerekçe']].forEach(function (x) { derinSec.appendChild(el('option', { value: x[0], text: x[1], selected: (Profil.derinlik || 'orta') === x[0] ? true : null })); });
     derinSec.addEventListener('change', function () { Profil.derinlik = derinSec.value; profilKaydet(); });
     govde.appendChild(satir('Performans (kare hızı · pil)', perfSec)); govde.appendChild(satir('Görünüm', gorunumSec)); govde.appendChild(satir('Yanıt derinliği', derinSec));
+    // Öğretme sıklığı (r109) ve iki kısayol: alarm paneli, Jane'den bir şey öğrenme
+    var ogretmeSec = el('select', { style: stil }); [['az', 'Az (yalnız istenirse)'], ['orta', 'Orta (varsayılan): arada bir'], ['sik', 'Sık: her yanıtta bir not']].forEach(function (x) { ogretmeSec.appendChild(el('option', { value: x[0], text: x[1], selected: (Profil.ogretme || 'orta') === x[0] ? true : null })); });
+    ogretmeSec.addEventListener('change', function () { Profil.ogretme = ogretmeSec.value; profilKaydet(); });
+    govde.appendChild(satir('Jane öğretme sıklığı', ogretmeSec));
+    govde.appendChild(el('div', { class: 'al-dugmeler', style: 'margin:10px 0;display:flex;gap:8px;flex-wrap:wrap' }, [
+      el('button', { class: 'dugme', type: 'button', onclick: function () { if (window.CarvisAlarm) CarvisAlarm.ac(); } }, ['⏰ Alarmlar']),
+      el('button', { class: 'dugme ana', type: 'button', onclick: function () { Carvis.ac(); Carvis.soru('Bana bir şey öğret: kitaptan ya da bilimsel olarak kesin doğru, kısa bir mekanizma seç; tek cümleyle anlat, sonra bana tek bir kısa soru sor.', true); } }, ['🎓 Bana bir şey öğret'])
+    ]));
     govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [selam, 'Günün ilk açılışında selam + kısa durum (sınava kalan gün, vadeli kart, seri)']));
     if (K && K.arkaPlan) {
       var ap = el('input', { type: 'checkbox', checked: K.arkaPlanMi() ? true : null });

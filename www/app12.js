@@ -248,6 +248,15 @@
     // dokunma = buradayım (kutunun dışına dokunsa da)
     setTimeout(function () { document.addEventListener('pointerdown', function d(e) { if (!kutu.isConnected) return document.removeEventListener('pointerdown', d, true); if (e.target.closest('.bm-kutu')) return; document.removeEventListener('pointerdown', d, true); bitir(true); }, true); }, 300);
   }
+  /* Okuma eşiği (r109): okuma sayfasında sabit 8 dk yerine, sayfanın uzunluğuna göre dokunmadan okunabilecek süre kadar bekler.
+     Dokunma, kaydırma ve Carvis konuşması her zaman sayılır. Kısa sayfada 6 dk, uzun bölümde en çok 20 dk. */
+  function okumaEsigi() {
+    if (!/^#oku-/.test(location.hash)) return 4 * 60000;
+    var ana = document.getElementById('ana'), metin = ana ? (ana.innerText || '') : '';
+    var kelime = Math.max(120, metin.split(/\s+/).length);
+    var dk = kelime / 130; // çalışma okuma hızı kabaca 130 kelime/dk
+    return Math.min(20, Math.max(6, dk * 1.4 + 2)) * 60000;
+  }
   var CALISMA_EKRANI = /^#(oku-|kartlar|test|saray-|lab-anatomi|lab-molekul|lab-hareket)/;
   function otoAcik() { return ayarlar().then(function (a) { return a.pomodoro.otoBaslat !== false; }); }
   function calismaHedefi() { var kj = Durum.aktifKitap, b = Durum.aktifBolum; return kj && b && /^#oku-/.test(location.hash) ? { kitap: kj.id, sira: b.sira, ad: kj.baslik.replace(/^1001\s*/, '') + ' · ' + (b.kisa || b.baslik) } : null; }
@@ -285,7 +294,7 @@
       if (carvisAcik) { Oto.sonHareket = Date.now(); return; }
       // kullanıcı, 2026-11-03: "ekrana uzun süre dokunmazsam burada mısın diye sorsun, durdursun" — önce sorar (45 sn), cevap yoksa
       // durdurur ve yokken geçen süreyi çalışmaya saymaz. Okuma ekranında eşik daha uzun (uzun paragraf okurken dokunmamak doğal).
-      var esik = (/^#oku-/.test(location.hash) ? 8 : 4) * 60000;
+      var esik = okumaEsigi();
       if (Saat.mod === 'calis' && !Saat.duraklatildi && bos > esik && !Oto.soruyor) buradaMisin(bos);
       if (Saat.duraklatildi && Oto.otoDurdu && (bos > 25 * 60000 || (Oto.disarida && Date.now() - Oto.disarida > 25 * 60000))) { Oto.otoDurdu = false; Oto.disarida = 0; Pomodoro.durdur(); }
     });
@@ -299,6 +308,7 @@
   setInterval(function () {
     if (document.hidden && Oto.gizliBas && Saat.calisiyor && Saat.mod === 'calis' && !Saat.duraklatildi && Date.now() - Oto.gizliBas > 60000) { Oto.otoDurdu = true; Pomodoro.duraklat(); Oto.sonHareket = Oto.gizliBas; }
   }, 15000);
+  Oto.esik = okumaEsigi;
   U.pomodoroOto = Oto;
   function gunAnahtar(i) { var d = new Date(Date.now() - i * GUN); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function gunToplam(sure, k) { var t = 0, g = sure[k] || {}; Object.keys(g).forEach(function (x) { t += g[x]; }); return t; }
