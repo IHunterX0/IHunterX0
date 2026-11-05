@@ -163,7 +163,7 @@
   // Çevrimdışı çalışır; cümle kitabın kendi metninden gelir.
   function kisaSoru(p) {
     var metin = String(p.textContent || '').replace(/\s+/g, ' ').trim();
-    var cumleler = metin.replace(/([.!?])\s+/g, '$1|').split('|').filter(function (c) { return c.length >= 60 && c.length <= 240; });
+    var cumleler = metin.replace(/([.!?])\s+/g, '$1|').split('|').filter(function (c) { return c.length >= 60 && c.length <= 240 && c.replace(/[^\p{L}]/gu, '').length / c.length >= 0.7 && !/[=·★☆⭐→%]/.test(c); });
     if (!cumleler.length) return null;
     var cumle = cumleler[Math.floor(Math.random() * cumleler.length)];
     var terim = '';

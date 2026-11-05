@@ -1,16 +1,15 @@
-/* Tüm dersi 0'dan öğren (r118). Rota: #kurs-<kitap>.
-   Akış: plan (süre seçimi) → seviye ölçme (isteğe bağlı) → konu döngüsü → her 4 konuda karışık tekrar → çıkmış mini sınav.
-   Tam konu adımları: tahmin · formül · anlatım · çözümlü örnek · tuzak · kontrol · kapanış.
-   Hızlı mod (seviye ölçmede doğru cevaplanan konu): kontrol · tuzak · kapanış.
-   İçerik kitabın kendi bloklarından (formul, tuzak, cozelim, hoca) ve çıkmış soru havuzundan gelir; yapay zekâ kullanılmaz.
-   "Bilmiyorum" gerçek bilgisizlik sayılır: konu tam işlenir ve sınavda yanlış kabul edilir. */
+/* Tüm dersi 0'dan öğren (r120). Rota: #kurs-<kitap>.
+   Akış: plan (toplam yaklaşık 45 dk) → seviye ölçme (isteğe bağlı, 3 dk) → konu döngüsü → her 4 konuda karışık tekrar → çıkmış mini sınav.
+   Konu adımları: kanca (Patrick Jane'in sorusu, dikkat) · çekirdek (üç temel bilgi) · türetme (çekirdekten formüle) · kontrol (çıkmış soru) · kapanış (kendi cümlen).
+   İçerik: www/kurs_icerik.js (KursIcerik). Yapay zekâ kullanılmaz.
+   "Bilmiyorum" gerçek bilgisizlik sayılır. */
 (function () {
   'use strict';
   var U = window.Uygulama; if (!U) return;
   var el = U.el;
-  var ANAHTAR = 'kurs_', VARSAYILAN_DK = 90;
-  var KONU_TABAN_DK = 2, KARISIK_HER = 4, KARISIK_N = 3, MINI_N = 10, SEVIYE_N = 8;
-  var SABIT_DK = { seviye: 6, mini: 10, karisik: 2 };
+  var ANAHTAR = 'kurs_', VARSAYILAN_DK = 45;
+  var KONU_TABAN_DK = 1, KARISIK_HER = 4, KARISIK_N = 3, MINI_N = 6, SEVIYE_N = 5;
+  var SABIT_DK = { seviye: 3, mini: 5, karisik: 1 };
 
   var css = document.createElement('style');
   css.textContent = '.kurs-ilerleme{height:10px;border-radius:999px;background:rgba(94,240,220,.12);overflow:hidden;margin:10px 0}' +
@@ -191,82 +190,88 @@
 
   /* ---------- konu adımları ---------- */
   function konuAdimlari(kid, st, k, veri, bolum) {
-    var ic = icerikAyikla(bolum), kv = veriKonu(veri, k.sira);
-    var soru = kv.soru.slice();
-    var tahminQ = (k.mod === 'tam' && soru.length) ? soru[soru.length > 1 ? 1 : 0] : null;
-    var kontrolQ = soru.filter(function (q) { return !tahminQ || q.id !== tahminQ.id; }).slice(0, 2);
+    var kv = veriKonu(veri, k.sira);
+    var kontrolQ = kv.soru.slice(0, 1);
+    // İçerik konu konumuna göre eşlenir (k.sira kitap bölüm numarasıdır; giriş bölümü 1'den başlayabilir).
+    var konuNo = st.konular.indexOf(k);
+    var icerikListe = (window.KursIcerik && window.KursIcerik[kid]) || null;
+    var icerik = (icerikListe && konuNo >= 0 && icerikListe[konuNo]) || null;
+    var METIN_STIL = 'width:100%;background:var(--zemin);color:var(--metin);border:1px solid var(--cizgi);border-radius:10px;padding:8px;font:15px/1.5 var(--f-govde,system-ui)';
     function devamDugmesi(metin, fn) { return el('div', { class: 'kurs-eylem' }, [el('button', { class: 'dugme ana', type: 'button', text: metin, onclick: fn })]); }
 
-    var tahmin = tahminQ ? { ad: 'Tahmin et', ciz: function (kap, bitir) {
-      kap.appendChild(el('p', { class: 'var-etiket', text: 'Önce tahmin et. Yanlış bilsen de öğrenme bu andan başlar.' }));
+    // 1) Kanca (dikkat): önce bir soru. Cevabını yaz ya da "Bilmiyorum" de; doğrusu her hâlde gösterilir.
+    var kanca = (icerik && icerik.kanca) ? { ad: 'Kanca', ciz: function (kap, bitir) {
+      kap.appendChild(el('div', { class: 'kurs-mat', text: 'Patrick Jane soruyor' }));
+      kap.appendChild(el('div', { class: 'kurs-soru', text: icerik.kanca.soru }));
+      kap.appendChild(el('textarea', { rows: '2', 'aria-label': 'Tahminin', style: METIN_STIL }));
+      var cozum = el('div', { class: 'kurs-kart', hidden: true }, [
+        el('div', { class: 'kurs-mat', text: 'Doğrusu' }),
+        el('p', { text: icerik.kanca.cevap }),
+        el('p', { class: 'var-etiket', text: icerik.kanca.neden })
+      ]);
       var devam = devamDugmesi('Devam', bitir); devam.hidden = true;
-      var m = soruModel(tahminQ);
-      kap.appendChild(soruKarti(m, function (r) { sonucKaydet(st, veri, kid, k.sira, r.durum, m); yaz(kid, st); devam.hidden = false; }, formulKart(kid, k.sira)));
+      var eylem = el('div', { class: 'kurs-eylem' }, [
+        el('button', { class: 'dugme', type: 'button', text: 'Bilmiyorum', onclick: acDogru }),
+        el('button', { class: 'dugme ana', type: 'button', text: 'Cevapla', onclick: acDogru })
+      ]);
+      function acDogru() { cozum.hidden = false; eylem.hidden = true; devam.hidden = false; }
+      kap.appendChild(cozum);
+      kap.appendChild(eylem);
       kap.appendChild(devam);
     } } : null;
-    var formul = (k.mod === 'tam' && ic.formuller.length) ? { ad: 'Formül', ciz: function (kap, bitir) {
-      kap.appendChild(el('p', { class: 'var-etiket', text: 'Sınavda bu formüller verilir. Nereden geldiklerine bak.' }));
-      formulBloklari(ic.formuller).forEach(function (x) { kap.appendChild(x); });
-      kap.appendChild(devamDugmesi('Anladım, devam', bitir));
-    } } : null;
-    var anlatim = null;
-    if (k.mod === 'tam') {
-      var parcalar = [];
-      ic.hocalar.slice(0, 1).forEach(function (h) { parcalar.push({ baslik: h.etiket || 'Hoca vurgusu', html: html(h.bloklar) }); });
-      ic.alt.slice(0, 3).forEach(function (a) { parcalar.push({ baslik: a.baslik || 'Ana fikir', metin: kisa(a.metin, 2) }); });
-      if (parcalar.length) anlatim = { ad: 'Anlatım', ciz: function (kap, bitir) {
-        var i = 0, alan = el('div', { class: 'kurs-kart' });
-        kap.appendChild(alan);
-        function goster() {
-          alan.innerHTML = '';
-          var p = parcalar[i];
-          alan.appendChild(el('div', { class: 'kurs-hedef', text: (i + 1) + '/' + parcalar.length + ' · ' + p.baslik }));
-          alan.appendChild(p.html ? el('div', { html: p.html }) : el('p', { text: p.metin }));
-          alan.appendChild(devamDugmesi(i + 1 < parcalar.length ? 'Devam' : 'Anlatım bitti', function () { if (i + 1 < parcalar.length) { i++; goster(); } else bitir(); }));
-        }
-        goster();
-      } };
-    }
-    var cozelim = ic.cozelimler.length ? { ad: 'Çözümlü örnek', ciz: function (kap, bitir) {
-      var c = ic.cozelimler[0];
-      var ilk = (c.bloklar && c.bloklar[0]) ? c.bloklar[0].html || '' : '';
-      var ayrik = ilk.split(/<br\s*\/?>\s*<br\s*\/?>/i);
-      kap.appendChild(el('div', { class: 'kurs-kart' }, [el('div', { class: 'kurs-mat', text: 'Gel çözelim · önce kendin dene' }), el('div', { html: ayrik.slice(0, 2).join('<br><br>') })]));
-      var cozum = el('div', { class: 'kurs-kart', hidden: true });
-      var kalanBloklar = (c.bloklar || []).slice(1).map(function (y) { return y.html || ''; }).join('<br>');
-      cozum.appendChild(el('div', { html: ayrik.slice(2).join('<br><br>') + (kalanBloklar ? '<br>' + kalanBloklar : '') }));
-      kap.appendChild(cozum);
-      var goster = el('button', { class: 'dugme', type: 'button', text: 'Çözümü göster' });
-      goster.addEventListener('click', function () { cozum.hidden = false; goster.hidden = true; });
-      kap.appendChild(el('div', { class: 'kurs-eylem' }, [goster, el('button', { class: 'dugme ana', type: 'button', text: 'Devam', onclick: bitir })]));
-    } } : null;
-    var tuzak = ic.tuzaklar.length ? { ad: 'Tuzak', ciz: function (kap, bitir) {
-      kap.appendChild(el('p', { class: 'var-etiket', text: 'Sınavda en çok buraya düşülür.' }));
-      ic.tuzaklar.forEach(function (x) { kap.appendChild(el('div', { class: 'kurs-tuzak', html: html(x.bloklar) })); });
-      kap.appendChild(devamDugmesi('Devam', bitir));
-    } } : null;
-    var kontrol = kontrolQ.length ? { ad: 'Kontrol', ciz: function (kap, bitir) {
-      var i = 0, alan = el('div');
+
+    // 2) Çekirdek: üç temel bilgi, tek tek.
+    var cekirdek = (icerik && icerik.cekirdek && icerik.cekirdek.length) ? { ad: 'Çekirdek', ciz: function (kap, bitir) {
+      var c = icerik.cekirdek, i = 0, alan = el('div', { class: 'kurs-kart' });
       kap.appendChild(alan);
       function goster() {
         alan.innerHTML = '';
-        var m = soruModel(kontrolQ[i]);
-        alan.appendChild(el('div', { class: 'kurs-hedef', text: 'Kontrol ' + (i + 1) + '/' + kontrolQ.length }));
-        var devam = devamDugmesi(i + 1 < kontrolQ.length ? 'Sonraki' : 'Kontrol bitti', function () { if (i + 1 < kontrolQ.length) { i++; goster(); } else bitir(); });
-        devam.hidden = true;
-        alan.appendChild(soruKarti(m, function (r) { sonucKaydet(st, veri, kid, k.sira, r.durum, m); yaz(kid, st); devam.hidden = false; }, formulKart(kid, k.sira)));
-        alan.appendChild(devam);
+        alan.appendChild(el('div', { class: 'kurs-hedef', text: 'Çekirdek ' + (i + 1) + '/' + c.length }));
+        alan.appendChild(el('div', { class: 'kurs-soru', text: c[i].b }));
+        alan.appendChild(el('p', { text: c[i].m }));
+        alan.appendChild(devamDugmesi(i + 1 < c.length ? 'Devam' : 'Çekirdek tamam', function () { if (i + 1 < c.length) { i++; goster(); } else bitir(); }));
       }
       goster();
     } } : null;
+
+    // 3) Türetme: çekirdekten formüle, adım adım. Sonunda sen dene.
+    var turet = (icerik && icerik.turet) ? { ad: 'Türetme', ciz: function (kap, bitir) {
+      var t = icerik.turet, i = 0, alan = el('div', { class: 'kurs-kart' });
+      kap.appendChild(alan);
+      function goster() {
+        alan.innerHTML = '';
+        alan.appendChild(el('div', { class: 'kurs-hedef', text: 'Türet · ' + t.baslik }));
+        t.adimlar.slice(0, i + 1).forEach(function (a, j) { alan.appendChild(el('p', { text: (j + 1) + '. ' + a })); });
+        if (i + 1 < t.adimlar.length) { alan.appendChild(devamDugmesi('Sonraki adım', function () { i++; goster(); })); return; }
+        alan.appendChild(el('div', { class: 'kurs-mat', text: 'Şimdi sen' }));
+        alan.appendChild(el('p', { text: t.kendin }));
+        var cevap = el('p', { class: 'var-etiket', text: t.kendinCevap, hidden: true });
+        var gosterBtn = el('button', { class: 'dugme', type: 'button', text: 'Cevabı göster', onclick: function () { cevap.hidden = false; gosterBtn.hidden = true; } });
+        alan.appendChild(cevap);
+        alan.appendChild(el('div', { class: 'kurs-eylem' }, [gosterBtn, el('button', { class: 'dugme ana', type: 'button', text: 'Devam', onclick: bitir })]));
+      }
+      goster();
+    } } : null;
+
+    // 4) Kontrol: çıkmış sorulardan bir soru. "Bilmiyorum" da geçerli bir cevaptır.
+    var kontrol = kontrolQ.length ? { ad: 'Kontrol', ciz: function (kap, bitir) {
+      var m = soruModel(kontrolQ[0]);
+      var devam = devamDugmesi('Devam', bitir); devam.hidden = true;
+      kap.appendChild(el('p', { class: 'var-etiket', text: 'Çıkmış sorudan bir kontrol. Emin değilsen “Bilmiyorum” da dürüst bir cevaptır.' }));
+      kap.appendChild(soruKarti(m, function (r) { sonucKaydet(st, veri, kid, k.sira, r.durum, m); yaz(kid, st); devam.hidden = false; }, formulKart(kid, k.sira)));
+      kap.appendChild(devam);
+    } } : null;
+
+    // 5) Kapanış: bu konuyu kendi cümlenle anlat.
     var kapanis = { ad: 'Kapanış', ciz: function (kap, bitir) {
-      kap.appendChild(el('p', { class: 'var-etiket', text: 'Bu konuyu tek cümleyle, kendi kelimenle anlat. Sınavda bunu yapabilmen gerekecek.' }));
-      var ta = el('textarea', { rows: '3', 'aria-label': 'Kendi cümlen', style: 'width:100%;background:var(--zemin);color:var(--metin);border:1px solid var(--cizgi);border-radius:10px;padding:8px;font:15px/1.5 var(--f-govde)' });
+      kap.appendChild(el('p', { class: 'var-etiket', text: 'Bu konuyu tek cümleyle, kendi kelimenle anlat. Ezber değil, çekirdekten çıkabildiğini göster.' }));
+      var ta = el('textarea', { rows: '3', 'aria-label': 'Kendi cümlen', style: METIN_STIL });
       kap.appendChild(ta);
       kap.appendChild(devamDugmesi('Kaydet ve devam', function () { st.kapanis[k.sira] = ta.value.trim().slice(0, 400); yaz(kid, st); bitir(); }));
     } };
-    // Hızlı mod: kontrol · tuzak · kapanış. Tam mod: tahmin · formül · anlatım · çözümlü örnek · tuzak · kontrol · kapanış.
-    var sira = k.mod === 'hizli' ? [kontrol, tuzak, kapanis] : [tahmin, formul, anlatim, cozelim, tuzak, kontrol, kapanis];
+
+    // Hızlı mod (seviye ölçmede doğru cevaplanan konu): kontrol · kapanış. İçerik yoksa yalnız kontrol ve kapanış.
+    var sira = icerik ? (k.mod === 'hizli' ? [kontrol, kapanis] : [kanca, cekirdek, turet, kontrol, kapanis]) : [kontrol, kapanis];
     return sira.filter(Boolean);
   }
 
@@ -319,16 +324,14 @@
 
   function planCiz(kid, veri, st, kap) {
     kap.appendChild(el('div', { class: 'kurs-kart' }, [
-      el('p', { text: st.konular.length + ' konu, kitap sırasıyla. Her konuda önce tahmin edersin, sonra kitabın formül, tuzak ve çözümlü örneklerine bakarsın. Toplam süre:' }),
-      el('div', { class: 'kurs-eylem' }, [60, 90, 120].map(function (dk) {
-        return el('button', { class: 'dugme' + (st.toplamDk === dk ? ' ana' : ''), type: 'button', text: dk + ' dk', onclick: function () { st.toplamDk = dk; dagit(st); yaz(kid, st); sayfaCiz(kid, veri); } });
-      }))
+      el('p', { text: st.konular.length + ' konu, kitap sırasıyla. Her konuda: Patrick Jane’in sorusu, üç çekirdek bilgi, çekirdekten türetme, bir çıkmış soru ve kendi cümlen.' }),
+      el('p', { class: 'var-etiket', text: 'Toplam süre yaklaşık ' + st.toplamDk + ' dk. Ezber yok: formüller çekirdekten çıkar.' })
     ]));
     var liste = el('div', { class: 'kurs-kart' });
     st.konular.forEach(function (k) { liste.appendChild(el('div', { class: 'kurs-mat', text: k.ad + ' · ' + k.dk + ' dk · ' + k.soruSayi + ' çıkmış soru' })); });
     kap.appendChild(liste);
     kap.appendChild(el('div', { class: 'kurs-eylem' }, [
-      el('button', { class: 'dugme ana', type: 'button', text: 'Seviye ölçmeyle başla (önerilen)', onclick: function () { st.asama = 'seviye'; st.seviyeSorular = seviyeSecim(veri); st.seviyeIdx = 0; st.seviyeCevap = []; yaz(kid, st); sayfaCiz(kid, veri); } }),
+      el('button', { class: 'dugme ana', type: 'button', text: 'Seviye ölçmeyle başla (3 dk)', onclick: function () { st.asama = 'seviye'; st.seviyeSorular = seviyeSecim(veri); st.seviyeIdx = 0; st.seviyeCevap = []; yaz(kid, st); sayfaCiz(kid, veri); } }),
       el('button', { class: 'dugme', type: 'button', text: 'Doğrudan başla', onclick: function () { st.asama = 'konu'; st.konu = 0; st.adim = 0; yaz(kid, st); sayfaCiz(kid, veri); } })
     ]));
   }
