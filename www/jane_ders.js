@@ -188,5 +188,14 @@
     dersBaslat(kap, d.kid, d.kj, n);
   }
 
-  window.JaneDers = { ac: ac };
+  // Okuma sayfasındaki düğmeden: bu kitap ve bölümle doğrudan başlar (bölüm uygun değilse seçim ekranı)
+  function baslat(kid, bi) {
+    var govde = U.panelAc('📖 Jane: 0\'dan öğret', 'Gözlem, tahmin, açıklama, tuzak, kapanış');
+    var kap = el('div'); govde.appendChild(kap);
+    return Promise.resolve().then(function () { return U.Kitaplik.ac(kid); }).then(function (kj) {
+      if (!kj || !kj.bolumler || !kj.bolumler[bi]) return secimEkrani(kap);
+      dersBaslat(kap, kid, kj, bi);
+    }).catch(function () { secimEkrani(kap); });
+  }
+  window.JaneDers = { ac: ac, baslat: baslat };
 })();

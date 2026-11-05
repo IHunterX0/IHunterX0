@@ -564,6 +564,9 @@
     alan.innerHTML = '';
     alan.appendChild(el('div', { class: 'ust-etiket', style: 'margin-top:18px', text: kj.baslik + (bolum.no != null ? ' · Bölüm ' + bolum.no : '') }));
     alan.appendChild(el('h1', { text: bolum.kisa || bolum.baslik }));
+    alan.appendChild(el('div', { class: 'jane-satir', style: 'display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px' }, [
+      el('button', { class: 'dugme kucuk', type: 'button', text: '📖 Jane ile 0\'dan öğren', onclick: function () { if (window.JaneDers) JaneDers.baslat(kj.id, bolum.sira); } })
+    ]));
     bolum.altlar.forEach(function (a) {
       var kap = el('section', { class: 'alt-bolum', id: 'alt-' + a.id, 'data-alt': a.id });
       if (a.baslik) kap.appendChild(el('h2', { class: 'blok baslik-blok', text: a.baslik }));
