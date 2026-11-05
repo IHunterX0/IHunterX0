@@ -139,6 +139,10 @@
           f.sira = i; if (f.src && k.kaynak === 'asset') f.src = (k.dosyalar || {})[f.src] || f.src;
           j.figurHarita[f.id] = f; if (f.slayt) j.slaytHarita[f.slayt] = f;
         });
+        // Geçici kapatma: anatomi "Kafa Kemikleri" bölümü (bolum-11) konu anlatımı ve sorularıyla birlikte gizlenir.
+        if (id === 'anatomi') j.bolumler = j.bolumler.map(function (b) {
+          return b.id === 'bolum-11' ? { id: b.id, sira: b.sira, baslik: 'Kafa Kemikleri (kapalı)', ozel: true, gizli: true, altlar: [], dosya: b.dosya } : b;
+        });
         j.altNo = {};
         j.bolumler.forEach(function (b) { b.altlar.forEach(function (a) { if (a.no) j.altNo[a.no] = { b: b, a: a }; }); });
         j.bolumNo = {};
@@ -151,6 +155,7 @@
       var self = this, anahtar = id + '/' + sira;
       if (self.bolum[anahtar]) return self.bolum[anahtar];
       self.bolum[anahtar] = self.ac(id).then(function (kj) {
+        if (kj.bolumler[sira] && kj.bolumler[sira].gizli) return { id: kj.bolumler[sira].id, baslik: 'Kapalı', altlar: [], gizli: true };
         return self.getir(self.kayit(id), kj.bolumler[sira].dosya);
       }).catch(function (e) { delete self.bolum[anahtar]; throw e; });
       return self.bolum[anahtar];
@@ -158,7 +163,9 @@
     sorular: function (id) {
       var self = this;
       if (!self.liste) return self.katalog().then(function () { return self.sorular(id); });
-      if (!self.soru[id]) self.soru[id] = self.getir(self.kayit(id), 'sorular.json').catch(function (e) { delete self.soru[id]; throw e; });
+      if (!self.soru[id]) self.soru[id] = self.getir(self.kayit(id), 'sorular.json').then(function (l) {
+        return (id === 'anatomi' && Array.isArray(l)) ? l.filter(function (q) { return q.bolum !== 'bolum-11'; }) : l;
+      }).catch(function (e) { delete self.soru[id]; throw e; });
       return self.soru[id];
     },
     terimler: function (id) {
