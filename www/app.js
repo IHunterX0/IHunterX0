@@ -565,7 +565,8 @@
     alan.appendChild(el('div', { class: 'ust-etiket', style: 'margin-top:18px', text: kj.baslik + (bolum.no != null ? ' · Bölüm ' + bolum.no : '') }));
     alan.appendChild(el('h1', { text: bolum.kisa || bolum.baslik }));
     alan.appendChild(el('div', { class: 'jane-satir', style: 'display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px' }, [
-      el('button', { class: 'dugme kucuk', type: 'button', text: '📖 Jane ile 0\'dan öğren', onclick: function () { if (window.JaneDers) JaneDers.baslat(kj.id, bolum.sira); } })
+      el('button', { class: 'dugme kucuk', type: 'button', text: '📖 Jane ile 0\'dan öğren', onclick: function () { if (window.JaneDers) JaneDers.baslat(kj.id, bolum.sira); } }),
+      el('button', { class: 'dugme kucuk ana', type: 'button', text: '📚 Tüm dersi 0\'dan öğren', onclick: function () { location.hash = 'kurs-' + kj.id; } })
     ]));
     bolum.altlar.forEach(function (a) {
       var kap = el('section', { class: 'alt-bolum', id: 'alt-' + a.id, 'data-alt': a.id });
