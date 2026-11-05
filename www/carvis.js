@@ -480,6 +480,8 @@
   // Etkileşim kuralları (r108): tek soru, açıklama kontrolü, yanlışta önce varsayım. GPT ve Gemini raporlarındaki işe yarar öneriler; kullanıcının "sert ama iddiaya" tercihiyle uyumlu.
   var ETKILESIM = 'ETKİLEŞİM KURALLARI: Bir yanıtta en fazla bir soru sor. Öğrenci bir mekanizmayı kendi cümleleriyle anlatırsa: doğru basamakları tek cümleyle onayla, eksik ara basamaklardan en fazla üçünü soru olarak sor, cevabı kendin verme. Yanlış bir cevapta doğruyu hemen verme: önce bozulan varsayımı tek cümleyle göster; iki denemeden sonra doğruyu açıkla. Kişi hakkında hüküm ve övgü yazma.';
   // Öğretme sıklığı (r109): kullanıcı "daha çok öğret" istedi; sıklığı kendisi seçer. Öğretici not doğru ve kesin olmalı.
+  // Sorgu ve kaynak (r110): sorgu istenirse tek soru, beş tipten biri; kesin iddia kaynaksızsa tek soruyla kaynak sorulur. Yanıtta en çok bir soru kuralı korunur.
+  var SORGU_KURALI = 'SORGU VE KAYNAK: Öğrenci "sorgula", "test et" ya da "zorla" derse tek bir soru sor; soru tipini şu beşten seç: gizli basamak (bir ara adımı sor), mikro kısıt (bir koşulu değiştir), düzenleyici çelişki (iki düzenleyici çakışınca ne olur), kısır döngü (iki zıt yol aynı anda çalışırsa), sınır koşulu (uç değerde ne olur). Cevabı hemen verme; önce öğrencinin düşüncesini iste. Öğrenci kesin bir iddia söyler, kaynak vermezse ve iddia yanlış olabilirse, yanıtın tek sorusu olarak kaynağını sor (ör. "bunu kitapta nerede gördün?").';
   function ogretmeKurali() {
     var o = Profil.ogretme || 'orta';
     return 'Öğretme sıklığı: ' + (o === 'az' ? 'az. Öğretici not yalnız öğrenci istediğinde ya da bir yanlışı açıklarken.'
@@ -553,7 +555,7 @@
       if (gz) l.push('GÖZLEMLER (gerçek veri; çıkarım yaparken yalnız bunlara ve sohbete dayan): ' + gz + '.');
       // Jane sarsılma turunda "emin ama yanlış" çıkan varsayımlar: öğrencinin otomatik doldurma noktaları; konu açılınca kısaca uyar
       if (jo.length) l.push('OTOMATİK DOLDURMA NOKTALARI (Jane turunda emin olup yanıldığı; ilgili konu açılırsa bu tuzağa tek cümleyle dikkat çek): ' + jo.slice(-5).map(function (x) { return (x.konu || '') + ': ' + String(x.varsayim || x.soru || '').slice(0, 110); }).join(' | ') + '.');
-      l.push(ETKILESIM, derinlikKurali(), ogretmeKurali(), DUSUNME);
+      l.push(ETKILESIM, derinlikKurali(), ogretmeKurali(), SORGU_KURALI, DUSUNME);
       if (Profil.hafiza.length) l.push('HAFIZAN (kullanıcının sana söyledikleri; uygun düştüğünde kullan, tekrar tekrar söyleme):\n- ' + Profil.hafiza.slice(-25).map(function (h) { return h.m; }).join('\n- '));
       l.push('Kullanıcı kendisi hakkında kalıcı bir bilgi/tercih söylerse ("sabahları çalışırım", "bana kısa anlat", "kardiyolojiyi seviyorum") ya da "bunu hatırla" derse hatirla aracını kullan; "unut" derse unut. "Bana X de", "daha resmi/samimi konuş" derse profil_ayarla.');
       return l.join('\n');
