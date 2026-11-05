@@ -7,9 +7,9 @@
   'use strict';
   var U = window.Uygulama; if (!U) return;
   var el = U.el;
-  var ANAHTAR = 'kurs_', VARSAYILAN_DK = 45;
-  var KONU_TABAN_DK = 1, KARISIK_HER = 4, KARISIK_N = 3, MINI_N = 6, SEVIYE_N = 5;
-  var SABIT_DK = { seviye: 3, mini: 5, karisik: 1 };
+  var ANAHTAR = 'kurs_', VARSAYILAN_DK = 20;
+  var KONU_TABAN_DK = 0, KARISIK_HER = 1000, KARISIK_N = 3, MINI_N = 6, SEVIYE_N = 5;
+  var SABIT_DK = { seviye: 0, mini: 0, karisik: 0 };
 
   var css = document.createElement('style');
   css.textContent = '.kurs-ilerleme{height:10px;border-radius:999px;background:rgba(94,240,220,.12);overflow:hidden;margin:10px 0}' +
@@ -374,7 +374,7 @@
       el('button', { class: 'dugme kucuk', type: 'button', text: 'Temizle', onclick: function () { st.secim = []; yaz(kid, st); sayfaCiz(kid, veri); } })
     ]));
     var bos = !st.secim.length;
-    var b1 = el('button', { class: 'dugme ana', type: 'button', text: 'Seviye ölçmeyle başla (3 dk)', onclick: function () { baslat('seviye'); } });
+    var b1 = el('button', { class: 'dugme ana', type: 'button', text: 'Seviye ölçmeyle başla', onclick: function () { baslat('seviye'); } });
     var b2 = el('button', { class: 'dugme', type: 'button', text: 'Seçilenlerle sıfırdan başla', onclick: function () { baslat('konu'); } });
     b1.disabled = bos; b2.disabled = bos;
     kap.appendChild(el('div', { class: 'kurs-eylem' }, [b1, b2]));
