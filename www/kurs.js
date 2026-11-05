@@ -92,9 +92,11 @@
   }
 
   /* ---------- durum ve plan ---------- */
-  function yeniDurum(kid, veri) {
-    return { kid: kid, toplamDk: VARSAYILAN_DK, asama: 'plan', konu: 0, adim: 0,
-      konular: veri.konular.map(function (k) { return { sira: k.sira, ad: k.ad, soruSayi: k.soruSayi, mod: 'tam', dk: 0 }; }),
+  function yeniDurum(kid, veri, secim) {
+    var liste = (secim && secim.length) ? secim.slice() : veri.konular.map(function (k, i) { return i; });
+    return { kid: kid, toplamDk: VARSAYILAN_DK, asama: 'plan', konu: 0, adim: 0, secim: liste,
+      konular: veri.konular.map(function (k, i) { return { no: i, sira: k.sira, ad: k.ad, soruSayi: k.soruSayi, mod: 'tam', dk: 0 }; })
+        .filter(function (k) { return liste.indexOf(k.no) >= 0; }),
       sonuc: {}, kapanis: {}, eksik: [], seviyeSorular: [], seviyeIdx: 0, seviyeCevap: [],
       mini: null, miniIdx: 0, miniSonuc: [], karisikIdx: 0, karisikListe: [] };
   }
@@ -198,7 +200,7 @@
     var kv = veriKonu(veri, k.sira);
     var kontrolQ = kv.soru.slice(0, 1);
     // İçerik konu konumuna göre eşlenir (k.sira kitap bölüm numarasıdır; giriş bölümü 1'den başlayabilir).
-    var konuNo = st.konular.indexOf(k);
+    var konuNo = (typeof k.no === 'number') ? k.no : st.konular.indexOf(k);
     var icerikListe = (window.KursIcerik && window.KursIcerik[kid]) || null;
     var icerik = (icerikListe && konuNo >= 0 && icerikListe[konuNo]) || null;
     var METIN_STIL = 'width:100%;background:var(--zemin);color:var(--metin);border:1px solid var(--cizgi);border-radius:10px;padding:8px;font:15px/1.5 var(--f-govde,system-ui)';
@@ -326,7 +328,7 @@
     ana.innerHTML = '';
     var sayfa = el('div', { class: 'sayfa' }); ana.appendChild(sayfa);
     var st = oku(kid);
-    if (!st || !st.konular || st.konular.length !== veri.konular.length) { st = yeniDurum(kid, veri); yaz(kid, st); }
+    if (!st || !st.konular || !st.konular.length) { st = yeniDurum(kid, veri); yaz(kid, st); }
     dagit(st);
     sayfa.appendChild(el('div', { class: 'kahraman' }, [el('div', { class: 'ust-etiket', text: 'Tüm dersi 0\'dan öğren' }), el('h1', { text: veri.kj.baslik.replace(/^1001\s*/, '') })]));
     sayfa.appendChild(ilerlemeKismi(st));
@@ -344,17 +346,42 @@
   }
 
   function planCiz(kid, veri, st, kap) {
+    if (!st.secim) st.secim = veri.konular.map(function (k, i) { return i; });
+    function baslat(asama) {
+      var yeni = yeniDurum(kid, veri, st.secim);
+      yeni.toplamDk = st.toplamDk; yeni.asama = asama;
+      if (asama === 'seviye') yeni.seviyeSorular = seviyeSecim(veri).filter(function (x) { return yeni.konular.some(function (k) { return k.sira === x.sira; }); });
+      dagit(yeni); yaz(kid, yeni); sayfaCiz(kid, veri);
+    }
     kap.appendChild(el('div', { class: 'kurs-kart' }, [
-      el('p', { text: st.konular.length + ' konu, kitap sırasıyla. Her konuda: Patrick Jane’in sorusu, üç çekirdek bilgi, çekirdekten türetme, bir çıkmış soru ve kendi cümlen.' }),
-      el('p', { class: 'var-etiket', text: 'Toplam süre yaklaşık ' + st.toplamDk + ' dk. Ezber yok: formüller çekirdekten çıkar.' })
+      el('p', { text: 'Öğrenmek istediğin konuları seç. Seçilenler sıfırdan, kitap sırasıyla işlenir; toplam süre seçime göre dağılır.' }),
+      el('p', { class: 'var-etiket', text: 'Seçili: ' + st.secim.length + ' / ' + veri.konular.length + ' konu · toplam yaklaşık ' + st.toplamDk + ' dk' })
     ]));
     var liste = el('div', { class: 'kurs-kart' });
-    st.konular.forEach(function (k) { liste.appendChild(el('div', { class: 'kurs-mat', text: k.ad + ' · ' + k.dk + ' dk · ' + k.soruSayi + ' çıkmış soru' })); });
+    veri.konular.forEach(function (k, i) {
+      var kutu = el('input', { type: 'checkbox', 'aria-label': k.ad });
+      kutu.checked = st.secim.indexOf(i) >= 0;
+      kutu.addEventListener('change', function () {
+        var p = st.secim.indexOf(i);
+        if (kutu.checked && p < 0) st.secim.push(i);
+        if (!kutu.checked && p >= 0) st.secim.splice(p, 1);
+        st.secim.sort(function (x, y) { return x - y; });
+        yaz(kid, st); sayfaCiz(kid, veri);
+      });
+      liste.appendChild(el('label', { class: 'kurs-mat', style: 'display:flex;gap:10px;align-items:center;padding:6px 0;cursor:pointer' }, [
+        kutu, el('span', { text: (i + 1) + '. ' + k.ad + ' · ' + k.soruSayi + ' çıkmış soru' })
+      ]));
+    });
     kap.appendChild(liste);
     kap.appendChild(el('div', { class: 'kurs-eylem' }, [
-      el('button', { class: 'dugme ana', type: 'button', text: 'Seviye ölçmeyle başla (3 dk)', onclick: function () { st.asama = 'seviye'; st.seviyeSorular = seviyeSecim(veri); st.seviyeIdx = 0; st.seviyeCevap = []; yaz(kid, st); sayfaCiz(kid, veri); } }),
-      el('button', { class: 'dugme', type: 'button', text: 'Doğrudan başla', onclick: function () { st.asama = 'konu'; st.konu = 0; st.adim = 0; yaz(kid, st); sayfaCiz(kid, veri); } })
+      el('button', { class: 'dugme kucuk', type: 'button', text: 'Tümünü seç', onclick: function () { st.secim = veri.konular.map(function (k, i) { return i; }); yaz(kid, st); sayfaCiz(kid, veri); } }),
+      el('button', { class: 'dugme kucuk', type: 'button', text: 'Temizle', onclick: function () { st.secim = []; yaz(kid, st); sayfaCiz(kid, veri); } })
     ]));
+    var bos = !st.secim.length;
+    var b1 = el('button', { class: 'dugme ana', type: 'button', text: 'Seviye ölçmeyle başla (3 dk)', onclick: function () { baslat('seviye'); } });
+    var b2 = el('button', { class: 'dugme', type: 'button', text: 'Seçilenlerle sıfırdan başla', onclick: function () { baslat('konu'); } });
+    b1.disabled = bos; b2.disabled = bos;
+    kap.appendChild(el('div', { class: 'kurs-eylem' }, [b1, b2]));
   }
 
   function seviyeCiz(kid, veri, st, kap) {
