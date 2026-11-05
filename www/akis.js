@@ -156,6 +156,54 @@
     var r = p.getBoundingClientRect();
     window.HoloPencere.ac({ baslik: (p.textContent || '').trim().slice(0, 42) + '…', alt: 'Ayrılan not · ' + bolumAdi(p).slice(0, 30), dugumler: [el('div', { class: 'ai-metin', style: 'padding:12px 14px;font-size:15px;line-height:1.6' }, [kopya])], x: Math.max(12, innerWidth - 400), y: Math.max(80, r.top - 40), w: 360, h: 260 });
   }
+  /* ---- 3B yedeği: kütüphanede molekül yoksa kemik (anatomi kataloğu), o da yoksa Vikipedi görseli ---- */
+  var GORSEL_IPUCU = '\nGÖRSEL: Anlatımı gösteren bir Vikipedi görseli işe yarayacaksa cevabın EN SON satırına yalnız şunu yaz: [gorsel: Vikipedi madde adı] (ör. [gorsel: Ki-kare dağılımı]). Görsel gerekmiyorsa bu satırı hiç yazma.';
+  var ANAT = null;
+  function anatomiKatalog() {
+    if (!ANAT) ANAT = fetch('lab/anatomi/katalog.json').then(function (r) { return r.json(); })
+      .then(function (d) { return Array.isArray(d) ? d : (d.parcalar || d.kemikler || []); }).catch(function () { return []; });
+    return ANAT;
+  }
+  function anatomiBul(metin) {
+    var t = ' ' + katla(metin) + ' ';
+    return anatomiKatalog().then(function (l) {
+      return l.filter(function (x) {
+        return [x.la, x.tr].map(katla).some(function (a) { a = a.trim(); return a.length >= 5 && t.indexOf(' ' + a + ' ') >= 0; });
+      })[0] || null;
+    });
+  }
+  function anatomiAc(x) {
+    var f = el('iframe', { class: 'ak-sahne', src: 'index.html?gomulu#lab-anatomi-' + x.id, title: '3B: ' + (x.tr || x.la), allow: 'fullscreen' });
+    if (window.HoloPencere) window.HoloPencere.ac({ baslik: x.tr || x.la, alt: '3B kemik · ' + (x.la || ''), dugumler: [el('div', { style: 'height:calc(100% - 4px);min-height:330px;padding:6px;display:flex' }, [f])], x: Math.max(12, innerWidth - 470), y: 90, w: 450, h: 440 });
+  }
+  function paragrafTerimi(p) {
+    var s = p.querySelector('strong, b'), t = s ? (s.textContent || '').trim() : '';
+    if (t.length < 3) t = bolumAdi(p).replace(/^\s*[\d.]+\s*/, '').split(':')[0].trim();
+    if (t.length < 3) t = (p.textContent || '').trim().split(/\s+/).slice(0, 3).join(' ');
+    return t.replace(/[:.!?…]+$/, '').slice(0, 60);
+  }
+  function vikipediGoster(p) {
+    var terim = paragrafTerimi(p);
+    if (!window.Vikipedi) return U.toast('Görsel modülü yüklenmedi.');
+    U.toast('Vikipedi\'de "' + terim + '" aranıyor…');
+    return Vikipedi.gorselBul(terim).then(function (s) {
+      if (!s) return U.toast('Vikipedi\'de "' + terim + '" için görsel bulamadım.');
+      if (window.HoloPencere) window.HoloPencere.ac({ baslik: s.baslik, alt: 'Vikipedi görseli · ' + terim.slice(0, 30), dugumler: [Vikipedi.kart(s)], x: Math.max(12, innerWidth - 470), y: 90, w: Math.min(450, innerWidth - 24), h: 420 });
+    });
+  }
+  // Cevap bittiğinde: [gorsel: ...] satırını gizle, madde görselini cevabın üstüne koy
+  function gorselEkle(c, metin) {
+    c.querySelectorAll('.vk-gorsel, .vk-yok').forEach(function (x) { x.remove(); });
+    c.querySelectorAll('.ai-metin p').forEach(function (q) { if (/^\s*\[gorsel:/i.test(q.textContent || '')) q.remove(); });
+    var m = /\[gorsel:\s*([^\]\n]{2,80})\]/i.exec(metin || '');
+    if (!m || !window.Vikipedi) return;
+    var terim = m[1].trim();
+    Vikipedi.gorselBul(terim).then(function (s) {
+      if (!c.isConnected) return;
+      c.querySelectorAll('.vk-gorsel, .vk-yok').forEach(function (x) { x.remove(); });
+      c.insertBefore(s ? Vikipedi.kart(s) : el('p', { class: 'var-etiket vk-yok', text: 'Vikipedi\'de "' + terim + '" için görsel bulamadım.' }), c.firstChild);
+    });
+  }
   function sor(p) {
     var var0 = p.nextElementSibling; if (var0 && var0.classList && var0.classList.contains('ak-sor')) { var0.querySelector('input').focus(); return; }
     var girdi = el('input', { type: 'text', placeholder: 'Bu kısımla ilgili sor: "neden?", "örnek ver", "sınavda nasıl gelir?"…', 'aria-label': 'Paragrafa soru' });
@@ -163,14 +211,14 @@
     var kutu = el('div', { class: 'ak-sor' }, [el('form', { onsubmit: function (e) { e.preventDefault(); var q = girdi.value.trim(); if (!q) return; girdi.value = '';
       var c = el('div', { class: 'yp-cevap' }); cevap.appendChild(c);
       U.cevapCalistir(c, 'paragrafSor|' + (p.textContent || '').slice(0, 80) + '|' + q, function () {
-        return 'Bir tıp öğrencisi çalışırken şu metin parçasına takıldı ve soruyor. Kısa, net, sınav odaklı cevap ver (en fazla 140 kelime, Türkçe). Gerekirse mekanizmayı ve ayırt edici noktayı söyle; uydurma, emin değilsen söyle.\nKONU: ' + bolumAdi(p) + '\nPARÇA: """' + (p.textContent || '').trim().slice(0, 1500) + '"""\nSORU: ' + q;
-      }, { eylem: 'paragrafSor' });
+        return 'Bir tıp öğrencisi çalışırken şu metin parçasına takıldı ve soruyor. Kısa, net, sınav odaklı cevap ver (en fazla 140 kelime, Türkçe). Gerekirse mekanizmayı ve ayırt edici noktayı söyle; uydurma, emin değilsen söyle.\nKONU: ' + bolumAdi(p) + '\nPARÇA: """' + (p.textContent || '').trim().slice(0, 1500) + '"""\nSORU: ' + q + GORSEL_IPUCU;
+      }, { eylem: 'paragrafSor', sonra: function (metin) { gorselEkle(c, metin); } });
     } }, [girdi, el('button', { class: 'dugme kucuk ana', type: 'submit' }, ['Sor'])]), cevap]);
     p.after(kutu); girdi.focus();
   }
   function uc(p) {
     molBul((p.textContent || '') + ' ' + bolumAdi(p)).then(function (l) {
-      if (!l.length) { U.toast('Bu paragrafta 3B kütüphanede olan bir molekül bulamadım.'); return; }
+      if (!l.length) return anatomiBul(p.textContent || '').then(function (a) { return a ? anatomiAc(a) : vikipediGoster(p); });
       l.slice(0, 1).forEach(function (m) {
         var f = el('iframe', { class: 'ak-sahne', src: 'index.html?gomulu#lab-molekul-' + m.id, title: '3B: ' + m.ad, allow: 'fullscreen' });
         if (window.HoloPencere) window.HoloPencere.ac({ baslik: m.ad, alt: '3B molekül · ' + (m.tur || ''), dugumler: [el('div', { style: 'height:calc(100% - 4px);min-height:330px;padding:6px;display:flex' }, [f])], x: Math.max(12, innerWidth - 470), y: 90, w: 450, h: 440 });
