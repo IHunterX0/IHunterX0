@@ -1,6 +1,7 @@
 /* 1001 — Jane anlık sorular (kullanıcı, 2026-11-04: "Jane bazen okurken bir anda belirip bana soru sorsun").
-   Okuma sayfasında, sen etkinken, 8–18 dakikada bir, ekranın ortasındaki paragraftan tek kısa soru sorar.
-   Kısıtlar: günde en çok 8; Carvis konuşurken, pomodoro molasında ya da başka bir kutu açıkken çıkmaz; 60 sn cevapsız kalırsa kendiliğinden kapanır.
+   Okuma sayfasında, sen etkinken, yaklaşık 45–105 saniyede bir, okuduğun kısımdan tek kısa soru sorar.
+   Soru yapay zekâdan gelir; yapay zekâ yoksa ya da hata verirse okunan paragraftan çevrimdışı bir boşluk sorusu sorulur.
+   Kısıtlar: günde en çok 300; Carvis konuşurken, pomodoro molasında ya da başka bir kutu açıkken çıkmaz; 60 sn cevapsız kalırsa kendiliğinden kapanır.
    Kapatmak için: localStorage 'jane_anlik' = '0'. Cevap verirsen Jane bir kısa geri bildirim verir. */
 (function () {
   'use strict';
@@ -65,7 +66,8 @@
     var koku = kaynakKok(); if (!koku) return;
     koku.querySelectorAll('p, li').forEach(function (p) {
       var r = p.getBoundingClientRect();
-      if (r.height < 10 || r.top < 0 || r.bottom > innerHeight) return;
+      // okunmuş sayılır: ekranın herhangi bir kısmından geçmiş paragraf (telefonda paragraflar ekrandan uzun olabilir)
+      if (r.height < 10 || r.bottom <= 0 || r.top >= innerHeight) return;
       if (p.textContent.trim().length < 80 || p.dataset.jo === '1') return;
       p.dataset.jo = '1'; okunan.push(p); if (okunan.length > 120) okunan.shift();
     });
@@ -122,7 +124,7 @@
       'Doğruysa kısaca kabul et ve cevabındaki en zayıf noktayı ima et; yanlış ya da eksikse hangi varsayımın çöktüğünü söyle. Övme, dolgu yok. YALNIZ JSON: {"jane":"…"}';
   }
 
-  function kartGoster(soru, anahtar, paragraf) {
+  function kartGoster(soru, anahtar, paragraf, yerel) {
     kartVar = true;
     var g = gunluk(); g.n++; gunlukYaz(g);
     var zamanlayici = null, kapat = function () { if (zamanlayici) clearTimeout(zamanlayici); k.remove(); kartVar = false; siradaki = okumaSn + sonrakiAralik(); };
@@ -144,6 +146,12 @@
     gonder.addEventListener('click', function () {
       var c = girdi.value.trim(); if (c.length < 2) return;
       if (zamanlayici) clearTimeout(zamanlayici); gonder.disabled = true; sonuc.hidden = false; sonuc.textContent = 'Jane tartıyor…';
+      if (yerel) {
+        // yedek soru: cevap yerelde değerlendirilir (yapay zekâ gerekmez)
+        sonuc.innerHTML = ''; sonuc.appendChild(el('p', { text: yerelDogru(c, anahtar) ? 'Doğru.' : 'Doğru cevap: ' + anahtar + '.' }));
+        if (paragraf) sonuc.appendChild(el('p', { class: 'var-etiket', text: 'Kitapta: ' + paragraf }));
+        zamanlayici = setTimeout(kapat, 12000); return;
+      }
       Y.sample.json(geriBildirimIstem(soru, anahtar, c)).then(function (j) {
         sonuc.innerHTML = ''; sonuc.appendChild(el('p', { text: String((j && j.jane) || 'Not aldım.') }));
         zamanlayici = setTimeout(kapat, 9000);
@@ -151,20 +159,61 @@
     });
   }
 
+  // Yapay zekâ yoksa ya da hata verirse yedek soru: okunan paragraftan bir cümle, içinden bir kavram boşluğa çıkar.
+  // Çevrimdışı çalışır; cümle kitabın kendi metninden gelir.
+  function kisaSoru(p) {
+    var metin = String(p.textContent || '').replace(/\s+/g, ' ').trim();
+    var cumleler = metin.replace(/([.!?])\s+/g, '$1|').split('|').filter(function (c) { return c.length >= 60 && c.length <= 240; });
+    if (!cumleler.length) return null;
+    var cumle = cumleler[Math.floor(Math.random() * cumleler.length)];
+    var terim = '';
+    var kal = p.querySelector('strong, b');
+    if (kal) {
+      var t = (kal.textContent || '').trim().replace(/[:.!?]+$/, '');
+      if (t.length >= 4 && t.length <= 40 && cumle.split(t).length === 2) terim = t;
+    }
+    if (!terim) {
+      var adaylar = cumle.split(' ').map(function (w) { return w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, ''); })
+        .filter(function (w) { return w.length >= 7 && !DURDUR[normal(w).trim()]; })
+        .sort(function (a, b) { return b.length - a.length; });
+      terim = adaylar.filter(function (w) { return cumle.split(w).length === 2; })[0] || '';
+    }
+    if (!terim) return null;
+    return { soru: 'Bu cümlede boşluğa ne gelir? “' + cumle.replace(terim, '______') + '”', anahtar: terim, cumle: cumle };
+  }
+  function yerelDogru(c, anahtar) {
+    var a = normal(c).trim(), b = normal(anahtar).trim();
+    return !!a && !!b && (a === b || (a.length >= 3 && b.indexOf(a) >= 0) || (b.length >= 3 && a.indexOf(b) >= 0));
+  }
+
   function dene() {
     if (mesgul || kartVar) return;
-    if (!Y.sample || !Y.sample.json) return;
     var p = paragrafSec();
     if (!p) { siradaki = okumaSn + 60; return; }
+    // yapay zekâ kullanılamıyor (modül yok, anahtar yok ya da hata): okunan paragraftan yedek soru
+    var yedekle = function () {
+      mesgul = false;
+      if (kartVar) return;
+      var yedek = kisaSoru(p);
+      if (yedek && okumada() && bos()) kartGoster(yedek.soru, yedek.anahtar, yedek.cumle, true);
+      else siradaki = okumaSn + 900;
+    };
+    if (!Y.sample || !Y.sample.json) return yedekle();
     mesgul = true;
     var metin = p.textContent.trim().slice(0, 900);
-    cikmisAl().then(function (c) { return Y.sample.json(soruIstem(metin, c)); }).then(function (j) {
+    Promise.resolve().then(cikmisAl).then(function (c) { return Y.sample.json(soruIstem(metin, c)); }).then(function (j) {
       mesgul = false;
       var soru = String((j && j.soru) || '').trim(), anahtar = String((j && j.anahtar) || '').trim();
       if (!soru || !anahtar || !okumada() || !bos()) { siradaki = okumaSn + 120; return; }
       if (!metinde(soru, metin)) { siradaki = okumaSn + 60; return; } // metinde karşılığı olmayan soru: atla
       kartGoster(soru, anahtar, metin);
-    }).catch(function () { mesgul = false; siradaki = okumaSn + 900; });
+    }).catch(function () {
+      // yapay zekâ kullanılamıyor (anahtar yok ya da hata): okunan paragraftan yedek soru
+      mesgul = false;
+      var yedek = kisaSoru(p);
+      if (yedek && okumada() && bos()) kartGoster(yedek.soru, yedek.anahtar, yedek.cumle, true);
+      else siradaki = okumaSn + 900;
+    });
   }
 
   setInterval(function () {
