@@ -189,6 +189,11 @@
   }
 
   /* ---------- konu adımları ---------- */
+  // Öğrencinin serbest cevabını Jane'in sesiyle değerlendirir; JSON döner: {"jane": "..."}.
+  function janeIstem(soru, anahtar, cevap) {
+    return 'Patrick Jane olarak bir tıp öğrencisinin cevabına 1-2 kısa cümleyle karşılık ver. Soru: ' + soru + '\nDoğru cevabın özü: ' + anahtar + '\nÖğrencinin cevabı:  + cevap + \n' +
+      'Doğruysa kısaca kabul et ve cevabındaki en zayıf noktayı ima et; kısmen doğruysa neyin eksik olduğunu söyle; yanlışsa hangi varsayımın çöktüğünü söyle. Övme, dolgu yok. YALNIZ JSON: {"jane":"…"}';
+  }
   function konuAdimlari(kid, st, k, veri, bolum) {
     var kv = veriKonu(veri, k.sira);
     var kontrolQ = kv.soru.slice(0, 1);
@@ -203,7 +208,10 @@
     var kanca = (icerik && icerik.kanca) ? { ad: 'Kanca', ciz: function (kap, bitir) {
       kap.appendChild(el('div', { class: 'kurs-mat', text: 'Patrick Jane soruyor' }));
       kap.appendChild(el('div', { class: 'kurs-soru', text: icerik.kanca.soru }));
-      kap.appendChild(el('textarea', { rows: '2', 'aria-label': 'Tahminin', style: METIN_STIL }));
+      var ta = el('textarea', { rows: '2', 'aria-label': 'Tahminin', style: METIN_STIL });
+      kap.appendChild(ta);
+      var janeYer = el('div', { class: 'kurs-kart', hidden: true });
+      kap.appendChild(janeYer);
       var cozum = el('div', { class: 'kurs-kart', hidden: true }, [
         el('div', { class: 'kurs-mat', text: 'Doğrusu' }),
         el('p', { text: icerik.kanca.cevap }),
@@ -212,9 +220,22 @@
       var devam = devamDugmesi('Devam', bitir); devam.hidden = true;
       var eylem = el('div', { class: 'kurs-eylem' }, [
         el('button', { class: 'dugme', type: 'button', text: 'Bilmiyorum', onclick: acDogru }),
-        el('button', { class: 'dugme ana', type: 'button', text: 'Cevapla', onclick: acDogru })
+        el('button', { class: 'dugme ana', type: 'button', text: 'Cevapla', onclick: cevapla })
       ]);
       function acDogru() { cozum.hidden = false; eylem.hidden = true; devam.hidden = false; }
+      // Cevabı Patrick Jane değerlendirir (yapay zekâ varsa). Boşsa, yapay zekâ yoksa ya da hata verirse doğrusu doğrudan gösterilir.
+      function cevapla() {
+        var c = ta.value.trim();
+        if (c.length < 2 || !U.Y || !U.Y.sample || !U.Y.sample.json) return acDogru();
+        eylem.hidden = true; janeYer.hidden = false; janeYer.innerHTML = '';
+        janeYer.appendChild(el('p', { text: 'Jane tartıyor…' }));
+        U.Y.sample.json(janeIstem(icerik.kanca.soru, icerik.kanca.cevap, c)).then(function (j) {
+          janeYer.innerHTML = '';
+          janeYer.appendChild(el('div', { class: 'kurs-mat', text: 'Patrick Jane' }));
+          janeYer.appendChild(el('p', { text: String((j && j.jane) || 'Not aldım.') }));
+          acDogru();
+        }).catch(function () { janeYer.hidden = true; acDogru(); });
+      }
       kap.appendChild(cozum);
       kap.appendChild(eylem);
       kap.appendChild(devam);
