@@ -273,6 +273,8 @@
     return saglayiciNesneleri;
   }
   // Hesapta açık olmayan (404) ya da emekli edilmiş (410) modeli sağlayıcının listesinden kalıcı olarak çıkar.
+  // Yanıt vermeyen (zaman aşımı) modeli silmeden listenin sonuna al: bir dahaki sefere önce hızlılar denensin.
+  function yavasModel(saglayiciId, model) { var l = sagListe(), degisti = false; l.forEach(function (x) { var md = x.modeller || []; if (x.id === saglayiciId && md.indexOf(model) >= 0 && md[md.length - 1] !== model) { x.modeller = md.filter(function (y) { return y !== model; }).concat([model]); degisti = true; } }); if (degisti) sagYaz(l); }
   function olduModel(saglayiciId, model) {
     var l = sagListe(), degisti = false;
     l.forEach(function (x) { if (x.id === saglayiciId && (x.modeller || []).indexOf(model) >= 0) { x.modeller = x.modeller.filter(function (y) { return y !== model; }); degisti = true; } });
@@ -326,7 +328,7 @@
     function dene1(m, g) {
       S.ince(m, g);
       if (window.__carvisKayit) console.log(S.ad + ' İSTEK ' + m + ' ~' + Math.round(JSON.stringify(g).length / 3.2) + ' token');
-      var ac = new AbortController(), zm = setTimeout(function () { ac.abort(); }, 30000);
+      var ac = new AbortController(), zm = setTimeout(function () { ac.abort(); zamanDoldu = true; }, (o && o.zamanAsimi) || 30000), zamanDoldu = false;
       if (o && o.signal) { if (o.signal.aborted) ac.abort(); else o.signal.addEventListener('abort', function () { ac.abort(); }); }
       var bas = { 'Content-Type': 'application/json' }; if (k) bas.Authorization = 'Bearer ' + k;
       return agIstegi(S.api(), { method: 'POST', headers: bas, body: JSON.stringify(g), signal: ac.signal }, S).then(function (r) {
@@ -344,8 +346,8 @@
           if (S.ek && (r.status === 404 || r.status === 410)) olduModel(S.id, m);
           var e = hata(r.status === 429 ? 'rate_limited' : 'network', S.ad + ' ' + m + ' ' + r.status + ' ' + JSON.stringify(j.error || j).slice(0, 200)); throw e;
         });
-      }, function (e) { clearTimeout(zm); throw o && o.signal && o.signal.aborted ? hata('cancelled') : hata('network', S.ad + ': ' + String(e)); })
-        .catch(function (e) { if (e.code === 'cancelled') throw e; if (window.__carvisKayit) console.log('GROQ ' + e.message.slice(0, 120)); if (e.code !== 'rate_limited' && ++i >= l.length) throw e; if (e.code !== 'rate_limited') groqDinlen[m] = Date.now() + 30000; return dene(); });
+      }, function (e) { clearTimeout(zm); if (zamanDoldu) { if (S.ek) yavasModel(S.id, m); throw hata('network', S.ad + ' ' + m + ': zaman aşımı (' + Math.round(((o && o.zamanAsimi) || 30000) / 1000) + ' sn yanıt yok)'); } throw o && o.signal && o.signal.aborted ? hata('cancelled') : hata('network', S.ad + ': ' + String(e)); })
+        .catch(function (e) { if (e.code === 'cancelled') throw e; if (/zaman aşımı/.test(e.message)) groqDinlen[m] = Date.now() + 10 * 60e3; if (window.__carvisKayit) console.log('GROQ ' + e.message.slice(0, 120)); if (e.code !== 'rate_limited' && ++i >= l.length) throw e; if (e.code !== 'rate_limited') groqDinlen[m] = Date.now() + 30000; return dene(); });
     }
     return dene();
   }
@@ -428,28 +430,31 @@
   window.yerelAyar.saglayici = {
     hazir: HAZIR_SAGLAYICI, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
     // Bağlantı testi: ilk modelle kısa bir istek
-    test: function (x) {
+    test: function (x, ilerle) {
       if (!x.taban) return Promise.reject(new Error('Adres boş.'));
       if (!(x.modeller || []).length) return Promise.reject(new Error('Önce "Modelleri getir"e bas ya da model adı yaz.'));
       if (/^http:\/\//i.test(x.taban) && location.protocol === 'https:' && !(K && K.httpIstek)) return Promise.reject(new Error('http adres yalnız cihaz sürümünde çalışır.'));
       delete sagUyku[x.id];
-      var modeller = (x.modeller || []).slice(0, 12), olu = [];
+      var modeller = (x.modeller || []).slice(0, 12), olu = [], yavas = [];
       function sirayla(i) {
-        if (i >= modeller.length) return Promise.reject(new Error('Listedeki modellerin hiçbiri bu hesapta çalışmadı (' + olu.length + ' tanesi kapalı ya da emekli, listeden çıkarıldı). "Modelleri getir"e tekrar bas ya da çalıştığını bildiğin model adını yaz.'));
+        if (i >= modeller.length) { if (olu.length) { var l0 = sagListe(); l0.forEach(function (y) { if (y.id === x.id) y.modeller = (y.modeller || []).filter(function (mm) { return olu.indexOf(mm) < 0; }); }); sagYaz(l0); } return Promise.reject(new Error('Denenen ' + modeller.length + ' modelin hiçbiri yanıt vermedi: ' + olu.length + ' tanesi bu hesapta kapalı (listeden çıkarıldı), ' + yavas.length + ' tanesi 15 sn içinde yanıt vermedi ya da yoğundu. Biraz sonra tekrar dene ya da "Modelleri getir"e bas.')); }
         var m = modeller[i], t0 = Date.now();
-        return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, sagGecici(Object.assign({}, x, { modeller: [m] }))).then(function (j) {
+        if (ilerle) try { ilerle('Deneniyor (' + (i + 1) + '/' + modeller.length + '): ' + m + '…'); } catch (e) {}
+        return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true, zamanAsimi: 15000 }, sagGecici(Object.assign({}, x, { modeller: [m] }))).then(function (j) {
           return { m: m, j: j, sure: Date.now() - t0 };
         }, function (e) {
-          if (/ (404|410) /.test(String(e && e.message || e))) { olu.push(m); return sirayla(i + 1); }
-          throw e;
+          var em = String(e && e.message || e);
+          if (/ (404|410) /.test(em)) { olu.push(m); return sirayla(i + 1); }
+          if (/ (401|403) /.test(em) || e.code === 'cancelled') throw e; // anahtar sorunu: diğer modeller de aynı sonucu verir
+          yavas.push(m); return sirayla(i + 1); // zaman aşımı, 429, 5xx: silme, sona al, sıradakini dene
         });
       }
       return sirayla(0).then(function (r) {
         var l = sagListe();
-        l.forEach(function (y) { if (y.id === x.id) y.modeller = [r.m].concat((y.modeller || []).filter(function (mm) { return mm !== r.m && olu.indexOf(mm) < 0; })); });
+        l.forEach(function (y) { if (y.id === x.id) y.modeller = [r.m].concat((y.modeller || []).filter(function (mm) { return mm !== r.m && olu.indexOf(mm) < 0 && yavas.indexOf(mm) < 0; }), yavas); });
         sagYaz(l);
         var c = (r.j.choices && r.j.choices[0] && r.j.choices[0].message && r.j.choices[0].message.content) || '';
-        return 'Bağlandı ✓ (' + r.m + ', ' + r.sure + ' ms)' + (olu.length ? '; çalışmayan ' + olu.length + ' model listeden çıkarıldı' : '') + ': ' + c.slice(0, 60);
+        return 'Bağlandı ✓ (' + r.m + ', ' + r.sure + ' ms)' + (olu.length ? '; çalışmayan ' + olu.length + ' model listeden çıkarıldı' : '') + (yavas.length ? '; yanıt vermeyen ' + yavas.length + ' model sona alındı' : '') + ': ' + c.slice(0, 60);
       }, function (e) {
         var m = String(e && e.message || e);
         if (/ 401 | 403 /.test(m)) m += ' — anahtar geçersiz ya da izni eksik.';
