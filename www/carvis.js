@@ -714,7 +714,7 @@
           var kaydet = function () { var t = SG.liste(); t[i] = x; SG.yaz(t); };
           var anahtar = el('input', { type: 'password', value: x.anahtar || '', placeholder: 'Anahtar', style: stil, autocomplete: 'off' });
           anahtar.addEventListener('change', function () { x.anahtar = anahtar.value.trim(); kaydet(); });
-          var taban = el('input', { type: 'url', value: x.taban || '', placeholder: 'Adres (ör. http://127.0.0.1:20128)', style: stil, autocomplete: 'off', hidden: x.tur !== 'omniroute' ? true : null });
+          var taban = el('input', { type: 'url', value: x.taban || '', placeholder: x.tur === 'ozel' ? 'Adres (ör. https://servis.com/v1)' : 'Adres (ör. http://127.0.0.1:20128)', style: stil, autocomplete: 'off', hidden: (x.tur !== 'omniroute' && x.tur !== 'ozel') ? true : null });
           taban.addEventListener('change', function () { x.taban = taban.value.trim(); kaydet(); });
           var modeller = el('input', { type: 'text', value: (x.modeller || []).join(', '), placeholder: 'Modeller (virgülle) — "Modelleri getir" doldurur', style: stil, autocomplete: 'off' });
           modeller.addEventListener('change', function () { x.modeller = modeller.value.split(',').map(function (m) { return m.trim(); }).filter(Boolean); kaydet(); });
@@ -727,7 +727,7 @@
             h.anahtarYeri ? el('p', { class: 'var-etiket', text: 'Anahtar: ' + h.anahtarYeri }) : el('span'),
             taban, anahtar, modeller,
             el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [
-              d('⇣ Modelleri getir', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Modeller alınıyor…'; SG.modelleriGetir(x).then(function (m) { if (!m.length) { sonuc.textContent = 'Uygun model bulunamadı.'; return; } x.modeller = m.slice(0, 6); kaydet(); modeller.value = x.modeller.join(', '); sonuc.textContent = m.length + ' uygun model bulundu; ilk ' + x.modeller.length + ' tanesi sıraya alındı.'; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
+              d('⇣ Modelleri getir', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Modeller alınıyor…'; SG.modelleriGetir(x).then(function (m) { if (!m.length) { sonuc.textContent = 'Uygun model bulunamadı.'; return; } x.modeller = m.slice(0, 12); kaydet(); modeller.value = x.modeller.join(', '); sonuc.textContent = m.length + ' uygun model bulundu; ilk ' + x.modeller.length + ' tanesi sıraya alındı.'; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
               d('🔌 Test', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Deneniyor…'; SG.test(x).then(function (m) { sonuc.textContent = m; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
               i > 0 ? d('↑', function () { var t = SG.liste(); var y = t.splice(i, 1)[0]; t.splice(i - 1, 0, y); SG.yaz(t); sgCiz(); }) : el('span'),
               d('🗑', function () { if (!confirm(x.ad + ' silinsin mi?')) return; var t = SG.liste(); t.splice(i, 1); SG.yaz(t); sgCiz(); })]),
@@ -739,6 +739,85 @@
         }))));
       };
       sgCiz();
+      // Toplu anahtar ekleme (kullanıcı, 2026-11-08): metni yapıştır; anahtarlar bulunur ya da metinde seçilip adlandırılır.
+      // Anahtarlar yalnız bu cihazın yerel ayarlarına yazılır; eklendikten sonra yapıştırma kutusu temizlenir.
+      var ONEK = [[/^nvapi-/, 'nvidia'], [/^sk-or-/, 'openrouter'], [/^gsk_/, 'groq'], [/^csk-/, 'cerebras'], [/^(github_pat_|ghp_)/, 'github']];
+      var ANAHTAR_RE = /(nvapi-[A-Za-z0-9_\-]{20,}|sk-or-[A-Za-z0-9_\-]{20,}|gsk_[A-Za-z0-9]{20,}|csk-[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_\-]{20,})/;
+      var turTahmin = function (k) { for (var j = 0; j < ONEK.length; j++) if (ONEK[j][0].test(k)) return ONEK[j][1]; return 'ozel'; };
+      var gizle = function (k) { return k.slice(0, 8) + '…' + k.slice(-4); };
+      var turSecici = function (secili) {
+        var sel = el('select', { style: stil, 'aria-label': 'Sağlayıcı türü' });
+        Object.keys(SG.hazir).forEach(function (k) { var o = el('option', { value: k, text: SG.hazir[k].ad }); if (k === secili) o.selected = true; sel.appendChild(o); });
+        return sel;
+      };
+      var saglayiciEkle = function (tur, ad, anahtar, taban) {
+        var h = SG.hazir[tur] || {}, t = SG.liste();
+        if (t.some(function (x) { return x.anahtar === anahtar && x.tur === tur; })) return null;
+        var model = /\//.test(ad || '') ? [ad.trim()] : [];
+        var yeni = { id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tur: tur, ad: ad || h.ad || tur, taban: taban || h.taban || '', anahtar: anahtar, modeller: model, acik: true };
+        t.push(yeni); SG.yaz(t);
+        if (!model.length && yeni.taban) SG.modelleriGetir(yeni).then(function (m) {
+          if (!m.length) return; var l2 = SG.liste(); l2.forEach(function (x) { if (x.id === yeni.id) x.modeller = m.slice(0, 12); }); SG.yaz(l2); sgCiz();
+        }, function () {});
+        return yeni;
+      };
+      govde.appendChild(el('h4', { text: '🔑 Toplu anahtar ekle' }));
+      govde.appendChild(el('p', { class: 'var-etiket', text: 'Anahtarların olduğu metni yapıştır. "Anahtarları bul" her anahtarı ve yanındaki satırı ad olarak çıkarır; ya da metinde bir anahtarı seçip çıkan kutuya adını yaz. Ada bir model kimliği yazarsan (ör. nvidia/nemotron-3-ultra-550b-a55b) o model kullanılır; yoksa modeller otomatik alınır. Anahtarlar yalnız bu cihazda saklanır.' }));
+      var topluMetin = el('textarea', { rows: '6', placeholder: 'nvapi-…\nNemotron ultra\n\nnvapi-…\nFlux', style: stil + ';width:100%;font-family:monospace', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Anahtar metni' });
+      var secimKutu = el('div', { style: 'display:none;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0' });
+      var topluSonuc = el('div', { style: 'display:grid;gap:6px;margin-top:6px', 'aria-live': 'polite' });
+      var bul = function () {
+        topluSonuc.innerHTML = '';
+        var satirlar = topluMetin.value.split(/\r?\n/), bulunan = [];
+        satirlar.forEach(function (sat, i) {
+          var m = sat.match(ANAHTAR_RE); if (!m) return;
+          var ad = sat.replace(m[0], '').replace(/^[\s:,;=\-–]+|[\s:,;=\-–]+$/g, '');
+          if (!ad) for (var j = i + 1; j < satirlar.length && j <= i + 2; j++) { var n = satirlar[j].trim(); if (n && !ANAHTAR_RE.test(n)) { ad = n; break; } }
+          if (!bulunan.some(function (b) { return b.anahtar === m[0]; })) bulunan.push({ anahtar: m[0], ad: ad });
+        });
+        if (!bulunan.length) { topluSonuc.appendChild(el('p', { class: 'var-etiket', text: 'Metinde tanınan bir anahtar yok. Anahtarı metinde seçip adını elle yazabilirsin.' })); return; }
+        var satirlarEl = bulunan.map(function (b) {
+          var sec = el('input', { type: 'checkbox', checked: true, 'aria-label': 'Ekle' });
+          var adK = el('input', { type: 'text', value: b.ad, placeholder: 'Ad ya da model kimliği', style: stil + ';flex:1;min-width:140px' });
+          var turS = turSecici(turTahmin(b.anahtar));
+          topluSonuc.appendChild(el('div', { style: 'display:flex;gap:6px;align-items:center;flex-wrap:wrap' }, [sec, el('code', { text: gizle(b.anahtar) }), adK, turS]));
+          return { b: b, sec: sec, adK: adK, turS: turS };
+        });
+        topluSonuc.appendChild(el('button', { class: 'dugme kucuk ana', type: 'button', text: '＋ Seçilenleri ekle', onclick: function () {
+          var n = 0;
+          satirlarEl.forEach(function (r) { if (r.sec.checked && saglayiciEkle(r.turS.value, r.adK.value.trim(), r.b.anahtar)) n++; });
+          topluMetin.value = ''; secimKutu.style.display = 'none';
+          topluSonuc.innerHTML = ''; topluSonuc.appendChild(el('p', { class: 'var-etiket', text: n + ' sağlayıcı eklendi. Modeller arka planda alınıyor; yukarıdaki listede görünecek.' }));
+          sgCiz();
+        } }));
+      };
+      var secimGuncelle = function () {
+        var s0 = topluMetin.selectionStart, s1 = topluMetin.selectionEnd;
+        var secilen = (topluMetin.value.slice(s0, s1) || '').trim();
+        if (secilen.length < 16 || /\s/.test(secilen)) { secimKutu.style.display = 'none'; return; }
+        secimKutu.innerHTML = '';
+        var adK = el('input', { type: 'text', placeholder: 'Bu anahtarın adı ya da model kimliği', style: stil + ';flex:1;min-width:140px' });
+        var turS = turSecici(turTahmin(secilen));
+        var tabanK = el('input', { type: 'url', placeholder: 'Adres (yalnız Özel için)', style: stil + ';flex:1;min-width:140px' });
+        secimKutu.appendChild(el('code', { text: gizle(secilen) }));
+        secimKutu.appendChild(adK); secimKutu.appendChild(turS); secimKutu.appendChild(tabanK);
+        secimKutu.appendChild(el('button', { class: 'dugme kucuk ana', type: 'button', text: '＋ Ekle', onclick: function () {
+          var y = saglayiciEkle(turS.value, adK.value.trim(), secilen, tabanK.value.trim());
+          secimKutu.style.display = 'none';
+          topluSonuc.innerHTML = ''; topluSonuc.appendChild(el('p', { class: 'var-etiket', text: y ? y.ad + ' eklendi.' : 'Bu anahtar zaten ekli.' }));
+          sgCiz();
+        } }));
+        secimKutu.style.display = 'flex';
+        adK.focus();
+      };
+      topluMetin.addEventListener('mouseup', secimGuncelle);
+      topluMetin.addEventListener('keyup', secimGuncelle);
+      topluMetin.addEventListener('select', secimGuncelle);
+      topluMetin.addEventListener('touchend', function () { setTimeout(secimGuncelle, 60); });
+      govde.appendChild(topluMetin);
+      govde.appendChild(secimKutu);
+      govde.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [el('button', { class: 'dugme kucuk ana', type: 'button', text: '🔍 Anahtarları bul', onclick: bul })]));
+      govde.appendChild(topluSonuc);
     }
     govde.appendChild(el('h4', { text: '🧠 Carvis\'in hafızası' }));
     var liste = el('ul', { class: 'var-etiket' }), yeni = el('input', { type: 'text', placeholder: 'Ör. "Sabahları çalışmayı seviyorum"', style: stil + ';flex:1;min-width:0' });
