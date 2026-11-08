@@ -448,7 +448,7 @@
           }).map(function (m) { return { id: m.id || m.name, b: +(m.context_length || m.max_input_tokens || (m.limits && m.limits.max_input_tokens) || 0) }; })
             .filter(function (m) { return m.id; });
           // tercih: bilinen güçlü aileler önce, sonra bağlam uzunluğu
-          function puan(m) { var id = m.id.toLowerCase(); return (/deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
+          function puan(m) { var id = m.id.toLowerCase(); return (/nemotron|deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
           secilen.sort(function (a, b) { return puan(a) - puan(b); });
           return secilen.map(function (m) { return m.id; });
         });
@@ -467,7 +467,7 @@
     if (degisti) SG.yaz(l);
     SG.liste().forEach(function (x, i) {
       if (!x.anahtar || (x.modeller || []).length || x.tur === 'omniroute') return;
-      SG.modelleriGetir(x).then(function (m) { if (!m.length) return; var t = SG.liste(); if (t[i] && t[i].id === x.id) { t[i].modeller = m.slice(0, 6); SG.yaz(t); } }, function (e) { sagSonHata[x.id] = 'Modeller alınamadı: ' + e.message; });
+      SG.modelleriGetir(x).then(function (m) { if (!m.length) return; var t = SG.liste(); if (t[i] && t[i].id === x.id) { t[i].modeller = m.slice(0, 12); SG.yaz(t); } }, function (e) { sagSonHata[x.id] = 'Modeller alınamadı: ' + e.message; });
     });
   }, 4000);
   sample.groq = groqSample; // test
