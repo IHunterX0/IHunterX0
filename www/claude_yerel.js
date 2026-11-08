@@ -268,13 +268,17 @@
     if (saglayiciNesneleri) return saglayiciNesneleri;
     saglayiciNesneleri = sagListe().filter(function (x) { return x.acik !== false && x.taban && (x.anahtar || x.tur === 'omniroute') && (x.modeller || []).length; }).map(function (x) {
       return { id: x.id, ad: x.ad, api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true,
-        zincir: function () { return x.modeller.slice(0, 6); }, ince: function () {} };
+        zincir: function () { return x.modeller.filter(sohbetModeli).slice(0, 6); }, ince: function () {} };
     });
     return saglayiciNesneleri;
   }
   // Hesapta açık olmayan (404) ya da emekli edilmiş (410) modeli sağlayıcının listesinden kalıcı olarak çıkar.
   // Yanıt vermeyen (zaman aşımı) modeli silmeden listenin sonuna al: bir dahaki sefere önce hızlılar denensin.
   function yavasModel(saglayiciId, model) { var l = sagListe(), degisti = false; l.forEach(function (x) { var md = x.modeller || []; if (x.id === saglayiciId && md.indexOf(model) >= 0 && md[md.length - 1] !== model) { x.modeller = md.filter(function (y) { return y !== model; }).concat([model]); degisti = true; } }); if (degisti) sagYaz(l); }
+  // Kullanıcı, 2026-11-08: "hepsine safety guard bağlanıyor" → sohbet edemeyen modeller (güvenlik sınıflandırıcı, embed, ses,
+  // görüntü üretimi, biyoloji/protein, OCR…) sağlayıcı listesine hiç girmez, Test ve sohbet zinciri bunları atlar.
+  var SOHBET_DISI = /guard|safety|nemoguard|content-safe|topic-control|jailbreak|reward|embed|rerank|retriever|parse|clip|\bpii\b|\basr\b|\btts\b|whisper|riva|canary|parakeet|\bocr\b|nv-?ingest|bge-|\be5-|deplot|kosmos|paligemma|neva|fuyu|cosmos|sdxl|flux|stable-diffusion|esm2|esmfold|alphafold|diffdock|molmim|genmol|proteinmpnn|rfdiffusion|evo2|openfold|boltz|bodypose|maxine|audio2face|fourcastnet|corrdiff|usdcode|trellis|bevformer/i;
+  function sohbetModeli(m) { return !SOHBET_DISI.test(String(m || '')); }
   function olduModel(saglayiciId, model) {
     var l = sagListe(), degisti = false;
     l.forEach(function (x) { if (x.id === saglayiciId && (x.modeller || []).indexOf(model) >= 0) { x.modeller = x.modeller.filter(function (y) { return y !== model; }); degisti = true; } });
@@ -428,19 +432,22 @@
   function sagGecici(x) { return { id: x.id || 'gecici', ad: x.ad || 'Sağlayıcı', api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true, zincir: function () { return (x.modeller || []).slice(0, 1); }, ince: function () {} }; }
   window.yerelAyar.ag = function (url, o) { return agIstegi(url, o || {}, { yerelAg: true }); }; // genel: Android üzerinden istek (GitHub vb.)
   window.yerelAyar.saglayici = {
-    hazir: HAZIR_SAGLAYICI, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
+    sohbetModeli: sohbetModeli, hazir: HAZIR_SAGLAYICI, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
     // Bağlantı testi: ilk modelle kısa bir istek
     test: function (x, ilerle) {
       if (!x.taban) return Promise.reject(new Error('Adres boş.'));
       if (!(x.modeller || []).length) return Promise.reject(new Error('Önce "Modelleri getir"e bas ya da model adı yaz.'));
       if (/^http:\/\//i.test(x.taban) && location.protocol === 'https:' && !(K && K.httpIstek)) return Promise.reject(new Error('http adres yalnız cihaz sürümünde çalışır.'));
       delete sagUyku[x.id];
-      var modeller = (x.modeller || []).slice(0, 12), olu = [], yavas = [];
+      var olu = (x.modeller || []).filter(function (m) { return !sohbetModeli(m); }), yavas = [], modeller = (x.modeller || []).filter(sohbetModeli).slice(0, 12);
       function sirayla(i) {
         if (i >= modeller.length) { if (olu.length) { var l0 = sagListe(); l0.forEach(function (y) { if (y.id === x.id) y.modeller = (y.modeller || []).filter(function (mm) { return olu.indexOf(mm) < 0; }); }); sagYaz(l0); } return Promise.reject(new Error('Denenen ' + modeller.length + ' modelin hiçbiri yanıt vermedi: ' + olu.length + ' tanesi bu hesapta kapalı (listeden çıkarıldı), ' + yavas.length + ' tanesi 15 sn içinde yanıt vermedi ya da yoğundu. Biraz sonra tekrar dene ya da "Modelleri getir"e bas.')); }
         var m = modeller[i], t0 = Date.now();
         if (ilerle) try { ilerle('Deneniyor (' + (i + 1) + '/' + modeller.length + '): ' + m + '…'); } catch (e) {}
         return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true, zamanAsimi: 15000 }, sagGecici(Object.assign({}, x, { modeller: [m] }))).then(function (j) {
+          // sohbet modeli mi? Güvenlik sınıflandırıcıları "tamam" yerine {"User Safety":"safe"} gibi etiket döndürür
+          var c = String((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '').trim();
+          if (/^[\{\[]/.test(c) || /\b(un)?safe\b/i.test(c)) { olu.push(m); return sirayla(i + 1); }
           return { m: m, j: j, sure: Date.now() - t0 };
         }, function (e) {
           var em = String(e && e.message || e);
@@ -454,7 +461,7 @@
         l.forEach(function (y) { if (y.id === x.id) y.modeller = [r.m].concat((y.modeller || []).filter(function (mm) { return mm !== r.m && olu.indexOf(mm) < 0 && yavas.indexOf(mm) < 0; }), yavas); });
         sagYaz(l);
         var c = (r.j.choices && r.j.choices[0] && r.j.choices[0].message && r.j.choices[0].message.content) || '';
-        return 'Bağlandı ✓ (' + r.m + ', ' + r.sure + ' ms)' + (olu.length ? '; çalışmayan ' + olu.length + ' model listeden çıkarıldı' : '') + (yavas.length ? '; yanıt vermeyen ' + yavas.length + ' model sona alındı' : '') + ': ' + c.slice(0, 60);
+        return 'Bağlandı ✓ (' + r.m + ', ' + r.sure + ' ms)' + (olu.length ? '; çalışmayan ya da sohbet edemeyen ' + olu.length + ' model listeden çıkarıldı' : '') + (yavas.length ? '; yanıt vermeyen ' + yavas.length + ' model sona alındı' : '') + ': ' + c.slice(0, 60);
       }, function (e) {
         var m = String(e && e.message || e);
         if (/ 401 | 403 /.test(m)) m += ' — anahtar geçersiz ya da izni eksik.';
@@ -477,11 +484,11 @@
           var l = Array.isArray(j) ? j : (j.data || j.models || []);
           var secilen = l.filter(function (m) {
             if (h.ucretsizFiltre) { var pr = m.pricing || {}; var ucretsiz = +pr.prompt === 0 && +pr.completion === 0; var arac = !m.supported_parameters || m.supported_parameters.indexOf('tools') >= 0; return ucretsiz && arac; }
-            var tur = String(m.task || m.type || m.object || ''); return !/embed|image|audio|speech|moderation|rerank/i.test(String(m.id || m.name) + ' ' + tur);
+            var tur = String(m.task || m.type || m.object || ''); return sohbetModeli(m.id || m.name) && !/embed|image|audio|speech|moderation|rerank/i.test(String(m.id || m.name) + ' ' + tur);
           }).map(function (m) { return { id: m.id || m.name, b: +(m.context_length || m.max_input_tokens || (m.limits && m.limits.max_input_tokens) || 0) }; })
             .filter(function (m) { return m.id; });
           // tercih: bilinen güçlü aileler önce, sonra bağlam uzunluğu
-          function puan(m) { var id = m.id.toLowerCase(); if (/coder|code-|guard|safety|reward|embed|rerank|vision|-vl|parse|retriever|clip/.test(id)) return 3e9 - m.b; return (/nemotron|deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
+          function puan(m) { var id = m.id.toLowerCase(); if (/coder|code-|vision|-vl|translate|-1b|-3b|mini/.test(id)) return 3e9 - m.b; return (/nemotron|deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
           secilen.sort(function (a, b) { return puan(a) - puan(b); });
           return secilen.map(function (m) { return m.id; });
         });
@@ -497,6 +504,7 @@
       var h = HAZIR_SAGLAYICI[o.tur] || {};
       l.push({ id: 's' + Date.now().toString(36) + o.tur, tur: o.tur, ad: h.ad || o.tur, taban: o.taban || h.taban, anahtar: o.anahtar, modeller: [], acik: true }); degisti = true;
     });
+    l.forEach(function (x) { var md = x.modeller || [], tm = md.filter(sohbetModeli); if (tm.length !== md.length) { x.modeller = tm; degisti = true; } });
     if (degisti) SG.yaz(l);
     SG.liste().forEach(function (x, i) {
       if (!x.anahtar || (x.modeller || []).length || x.tur === 'omniroute') return;

@@ -721,6 +721,39 @@
           var modeller = el('input', { type: 'text', value: (x.modeller || []).join(', '), placeholder: 'Modeller (virgülle) — "Modelleri getir" doldurur', style: stil, autocomplete: 'off' });
           modeller.addEventListener('change', function () { x.modeller = modeller.value.split(',').map(function (m) { return m.trim(); }).filter(Boolean); kaydet(); });
           var sonuc = el('p', { class: 'var-etiket', 'aria-live': 'polite', text: SG.sonHata(x.id) ? 'Son hata: ' + SG.sonHata(x.id) : '' });
+          // Model seçici (kullanıcı, 2026-11-08: "spesifik yapay zekalar kullanabilir mi"): sağlayıcının tüm sohbet modelleri,
+          // ara, işaretle; işaretlenenler bu sırayla denenir (en üstteki önce).
+          var secKap = el('div', { hidden: true, style: 'border:1px solid var(--cizgi);border-radius:8px;padding:8px;display:grid;gap:6px' });
+          function modelSec() {
+            x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet();
+            secKap.hidden = false; secKap.innerHTML = ''; secKap.appendChild(el('p', { class: 'var-etiket', text: 'Modeller alınıyor…' }));
+            SG.modelleriGetir(x).then(function (tum) {
+              var secili = (x.modeller || []).slice();
+              var hepsi = secili.concat(tum.filter(function (m) { return secili.indexOf(m) < 0; }));
+              secKap.innerHTML = '';
+              var ara = el('input', { type: 'search', placeholder: 'Ara (ör. nemotron, deepseek, llama, qwen, kimi)', style: stil, autocomplete: 'off' });
+              var liste = el('div', { style: 'max-height:260px;overflow:auto;display:grid;gap:2px;font-size:13px' });
+              var sayac = el('span', { class: 'var-etiket' });
+              function say() { sayac.textContent = secili.length + ' seçili · ' + hepsi.length + ' sohbet modeli'; }
+              function ciz() {
+                liste.innerHTML = ''; var q = ara.value.trim().toLowerCase();
+                hepsi.filter(function (m) { return !q || m.toLowerCase().indexOf(q) >= 0; }).forEach(function (m) {
+                  var c = el('input', { type: 'checkbox', checked: secili.indexOf(m) >= 0 ? true : null });
+                  c.addEventListener('change', function () { if (c.checked) { if (secili.indexOf(m) < 0) secili.push(m); } else secili = secili.filter(function (y) { return y !== m; }); say(); });
+                  var sira = secili.indexOf(m);
+                  liste.appendChild(el('label', { style: 'display:flex;gap:6px;align-items:center;padding:2px 0' }, [c, el('span', { text: (sira >= 0 ? (sira + 1) + '. ' : '') + m })]));
+                });
+                say();
+              }
+              ara.addEventListener('input', ciz);
+              secKap.appendChild(ara); secKap.appendChild(liste);
+              secKap.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;align-items:center' }, [
+                d('✓ Kaydet', function () { if (!secili.length) { sonuc.textContent = 'En az bir model seç.'; return; } x.modeller = secili.slice(); kaydet(); modeller.value = x.modeller.join(', '); secKap.hidden = true; sonuc.textContent = x.modeller.length + ' model seçildi; Carvis bunları bu sırayla dener. "Test" ile dene.'; }),
+                d('Seçimi temizle', function () { secili = []; ciz(); }),
+                d('Kapat', function () { secKap.hidden = true; }), sayac]));
+              ciz();
+            }, function (e) { secKap.innerHTML = ''; secKap.appendChild(el('p', { class: 'var-etiket', text: '✗ ' + e.message })); });
+          }
           var acik = el('input', { type: 'checkbox', checked: x.acik === false ? null : true });
           acik.addEventListener('change', function () { x.acik = acik.checked; kaydet(); });
           var d = function (t, f) { return el('button', { class: 'dugme kucuk', type: 'button', text: t, onclick: f }); };
@@ -730,10 +763,11 @@
             taban, anahtar, modeller,
             el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [
               d('⇣ Modelleri getir', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Modeller alınıyor…'; SG.modelleriGetir(x).then(function (m) { if (!m.length) { sonuc.textContent = 'Uygun model bulunamadı.'; return; } x.modeller = m.slice(0, 12); kaydet(); modeller.value = x.modeller.join(', '); sonuc.textContent = m.length + ' uygun model bulundu; ilk ' + x.modeller.length + ' tanesi sıraya alındı.'; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
+              d('📋 Model seç', modelSec),
               d('🔌 Test', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Deneniyor…'; var yenile = function () { var g = SG.liste().filter(function (y) { return y.id === x.id; })[0]; if (g) { x.modeller = g.modeller || []; modeller.value = x.modeller.join(', '); } }; SG.test(x, function (m) { sonuc.textContent = m; }).then(function (m) { yenile(); sonuc.textContent = m; }, function (e) { yenile(); sonuc.textContent = '✗ ' + e.message; }); }),
               i > 0 ? d('↑', function () { var t = SG.liste(); var y = t.splice(i, 1)[0]; t.splice(i - 1, 0, y); SG.yaz(t); sgCiz(); }) : el('span'),
               d('🗑', function () { if (!confirm(x.ad + ' silinsin mi?')) return; var t = SG.liste(); t.splice(i, 1); SG.yaz(t); sgCiz(); })]),
-            sonuc]));
+            secKap, sonuc]));
         });
         sgKap.appendChild(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [el('span', { class: 'var-etiket', text: 'Ekle:' })].concat(Object.keys(SG.hazir).map(function (k) {
           var h = SG.hazir[k];
