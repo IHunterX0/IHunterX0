@@ -277,7 +277,7 @@
       var m = soruModel(kontrolQ[0]);
       var devam = devamDugmesi('Devam', bitir); devam.hidden = true;
       kap.appendChild(el('p', { class: 'var-etiket', text: 'Çıkmış sorudan bir kontrol. Emin değilsen “Bilmiyorum” da dürüst bir cevaptır.' }));
-      kap.appendChild(soruKarti(m, function (r) { sonucKaydet(st, veri, kid, k.sira, r.durum, m); yaz(kid, st); devam.hidden = false; }, formulKart(kid, k.sira)));
+      kap.appendChild(soruKarti(m, function (r) { sonucKaydet(st, veri, kid, k.sira, r.durum, m); yaz(kid, st); if (U.ogrenci) U.ogrenci.kaydet(kid + ':' + k.sira, r.durum === 'dogru'); devam.hidden = false; }, formulKart(kid, k.sira)));
       kap.appendChild(devam);
     } } : null;
 
