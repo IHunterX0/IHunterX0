@@ -4,6 +4,30 @@ Bu dosya, yeni bir oturumun (ya da bağlamı özetlenmiş bir Claude'un) işi ka
 Uygulama: **1001 Çalışma Kitapları + C.A.R.V.I.S.**, paket `com.dogac.bin1`, kullanıcının Samsung tabletinde (SM-X820).
 Tek kullanıcı. Kullanıcıyla Türkçe konuşulur.
 
+## DEVİR NOTU (2026-11-08, yeni oturum buradan başlasın)
+- **Son sürüm r144** (web). Son tam APK **r142** (commit 4bbbc8d). **Yama tabanı: 4bbbc8d** → `python3 araclar/yama_yap.py 4bbbc8d rNN …`
+  ya da elle: `git diff --name-only 4bbbc8d HEAD -- www` + `www/ozel-pusula.js` (gitignore'da, kişisel; kullanıcıdan istenir) + `yama.json`.
+  r78 APK kullanan cihaz için taban 7d69371 (birikimli yama).
+- Her sürümde: `www/spotify.js` SURUM +1, Playwright testi (sahte sağlayıcı/AndroidKopru), push öncesi sır taraması, yama .zip + iPhone paketi gönder.
+- **Repo HERKESE AÇIK.** APK (orijinal Gemini/Groq anahtarları + öğrenci no içerir), imza anahtarı, kullanıcı API anahtarları asla repoya/release'e girmez.
+- **APK derleme düzeni** (dec/, tools/, anahtar/) eski oturumun kapsayıcısındaydı; yeni oturumda YOK. Yalnız Android (yerli) değişikliği
+  gerekirse yeniden kurulur: kullanıcıdan r142 APK (≈380 MB) + `carvis-imza-anahtari.p12` + şifresi (kullanıcıda) istenir; apktool 2.10.0,
+  apksig, android.jar (platform-34), r8/d8. Web işleri için gerekmez.
+- **Son eklenenler:** r135 toplu anahtar ekleme · r136-r141 sağlayıcı testi (404/410/zaman aşımı, safety-guard/embed modelleri elenir,
+  "📋 Model seç") · r137-r140 `beyin_bosta.js` boşta öğrenme (makale okuma, üslup, öz-evrim: araştır→kural→hakem A/B→benimse→izle→geri al,
+  sürekli mod) · r142 DusunServis (ekran kilitliyken) · r143 `beyin_oz.js` (bandit ile gerçek sonuç, kitap dayanaklı zekâ sınavı, hafıza akışı,
+  gece yansıması, benlik dosyası, hedefler, proaktif cümle) + makaleden kod önerisi → öneri kutusu → GitHub "[Carvis]" işi ·
+  r144 `derin.js` derin düşünme modu (🧠 Derin / "derin düşün:"; 2-3 model, fikir takası, sentez).
+- **Yapılmayacaklar (eski oturumda güvenlik sınıflandırıcısına takıldı, kullanıcıya bildirildi):** Carvis'i "SCP-079 gibi" kendini değiştiren
+  özerk sisteme daha da yaklaştıran yeni parçalar — kafesli kendi kodunu yazan araçlar, iç meclis/model yönlendirici/kural genomu/DPO/
+  GitHub'da versiyonlu beyin modülü, büyük model planlar-küçük model çözer (Least-to-Most) hattı. Kullanıcı ısrar edebilir; bu çizgi korunur.
+- **Bekleyen, serbest işler:** yerel model (wllama 3.8.1 + Qwen2.5 0.5B/1.5B; `npm install` izin denetimine takılmıştı, `npm pack` çalıştı),
+  akademiye hazırlık (dergi kulübü modu, fikirden araştırma sorusuna, İngilizce bilimsel yazı koçu, yaz programı takibi), sınav simülasyonu,
+  yanlışlardan otomatik kart, sesli quiz, Anki aktarımı, biyofizik/biyoistatistik/halk sağlığı kurs içerikleri, textbook'a geçiş.
+- **Zamanlanmış rutin** "Carvis öneri kontrolü" (trig_018USi1ZTsqCUyMgxj3V6Rbo, 08-24 arası 2 saatte bir) ESKİ oturuma bağlı; yeni oturumda
+  `update_trigger` ile yeni oturuma bağlanmalı ya da her seferinde yeni oturum açacak şekilde değiştirilmeli.
+- Kullanıcı: tıp 1. sınıf (İÜC Cerrahpaşa), hedef yurt dışı PhD; Türkçe, kısa ve doğrudan cevap ister; tablet Samsung SM-X820 (12 GB RAM).
+
 ## Kurallar (değişmez)
 - **Anahtar/sır asla repoya girmez.** Push'tan önce tara: `gsk_`, `sk-or-v1-`, `github_pat_`+uzun dizi, `AQ.`+uzun dizi.
   Orijinal APK'daki Groq ve Gemini anahtarları `android/smali-yama/MainActivity$Kopru.smali` içinde `*_ANAHTARI_KALDIRILDI`
