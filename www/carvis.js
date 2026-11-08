@@ -556,6 +556,7 @@
       // Jane sarsılma turunda "emin ama yanlış" çıkan varsayımlar: öğrencinin otomatik doldurma noktaları; konu açılınca kısaca uyar
       if (jo.length) l.push('OTOMATİK DOLDURMA NOKTALARI (Jane turunda emin olup yanıldığı; ilgili konu açılırsa bu tuzağa tek cümleyle dikkat çek): ' + jo.slice(-5).map(function (x) { return (x.konu || '') + ': ' + String(x.varsayim || x.soru || '').slice(0, 110); }).join(' | ') + '.');
       l.push(ETKILESIM, derinlikKurali(), ogretmeKurali(), SORGU_KURALI, DUSUNME);
+      if (window.CarvisBosta) { var bbm = window.CarvisBosta.istemMetni(); if (bbm) l.push(bbm); }
       if (Profil.hafiza.length) l.push('HAFIZAN (kullanıcının sana söyledikleri; uygun düştüğünde kullan, tekrar tekrar söyleme):\n- ' + Profil.hafiza.slice(-25).map(function (h) { return h.m; }).join('\n- '));
       l.push('Kullanıcı kendisi hakkında kalıcı bir bilgi/tercih söylerse ("sabahları çalışırım", "bana kısa anlat", "kardiyolojiyi seviyorum") ya da "bunu hatırla" derse hatirla aracını kullan; "unut" derse unut. "Bana X de", "daha resmi/samimi konuş" derse profil_ayarla.');
       return l.join('\n');
@@ -643,6 +644,7 @@
       el('button', { class: 'dugme ana', type: 'button', onclick: function () { Carvis.ac(); Carvis.soru('Bana bir şey öğret: kitaptan ya da bilimsel olarak kesin doğru, kısa bir mekanizma seç; tek cümleyle anlat, sonra bana tek bir kısa soru sor.', true); } }, ['🎓 Bana bir şey öğret']), el('button', { class: 'dugme', type: 'button', onclick: function () { if (window.JaneDers) JaneDers.ac(); } }, ['📖 Konu anlatımı']), el('button', { class: 'dugme', type: 'button', onclick: function () { if (window.TasarimAyar) TasarimAyar.ac(); } }, ['🎛 Tasarım ve dikkat'])
     ]));
     govde.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0' }, [selam, 'Günün ilk açılışında selam + kısa durum (sınava kalan gün, vadeli kart, seri)']));
+    if (window.CarvisBosta) govde.appendChild(window.CarvisBosta.ayarBolumu());
     if (K && K.arkaPlan) {
       var ap = el('input', { type: 'checkbox', checked: K.arkaPlanMi() ? true : null });
       ap.addEventListener('change', function () { K.arkaPlan(ap.checked); });
