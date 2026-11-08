@@ -691,6 +691,23 @@
     if (say === 0 || say < Math.max(1, Math.ceil(gruplar.length * 0.6))) return 0;
     return say + (tamSorgu && katli.indexOf(tamSorgu) >= 0 ? 2 : 0);
   }
+  // Anlamsal benzerlik (çevrimdışı): karakter üçlüleri üzerinde TF-IDF ve kosinüs. Kelime tutmasa da biçim benzerliğini yakalar.
+  var VEKTOR_ONBELLEK = {};
+  function ucluler(s) { var t = ' ' + s + ' ', o = {}; for (var i = 0; i + 3 <= t.length; i++) { var g = t.substr(i, 3); o[g] = (o[g] || 0) + 1; } return o; }
+  function kitapVektorleri(ix) {
+    var id = ix.kj.id, n = ix.liste.length, c = VEKTOR_ONBELLEK[id];
+    if (c && c.n === n) return c;
+    var df = {}, sat = ix.liste.map(function (r) { return ucluler(r.katli); });
+    sat.forEach(function (t) { Object.keys(t).forEach(function (g) { df[g] = (df[g] || 0) + 1; }); });
+    var vek = sat.map(function (t) { var v = {}, k = 0; Object.keys(t).forEach(function (g) { var w = t[g] * Math.log((n + 1) / (df[g] + 1)); v[g] = w; k += w * w; }); return { v: v, k: Math.sqrt(k) || 1 }; });
+    c = { n: n, df: df, vek: vek }; VEKTOR_ONBELLEK[id] = c; return c;
+  }
+  function sorguVektoru(q, c) {
+    var t = ucluler(katla(q)), v = {}, k = 0;
+    Object.keys(t).forEach(function (g) { if (!c.df[g]) return; var w = t[g] * Math.log((c.n + 1) / (c.df[g] + 1)); v[g] = w; k += w * w; });
+    return { v: v, k: Math.sqrt(k) || 1 };
+  }
+  function kosinus(a, b) { var s = 0; Object.keys(a.v).forEach(function (g) { if (b.v[g]) s += a.v[g] * b.v[g]; }); return s / (a.k * b.k); }
   function aramaAraci(q, kitap) {
     var qk = katla(q).trim();
     var gruplar = aramaGruplari(q);
@@ -702,10 +719,13 @@
       var adaylar = [];
       ixler.forEach(function (ix) {
         if (!ix) return;
-        ix.liste.forEach(function (r) {
+        var c = kitapVektorleri(ix), sv = sorguVektoru(q, c);
+        ix.liste.forEach(function (r, i) {
           if (!r.id) return;
-          var p = aramaPuani(r.katli, gruplar, qk);
-          if (p > 0) adaylar.push({ p: p, ix: ix, r: r });
+          var lex = aramaPuani(r.katli, gruplar, qk);
+          var cos = kosinus(sv, c.vek[i]);
+          if (lex <= 0 && cos < 0.2) return;
+          adaylar.push({ p: lex + 6 * cos, ix: ix, r: r });
         });
       });
       adaylar.sort(function (x, y) { return y.p - x.p; });
