@@ -1630,3 +1630,42 @@
 
     return v0
 .end method
+
+# Ekran kilitliyken kendini geliştirme (r142): DusunServis ön plan hizmeti + uyanıklık kilidi
+.method public dusunBaslat()Z
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/dogac/bin1/MainActivity$Kopru;->this$0:Lcom/dogac/bin1/MainActivity;
+
+    invoke-static {v0}, Lcom/dogac/bin1/DusunServis;->baslat(Landroid/content/Context;)Z
+
+    move-result v0
+
+    return v0
+.end method
+
+.method public dusunBitir()V
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/dogac/bin1/MainActivity$Kopru;->this$0:Lcom/dogac/bin1/MainActivity;
+
+    invoke-static {v0}, Lcom/dogac/bin1/DusunServis;->bitir(Landroid/content/Context;)V
+
+    return-void
+.end method
+
+.method public dusunDurum()Ljava/lang/String;
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    invoke-static {}, Lcom/dogac/bin1/DusunServis;->durum()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method

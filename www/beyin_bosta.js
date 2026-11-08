@@ -17,7 +17,7 @@
       POZ = /(süper|harika|teşekkür|sağ ?ol|mükemmel|aynen|çok iyi|güzel|tamamdır|eline sağlık|anladım)/i;
 
   function bos() { return { acik: true, kayit: [], okunan: [], gun: { t: '', n: 0 }, son: 0, sira: {}, ornek: [], uslup: [], hata: [], uslupT: 0, konular: [], konuT: 0, sonDurum: '',
-    kural: [], evrimLog: [], evrimT: 0, evrimSira: 0, okunanAI: [], sinyal: { p: 0, n: 0, c: 0 }, siklik: 'surekli', turSay: 0, bildirT: 0 }; }
+    kural: [], evrimLog: [], evrimT: 0, evrimSira: 0, okunanAI: [], sinyal: { p: 0, n: 0, c: 0 }, siklik: 'surekli', turSay: 0, bildirT: 0, kilitli: true }; }
   function yukle() { try { return Object.assign(bos(), JSON.parse(localStorage.getItem(ANAHTAR) || '{}')); } catch (e) { return bos(); } }
   function kaydet() { try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {} dinleyici.forEach(function (f) { try { f(); } catch (e) {} }); }
   // Kullanıcı, 2026-11-08: "kendini geliştirmeyi otomatik yapsın boştayken" → varsayılan sürekli: her boşlukta öncelik evrim
@@ -27,10 +27,24 @@
   var hataSay = 0, bekleT = 0;
   function ayar() { return SIKLIK[D.siklik] || SIKLIK.surekli; }
   function arkaPlanAcik() { try { var K = window.AndroidKopru; return !!(K && K.arkaPlanMi && K.arkaPlanMi()); } catch (e) { return false; } }
+  /* Ekran kilitliyken (r142, kullanıcı: "ekran kilitliyken de yapabilsin"): APK'daki DusunServis ön plan hizmeti + uyanıklık
+     kilidi süreci ve işlemciyi uyanık tutar. Boşta kalınca (ekran açıkken, Android izin verdiği anda) ya da ekran kapanınca başlar,
+     sen dokununca kapanır. Pil %20'nin altında ve şarjda değilse kilitliyken tur yapılmaz ve kilit bırakılır. */
+  var dusunAcik = false, dusunT = 0, pil = { seviye: 1, sarj: true };
+  try { if (navigator.getBattery) navigator.getBattery().then(function (b) { function g() { pil = { seviye: b.level, sarj: b.charging }; } g(); b.addEventListener('levelchange', g); b.addEventListener('chargingchange', g); }); } catch (e) {}
+  function kopru() { return window.AndroidKopru && window.AndroidKopru.dusunBaslat ? window.AndroidKopru : null; }
+  function pilYeter() { return pil.sarj || pil.seviye >= 0.2; }
+  function dusunAc() {
+    var K = kopru(); if (!K || !D.acik || !D.kilitli || !pilYeter()) return;
+    if (dusunAcik && Date.now() - dusunT < 30 * 60e3) return; // kilit 3 saatlik; yarım saatte bir tazele
+    try { K.dusunBaslat(); dusunAcik = true; dusunT = Date.now(); } catch (e) {}
+  }
+  function dusunKapat() { var K = kopru(); if (!dusunAcik || !K) return; try { K.dusunBitir(); } catch (e) {} dusunAcik = false; }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) dusunAc(); });
   function bugun() { return new Date().toDateString(); }
   function durum(m) { D.sonDurum = m; kaydet(); }
 
-  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (t) { window.addEventListener(t, function () { sonEtkin = Date.now(); bildir(); }, { passive: true, capture: true }); });
+  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (t) { window.addEventListener(t, function () { sonEtkin = Date.now(); dusunKapat(); bildir(); }, { passive: true, capture: true }); });
   // Sen yokken kendini değiştirdiyse, döndüğünde tek seferlik haber ver
   function bildir() {
     if (calisiyor) return;
@@ -300,7 +314,10 @@
 
   function kontrol() {
     orneklerTopla(); geriAlKontrol();
-    if (!D.acik || calisiyor || (document.hidden && !arkaPlanAcik()) || navigator.onLine === false) return;
+    if (!D.acik) { dusunKapat(); return; }
+    if (document.hidden && dusunAcik && !pilYeter()) { dusunKapat(); return; }
+    if (document.hidden || Date.now() - sonEtkin >= BOS_DK * 60e3) dusunAc(); // boştasın ya da ekran kilitli: sürsün
+    if (calisiyor || (document.hidden && !arkaPlanAcik() && !dusunAcik) || navigator.onLine === false) return;
     if (window.Carvis && window.Carvis.acik) return;
     var simdi = Date.now();
     if (simdi < bekleT) return;
@@ -362,7 +379,14 @@
       [['surekli', 'Sürekli (varsayılan): boştayken durmadan, bir tur biter bitmez sıradaki; üç turdan ikisi kendini geliştirme (hata/kota olursa kısa bekler)'], ['gunluk', 'Az: günde bir kez kendini geliştirme, en çok ' + GUN_TAVAN + ' tur (kota dostu)']].forEach(function (x) { sk.appendChild(el('option', { value: x[0], text: x[1], selected: D.siklik === x[0] ? true : null })); });
       sk.addEventListener('change', function () { D.siklik = sk.value; kaydet(); ciz(); });
       kutu.appendChild(el('label', { style: 'display:grid;gap:4px;margin:6px 0;font-size:13px' }, ['Sıklık', sk]));
-      if (arkaPlanAcik()) kutu.appendChild(el('p', { class: 'var-etiket', text: 'Arka planda dinleme açık: uygulama arkadayken de turlar denenir (Android izin verdiği sürece).' }));
+      if (kopru()) {
+        var kl = el('input', { type: 'checkbox', checked: D.kilitli ? true : null });
+        kl.addEventListener('change', function () { D.kilitli = kl.checked; if (!kl.checked) dusunKapat(); kaydet(); });
+        kutu.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0' }, [kl, 'Ekran kilitliyken de sürsün (bildirimde "C.A.R.V.I.S. kendini geliştiriyor" görünür; pil %20 altındaysa ve şarjda değilse durur)']));
+        var dd = ''; try { var j = JSON.parse(window.AndroidKopru.dusunDurum() || '{}'); dd = 'Kilitli mod: ' + (j.hizmet ? 'hizmet açık' : 'hizmet kapalı') + ', ' + (j.kilit ? 'işlemci uyanık' : 'uyku serbest'); } catch (e) {}
+        if (dd) kutu.appendChild(el('p', { class: 'var-etiket', text: dd + ' · pil %' + Math.round(pil.seviye * 100) + (pil.sarj ? ' (şarjda)' : '') }));
+      } else if (window.AndroidKopru) kutu.appendChild(el('p', { class: 'var-etiket', text: 'Ekran kilitliyken çalışması için yeni tam APK (r142) gerekir; bu yamayla yalnız ekran açıkken çalışır.' }));
+      if (arkaPlanAcik()) kutu.appendChild(el('p', { class: 'var-etiket', text: 'Arka planda dinleme açık: uygulama arkadayken de turlar denenir.' }));
       var gn = D.gun.t === bugun() ? D.gun.n : 0;
       kutu.appendChild(el('p', { class: 'var-etiket', text: 'Bugün ' + gn + (isFinite(ayar().gun) ? '/' + ayar().gun : '') + ' tur' + (D.sonDurum ? ' · ' + D.sonDurum : '') }));
       if (D.uslup.length || D.hata.length) kutu.appendChild(el('p', { style: 'font-size:13px;margin:6px 0' }, ['Öğrendiğim üslup: ' + D.uslup.concat(D.hata.map(function (h) { return 'yapma: ' + h; })).join(' · ')]));
@@ -401,5 +425,5 @@
   }
 
   window.CarvisBosta = { tur: tur, kurallar: function () { return D.kural; }, istemMetni: istemMetni, ayarBolumu: ayarBolumu, durum: function () { return D; }, dinle: function (f) { dinleyici.push(f); },
-    _test: { kontrol: kontrol, kuralGuvenli: kuralGuvenli, sinyalEkle: function (n, c) { D.sinyal.n += n; D.sinyal.c += c; kaydet(); }, bosZaman: function (ms) { sonEtkin = Date.now() - ms; D.son = 0; bekleT = 0; }, sifirla: function () { D = bos(); kaydet(); } } };
+    _test: { dusunAcik: function () { return dusunAcik; }, pilAyarla: function (sv, sj) { pil = { seviye: sv, sarj: sj }; }, kontrol: kontrol, kuralGuvenli: kuralGuvenli, sinyalEkle: function (n, c) { D.sinyal.n += n; D.sinyal.c += c; kaydet(); }, bosZaman: function (ms) { sonEtkin = Date.now() - ms; D.son = 0; bekleT = 0; }, sifirla: function () { D = bos(); kaydet(); } } };
 })();

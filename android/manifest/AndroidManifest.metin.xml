@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
@@ -34,7 +34,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
-        <service android:exported="false" android:foregroundServiceType="microphone" android:name="com.dogac.bin1.CarvisServis"/>
+        <service android:exported="false" android:foregroundServiceType="microphone" android:name="com.dogac.bin1.CarvisServis"/><service android:exported="false" android:foregroundServiceType="specialUse" android:name="com.dogac.bin1.DusunServis"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Ekran kilitliyken asistanin arastirma ve kendini gelistirme turlari"/></service>
         <service android:exported="false" android:label="C.A.R.V.I.S." android:name="com.dogac.bin1.CarvisErisim" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService"/>
