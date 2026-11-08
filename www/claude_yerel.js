@@ -240,6 +240,7 @@
     openrouter: { ad: 'OpenRouter (ücretsiz)', taban: 'https://openrouter.ai/api/v1', anahtarYeri: 'openrouter.ai → Keys (kart gerekmez)', ucretsizFiltre: true },
     github: { ad: 'GitHub Models', taban: 'https://models.github.ai/inference', modelListe: 'https://models.github.ai/catalog/models', anahtarYeri: 'github.com → Settings → Developer settings → Personal access tokens → Fine-grained → izin: Models (read)' },
     cerebras: { ad: 'Cerebras', taban: 'https://api.cerebras.ai/v1', anahtarYeri: 'cloud.cerebras.ai → API Keys' },
+    deepseek: { ad: 'DeepSeek', taban: 'https://api.deepseek.com', anahtarYeri: 'platform.deepseek.com → API keys (ücretli, çok ucuz; hesaba bakiye yükleyip anahtar oluştur)' },
     mistral: { ad: 'Mistral', taban: 'https://api.mistral.ai/v1', anahtarYeri: 'console.mistral.ai → API Keys (ücretsiz "Experiment" planı)' },
     omniroute: { ad: 'OmniRoute', taban: '', anahtarYeri: 'OmniRoute panelindeki API anahtarı (varsa)' }
   };
