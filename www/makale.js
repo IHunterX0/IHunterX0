@@ -131,7 +131,12 @@
     tamMetinGetir(m.pmcid).then(function (t) {
       kutu.innerHTML = '';
       kutu.appendChild(el('p', { text: t.bolumler.length + ' bölüm (açık erişim, yasal kaynak).' }));
-      t.bolumler.slice(0, 40).forEach(function (b) { if (b.baslik) kutu.appendChild(el('p', { class: 'var-etiket', text: '• ' + b.baslik })); });
+      var govde = el('div', { class: 'makale-govde', style: 'max-height:60vh;overflow:auto;padding-right:6px;line-height:1.6' });
+      t.bolumler.forEach(function (b) {
+        if (b.baslik) govde.appendChild(el('h4', { text: b.baslik }));
+        b.paragraflar.forEach(function (x) { govde.appendChild(el('p', { text: x })); });
+      });
+      kutu.appendChild(govde);
       var yorumKutu = el('div'); kutu.appendChild(yorumKutu);
       kutu.appendChild(el('button', { class: 'dugme kucuk ana', type: 'button', onclick: function () { this.hidden = true; yorumKutu.innerHTML = ''; yorumlat(t.tumMetin, yorumKutu); } }, ['Carvis yorumlasın']));
     }, function (e) { kutu.innerHTML = ''; kutu.appendChild(el('p', { text: 'Tam metin alınamadı: ' + (e.message || e) })); });
