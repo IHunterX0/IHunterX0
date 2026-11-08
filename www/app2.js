@@ -708,6 +708,7 @@
     return { v: v, k: Math.sqrt(k) || 1 };
   }
   function kosinus(a, b) { var s = 0; Object.keys(a.v).forEach(function (g) { if (b.v[g]) s += a.v[g] * b.v[g]; }); return s / (a.k * b.k); }
+  U.kitapAra = function (q, kitap) { return Promise.resolve(aramaAraci(q, kitap)); }; // beyin_oz.js: kendi zekâ sınavının dayanakları
   function aramaAraci(q, kitap) {
     var qk = katla(q).trim();
     var gruplar = aramaGruplari(q);

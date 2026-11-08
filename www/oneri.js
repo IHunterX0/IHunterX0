@@ -76,12 +76,12 @@
     var ag = window.yerelAyar && window.yerelAyar.ag ? window.yerelAyar.ag(url, opt) : fetch(url, opt);
     return ag.then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error('GitHub ' + r.status + ': ' + (j.message || '') + (r.status === 403 || r.status === 404 ? ' — anahtarın bu repoda "Issues: Read and write" izni olmalı.' : '')); return j; }); });
   }
-  function claudeyaGonder(id) {
+  function claudeyaGonder(id, not) {
     return oku().then(function (v) {
       var o = v.liste.filter(function (x) { return x.id === id; })[0]; if (!o) throw new Error('Öneri bulunamadı.');
       if (o.is) return o.is;
       var baslik = '[Carvis] ' + ((o.d && o.d.baslik) || o.metin.slice(0, 60));
-      var govde = topluIstem([o]) + '\n\n---\n_Carvis öneri kutusundan, kullanıcı onayıyla gönderildi · öneri-id: ' + o.id + '_';
+      var govde = topluIstem([o]) + '\n\n---\n_' + (not || 'Carvis öneri kutusundan, kullanıcı onayıyla gönderildi') + ' · öneri-id: ' + o.id + '_';
       return gh('/repos/' + REPO + '/issues', { method: 'POST', body: { title: baslik, body: govde } }).then(function (j) {
         var is = { no: j.number, url: j.html_url, t: Date.now() };
         return guncelle(function (w) { w.liste.forEach(function (x) { if (x.id === id) { x.is = is; x.onay = true; } }); }).then(function () { return is; });
@@ -229,5 +229,5 @@
       execute: function (g) { return ekle(g.oneri, 'ben').then(function (o) { return degerlendirKaydet(o.id).then(function (d) { return { eklendi: true, baslik: d.baslik, oncelik: d.oncelik }; }, function () { return { eklendi: true, degerlendirme: 'sonra yapılacak' }; }); }); }
     }]);
   };
-  window.OneriKutusu = { ekle: ekle, oku: oku, degerlendir: degerlendirKaydet, kendi: aiKendiOnerisi, istem: topluIstem };
+  window.OneriKutusu = { ekle: ekle, oku: oku, degerlendir: degerlendirKaydet, kendi: aiKendiOnerisi, istem: topluIstem, gonder: claudeyaGonder, ghVar: function () { return !!ghAnahtar(); } };
 })();
