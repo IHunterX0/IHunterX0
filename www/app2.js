@@ -674,25 +674,53 @@
   }
   U.sohbetAraclari = sohbetAraclari;
   function kaynakJeton(kj, bsira, blokId, etiket) { return '[kaynak:' + kj.id + '|' + bsira + '|' + (blokId || '') + '|' + etiket + ']'; }
+  // Arama (Carvis): sorgu kelimeleri ayrı ayrı puanlanır; kısaltmalar açılır; en alakalı sonuçlar önce gelir.
+  var ARAMA_KISA = { ga: 'güven aralığı', sd: 'standart sapma', se: 'standart hata', ppv: 'pozitif öngörü değeri', npv: 'negatif öngörü değeri', anova: 'varyans analizi', gnkt: 'genel kareler toplamı', gakt: 'gruplar arası kareler toplamı', gikt: 'gruplar içi kareler toplamı' };
+  var ARAMA_DURDUR = { ve: 1, veya: 1, ile: 1, bir: 1, bu: 1, da: 1, de: 1, mi: 1, mı: 1, mu: 1, nedir: 1, nasıl: 1, ne: 1, için: 1, olan: 1, gibi: 1, hangi: 1, hangisi: 1 };
+  function aramaGruplari(q) {
+    return katla(q).split(/\s+/).filter(function (w) { return w && !ARAMA_DURDUR[w]; }).map(function (w) {
+      var g = [w];
+      if (ARAMA_KISA[w]) katla(ARAMA_KISA[w]).split(/\s+/).forEach(function (x) { if (x && g.indexOf(x) < 0) g.push(x); });
+      return g;
+    });
+  }
+  // Puan: eşleşen kelime grupları sayısı; grupların en az %60'ı eşleşmeli; tam sorgu geçiyorsa bonus.
+  function aramaPuani(katli, gruplar, tamSorgu) {
+    var say = 0;
+    gruplar.forEach(function (g) { if (g.some(function (x) { return katli.indexOf(x) >= 0; })) say++; });
+    if (say === 0 || say < Math.max(1, Math.ceil(gruplar.length * 0.6))) return 0;
+    return say + (tamSorgu && katli.indexOf(tamSorgu) >= 0 ? 2 : 0);
+  }
   function aramaAraci(q, kitap) {
-    var qk = katla(q);
+    var qk = katla(q).trim();
+    var gruplar = aramaGruplari(q);
+    if (!gruplar.length) return 'Sonuç yok: "' + q + '"';
     return Kitaplik.katalog().then(function (liste) {
       var hedef = liste.filter(function (k) { return !kitap || k.id === kitap; });
       return Promise.all(hedef.map(function (k) { return U.indeksle(k.id).catch(function () { return null; }); }));
     }).then(function (ixler) {
-      var out = [];
+      var adaylar = [];
       ixler.forEach(function (ix) {
         if (!ix) return;
-        var n = 0;
         ix.liste.forEach(function (r) {
-          if (n >= 4 || !r.id || r.katli.indexOf(qk) < 0) return; n++;
-          var b = ix.kj.bolumler[r.b], a = b.altlar[r.a];
-          var konum = ix.kj.baslik.replace(/^1001\s*/, '') + ' ' + (a.no || ('Bölüm ' + (b.no != null ? b.no : b.kisa)));
-          out.push({ kaynak: kaynakJeton(ix.kj, r.b, r.id, konum), kitap: ix.kj.id, konum: konum + (a.baslik ? ' — ' + a.baslik : ''), metin: r.metin.slice(0, 380) });
+          if (!r.id) return;
+          var p = aramaPuani(r.katli, gruplar, qk);
+          if (p > 0) adaylar.push({ p: p, ix: ix, r: r });
         });
       });
+      adaylar.sort(function (x, y) { return y.p - x.p; });
+      var out = [], kitapSay = {};
+      adaylar.forEach(function (c) {
+        if (out.length >= 8) return;
+        var kid = c.ix.kj.id;
+        if ((kitapSay[kid] || 0) >= 5) return;
+        kitapSay[kid] = (kitapSay[kid] || 0) + 1;
+        var b = c.ix.kj.bolumler[c.r.b], a = b.altlar[c.r.a];
+        var konum = c.ix.kj.baslik.replace(/^1001\s*/, '') + ' ' + (a.no || ('Bölüm ' + (b.no != null ? b.no : b.kisa)));
+        out.push({ kaynak: kaynakJeton(c.ix.kj, c.r.b, c.r.id, konum), kitap: kid, konum: konum + (a.baslik ? ' — ' + a.baslik : ''), metin: c.r.metin.slice(0, 380) });
+      });
       if (!out.length) return 'Sonuç yok: "' + q + '"';
-      return out.slice(0, 8);
+      return out;
     });
   }
   function bolumAraci(kitap, no) {
