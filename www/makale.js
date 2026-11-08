@@ -92,11 +92,51 @@
       return ((j.resultList && j.resultList.result) || []).map(function (x) {
         var tam = ((x.fullTextUrlList && x.fullTextUrlList.fullTextUrl) || []).filter(function (u) { return u.availabilityCode === 'OA' || u.availabilityCode === 'F'; })[0];
         return { id: x.source + ':' + x.id, baslik: String(x.title || '').replace(/<[^>]+>/g, ''), yazar: x.authorString || '', dergi: (x.journalInfo && x.journalInfo.journal && (x.journalInfo.journal.isoabbreviation || x.journalInfo.journal.title)) || x.bookOrReportDetails && x.bookOrReportDetails.publisher || '',
-          yil: x.pubYear || '', doi: x.doi || '', pmid: x.pmid || '', acik: x.isOpenAccess === 'Y', ozet: String(x.abstractText || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+          yil: x.pubYear || '', doi: x.doi || '', pmid: x.pmid || '', pmcid: x.pmcid || '', acik: x.isOpenAccess === 'Y', ozet: String(x.abstractText || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
           link: tam ? tam.url : (x.doi ? 'https://doi.org/' + x.doi : 'https://europepmc.org/article/' + x.source + '/' + x.id), tur: (x.pubTypeList && x.pubTypeList.pubType || []).slice(0, 2).join(', ') };
       });
     });
   }
+  // Tam metin (yalnız açık erişim): Europe PMC fullTextXML. Bölüm başlıkları ve doğrudan paragraflar.
+  function tamMetinGetir(pmcid) {
+    return fetch('https://www.ebi.ac.uk/europepmc/webservices/rest/' + encodeURIComponent(pmcid) + '/fullTextXML').then(function (r) {
+      if (!r.ok) throw new Error('Tam metin ' + r.status);
+      return r.text();
+    }).then(function (xmlTxt) {
+      var xml = new DOMParser().parseFromString(xmlTxt, 'text/xml');
+      var bolumler = [].slice.call(xml.getElementsByTagName('sec')).map(function (s) {
+        var t = [].slice.call(s.childNodes).filter(function (n) { return n.nodeName === 'title'; })[0];
+        var ps = [].slice.call(s.childNodes).filter(function (n) { return n.nodeName === 'p'; }).map(function (p) { return p.textContent.replace(/\s+/g, ' ').trim(); }).filter(function (x) { return x.length > 20; });
+        return { baslik: t ? t.textContent.replace(/\s+/g, ' ').trim() : '', paragraflar: ps };
+      }).filter(function (b) { return b.paragraflar.length; });
+      return { bolumler: bolumler, tumMetin: bolumler.map(function (b) { return (b.baslik ? b.baslik + '\n' : '') + b.paragraflar.join('\n'); }).join('\n\n') };
+    });
+  }
+  // Carvis makaleyi yalnız tam metne dayanarak yorumlar (yapay zekâ anahtarı varsa).
+  function yorumlat(metin, kutu) {
+    kutu.appendChild(el('p', { text: 'Carvis okuyor…' }));
+    if (!U.Y || !U.Y.sample || !U.Y.sample.json) { kutu.appendChild(el('p', { text: 'Yapay zekâ kullanılamıyor (anahtar yok). Bölüm listesini yukarıda okuyabilirsin.' })); return; }
+    var istem = 'Aşağıda bir bilimsel makalenin tam metni var. YALNIZ bu metne dayanarak, Türkçe ve kısa yanıtla: amaç; yöntem; temel bulgular; sınırlılıklar; kanıtı zayıf kalan iddialar; okuyucu için 3 eleştirel soru. Metinde olmayan bilgi ekleme; emin değilsen "metinde yok" yaz. YALNIZ JSON: {"amac":"…","yontem":"…","bulgular":"…","sinirliliklar":"…","zayif":"…","sorular":["…","…","…"]}\n\n + metin.slice(0, 24000) + ';
+    U.Y.sample.json(istem).then(function (j) {
+      kutu.innerHTML = '';
+      [['Amaç', j.amac], ['Yöntem', j.yontem], ['Bulgular', j.bulgular], ['Sınırlılıklar', j.sinirliliklar], ['Zayıf kalan iddialar', j.zayif]].forEach(function (x) {
+        kutu.appendChild(el('p', { text: x[0] + ': ' + String(x[1] || 'metinde yok') }));
+      });
+      (j.sorular || []).slice(0, 3).forEach(function (q, i) { kutu.appendChild(el('p', { text: (i + 1) + '. ' + String(q) })); });
+    }, function () { kutu.appendChild(el('p', { text: 'Yorum alınamadı (anahtar, kota ya da bağlantı).' })); });
+  }
+  function tamMetinKutu(m, kutu) {
+    kutu.hidden = false; kutu.innerHTML = '';
+    kutu.appendChild(el('p', { text: 'Tam metin alınıyor…' }));
+    tamMetinGetir(m.pmcid).then(function (t) {
+      kutu.innerHTML = '';
+      kutu.appendChild(el('p', { text: t.bolumler.length + ' bölüm (açık erişim, yasal kaynak).' }));
+      t.bolumler.slice(0, 40).forEach(function (b) { if (b.baslik) kutu.appendChild(el('p', { class: 'var-etiket', text: '• ' + b.baslik })); });
+      var yorumKutu = el('div'); kutu.appendChild(yorumKutu);
+      kutu.appendChild(el('button', { class: 'dugme kucuk ana', type: 'button', onclick: function () { this.hidden = true; yorumKutu.innerHTML = ''; yorumlat(t.tumMetin, yorumKutu); } }, ['Carvis yorumlasın']));
+    }, function (e) { kutu.innerHTML = ''; kutu.appendChild(el('p', { text: 'Tam metin alınamadı: ' + (e.message || e) })); });
+  }
+  U.makaleTamMetin = tamMetinGetir;
   // İlgi alanlarını tarar: yeni makaleleri kaydeder (günde en çok bir kez, ya da zorla)
   function tara(zorla) {
     return ilgiler().then(function (v) {
@@ -146,6 +186,7 @@
         el('a', { class: 'dugme kucuk', href: m.link, target: '_blank', rel: 'noopener' }, [m.acik ? '📄 Tam metin' : '↗ Makaleyi aç']),
         !m.acik && m.doi ? el('button', { class: 'dugme kucuk', type: 'button', onclick: function () { var b = this; b.disabled = true; b.textContent = 'Aranıyor…';
           ucretsizBul(m.doi).then(function (u) { if (u) { b.textContent = '📄 Ücretsiz sürüm açılıyor'; window.open(u, '_blank', 'noopener'); } else b.textContent = 'Yasal ücretsiz sürüm yok'; }, function () { b.textContent = 'Bulunamadı (bağlantı)'; b.disabled = false; }); } }, ['🔓 Ücretsiz tam metin bul']) : '',
+        m.pmcid ? el('button', { class: 'dugme kucuk ana', type: 'button', onclick: function () { tamMetinKutu(m, ozetKutu); } }, ['📖 Tam metni oku']) : '',
         m.ozet ? el('button', { class: 'dugme kucuk', type: 'button', onclick: function () { ozetKutu.hidden = false; ozetKutu.innerHTML = ''; ozetKutu.appendChild(el('p', { text: m.ozet })); } }, ['Özgün özet']) : ''
       ]),
       ozetKutu]);
