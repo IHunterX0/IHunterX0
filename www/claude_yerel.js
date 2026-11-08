@@ -238,7 +238,7 @@
      sıradakine geçilir; en sonda Gemini + Groq. Her sağlayıcıda birden çok model (kendi içinde de sırayla). */
   var HAZIR_SAGLAYICI = {
     openrouter: { ad: 'OpenRouter (ücretsiz)', taban: 'https://openrouter.ai/api/v1', anahtarYeri: 'openrouter.ai → Keys (kart gerekmez)', ucretsizFiltre: true },
-    github: { ad: 'GitHub Models', taban: 'https://models.github.ai/inference', modelListe: 'https://models.github.ai/catalog/models', anahtarYeri: 'github.com → Settings → Developer settings → Personal access tokens → Fine-grained → izin: Models (read)' },
+    github: { ad: 'GitHub Models', taban: 'https://models.github.ai/inference', modelListe: 'https://models.github.ai/catalog/models', listeBaslik: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, yedekModeller: ['openai/gpt-4.1', 'deepseek/DeepSeek-V3-0324', 'openai/gpt-4o', 'meta/Llama-3.3-70B-Instruct', 'openai/gpt-4.1-mini'], anahtarYeri: 'github.com → Settings → Developer settings → Personal access tokens → Fine-grained → izin: Models (read)' },
     cerebras: { ad: 'Cerebras', taban: 'https://api.cerebras.ai/v1', anahtarYeri: 'cloud.cerebras.ai → API Keys' },
     groq: { ad: 'Groq', taban: 'https://api.groq.com/openai/v1', anahtarYeri: 'console.groq.com → API Keys (ücretsiz)' },
     ozel: { ad: 'Özel (OpenAI uyumlu)', taban: '', anahtarYeri: 'Servisin API adresi (…/v1) ve anahtarı; aşağıdaki Adres alanına yaz' },
@@ -268,9 +268,15 @@
     if (saglayiciNesneleri) return saglayiciNesneleri;
     saglayiciNesneleri = sagListe().filter(function (x) { return x.acik !== false && x.taban && (x.anahtar || x.tur === 'omniroute') && (x.modeller || []).length; }).map(function (x) {
       return { id: x.id, ad: x.ad, api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true,
-        zincir: function () { return x.modeller.slice(0, 4); }, ince: function () {} };
+        zincir: function () { return x.modeller.slice(0, 6); }, ince: function () {} };
     });
     return saglayiciNesneleri;
+  }
+  // Hesapta açık olmayan (404) ya da emekli edilmiş (410) modeli sağlayıcının listesinden kalıcı olarak çıkar.
+  function olduModel(saglayiciId, model) {
+    var l = sagListe(), degisti = false;
+    l.forEach(function (x) { if (x.id === saglayiciId && (x.modeller || []).indexOf(model) >= 0) { x.modeller = x.modeller.filter(function (y) { return y !== model; }); degisti = true; } });
+    if (degisti) sagYaz(l);
   }
   function sagHazir() { var t = Date.now(); return sagNesneleri().filter(function (S) { return !(sagUyku[S.id] > t); }); }
   // Android üzerinden ağ isteği (kullanıcı: OmniRoute tabletin içinde, Termux'ta → http://127.0.0.1:20128).
@@ -335,6 +341,7 @@
           }
           // dakikalık token sınırı (8K/model): Groq kaç saniye sonra açılacağını yazar ("try again in 4.2s")
           if (r.status === 429) { var sn = /try again in ([\d.]+)(ms|s|m)/i.exec(JSON.stringify(j)); var bek = sn ? (+sn[1]) * (sn[2] === 'ms' ? 1 : sn[2] === 'm' ? 60000 : 1000) : 20000; groqDinlen[m] = Date.now() + Math.min(bek + 300, /per day|TPD|RPD/i.test(JSON.stringify(j)) ? 6 * 3600e3 : 120000); }
+          if (S.ek && (r.status === 404 || r.status === 410)) olduModel(S.id, m);
           var e = hata(r.status === 429 ? 'rate_limited' : 'network', S.ad + ' ' + m + ' ' + r.status + ' ' + JSON.stringify(j.error || j).slice(0, 200)); throw e;
         });
       }, function (e) { clearTimeout(zm); throw o && o.signal && o.signal.aborted ? hata('cancelled') : hata('network', S.ad + ': ' + String(e)); })
@@ -425,10 +432,24 @@
       if (!x.taban) return Promise.reject(new Error('Adres boş.'));
       if (!(x.modeller || []).length) return Promise.reject(new Error('Önce "Modelleri getir"e bas ya da model adı yaz.'));
       if (/^http:\/\//i.test(x.taban) && location.protocol === 'https:' && !(K && K.httpIstek)) return Promise.reject(new Error('http adres yalnız cihaz sürümünde çalışır.'));
-      delete sagUyku[x.id]; var t0 = Date.now();
-      return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, sagGecici(x)).then(function (j) {
-        var c = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
-        return 'Bağlandı ✓ (' + (j.model || j._model) + ', ' + (Date.now() - t0) + ' ms): ' + c.slice(0, 60);
+      delete sagUyku[x.id];
+      var modeller = (x.modeller || []).slice(0, 12), olu = [];
+      function sirayla(i) {
+        if (i >= modeller.length) return Promise.reject(new Error('Listedeki modellerin hiçbiri bu hesapta çalışmadı (' + olu.length + ' tanesi kapalı ya da emekli, listeden çıkarıldı). "Modelleri getir"e tekrar bas ya da çalıştığını bildiğin model adını yaz.'));
+        var m = modeller[i], t0 = Date.now();
+        return groqIstek({ messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }], max_tokens: 20, temperature: 0 }, { hafif: true }, sagGecici(Object.assign({}, x, { modeller: [m] }))).then(function (j) {
+          return { m: m, j: j, sure: Date.now() - t0 };
+        }, function (e) {
+          if (/ (404|410) /.test(String(e && e.message || e))) { olu.push(m); return sirayla(i + 1); }
+          throw e;
+        });
+      }
+      return sirayla(0).then(function (r) {
+        var l = sagListe();
+        l.forEach(function (y) { if (y.id === x.id) y.modeller = [r.m].concat((y.modeller || []).filter(function (mm) { return mm !== r.m && olu.indexOf(mm) < 0; })); });
+        sagYaz(l);
+        var c = (r.j.choices && r.j.choices[0] && r.j.choices[0].message && r.j.choices[0].message.content) || '';
+        return 'Bağlandı ✓ (' + r.m + ', ' + r.sure + ' ms)' + (olu.length ? '; çalışmayan ' + olu.length + ' model listeden çıkarıldı' : '') + ': ' + c.slice(0, 60);
       }, function (e) {
         var m = String(e && e.message || e);
         if (/ 401 | 403 /.test(m)) m += ' — anahtar geçersiz ya da izni eksik.';
@@ -439,9 +460,14 @@
     // Model listesini sağlayıcıdan çek; OpenRouter'da yalnız ücretsiz + araç destekli olanlar
     modelleriGetir: function (x) {
       var h = HAZIR_SAGLAYICI[x.tur] || {}, url = h.modelListe || sagAdres(x.taban, 'models');
-      var bas = {}; if (x.anahtar) bas.Authorization = 'Bearer ' + x.anahtar;
+      var bas = Object.assign({}, h.listeBaslik || {}); if (x.anahtar) bas.Authorization = 'Bearer ' + x.anahtar;
       return agIstegi(url, { method: 'GET', headers: bas }, { yerelAg: true }).then(function (r) {
-        return r.json().then(function (j) {
+        return r.text().then(function (t) {
+          var j; try { j = JSON.parse(t); } catch (e) {
+            // Bazı sağlayıcılar (GitHub Models) liste yerine düz "OK" döndürebiliyor: bilinen modellerle devam et
+            if (r.ok && h.yedekModeller) return h.yedekModeller.slice();
+            throw new Error('Model listesi okunamadı (' + r.status + '): sunucu JSON yerine "' + String(t).slice(0, 60) + '" döndürdü. Adres doğru mu?');
+          }
           if (!r.ok) throw new Error('Model listesi alınamadı (' + r.status + '): ' + JSON.stringify(j.error || j).slice(0, 120));
           var l = Array.isArray(j) ? j : (j.data || j.models || []);
           var secilen = l.filter(function (m) {
@@ -450,7 +476,7 @@
           }).map(function (m) { return { id: m.id || m.name, b: +(m.context_length || m.max_input_tokens || (m.limits && m.limits.max_input_tokens) || 0) }; })
             .filter(function (m) { return m.id; });
           // tercih: bilinen güçlü aileler önce, sonra bağlam uzunluğu
-          function puan(m) { var id = m.id.toLowerCase(); return (/nemotron|deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
+          function puan(m) { var id = m.id.toLowerCase(); if (/coder|code-|guard|safety|reward|embed|rerank|vision|-vl|parse|retriever|clip/.test(id)) return 3e9 - m.b; return (/nemotron|deepseek|qwen|llama-?3\.3|llama-?4|gpt-oss|mistral-(large|medium)|gemma-?3|kimi|glm|gpt-4\.1|gpt-4o/.test(id) ? 0 : 1) * 1e9 - m.b; }
           secilen.sort(function (a, b) { return puan(a) - puan(b); });
           return secilen.map(function (m) { return m.id; });
         });

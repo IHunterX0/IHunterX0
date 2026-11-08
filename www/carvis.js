@@ -728,7 +728,7 @@
             taban, anahtar, modeller,
             el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [
               d('⇣ Modelleri getir', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Modeller alınıyor…'; SG.modelleriGetir(x).then(function (m) { if (!m.length) { sonuc.textContent = 'Uygun model bulunamadı.'; return; } x.modeller = m.slice(0, 12); kaydet(); modeller.value = x.modeller.join(', '); sonuc.textContent = m.length + ' uygun model bulundu; ilk ' + x.modeller.length + ' tanesi sıraya alındı.'; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
-              d('🔌 Test', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Deneniyor…'; SG.test(x).then(function (m) { sonuc.textContent = m; }, function (e) { sonuc.textContent = '✗ ' + e.message; }); }),
+              d('🔌 Test', function () { x.anahtar = anahtar.value.trim(); x.taban = taban.value.trim() || x.taban; kaydet(); sonuc.textContent = 'Deneniyor…'; var yenile = function () { var g = SG.liste().filter(function (y) { return y.id === x.id; })[0]; if (g) { x.modeller = g.modeller || []; modeller.value = x.modeller.join(', '); } }; SG.test(x).then(function (m) { yenile(); sonuc.textContent = m; }, function (e) { yenile(); sonuc.textContent = '✗ ' + e.message; }); }),
               i > 0 ? d('↑', function () { var t = SG.liste(); var y = t.splice(i, 1)[0]; t.splice(i - 1, 0, y); SG.yaz(t); sgCiz(); }) : el('span'),
               d('🗑', function () { if (!confirm(x.ad + ' silinsin mi?')) return; var t = SG.liste(); t.splice(i, 1); SG.yaz(t); sgCiz(); })]),
             sonuc]));
