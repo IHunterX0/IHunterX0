@@ -432,7 +432,15 @@
   function sagGecici(x) { return { id: x.id || 'gecici', ad: x.ad || 'Sağlayıcı', api: function () { return sagAdres(x.taban); }, anahtar: function () { return x.anahtar || ''; }, dinlen: {}, anahtarsiz: true, yerelAg: true, ek: true, zincir: function () { return (x.modeller || []).slice(0, 1); }, ince: function () {} }; }
   window.yerelAyar.ag = function (url, o) { return agIstegi(url, o || {}, { yerelAg: true }); }; // genel: Android üzerinden istek (GitHub vb.)
   window.yerelAyar.saglayici = {
-    sohbetModeli: sohbetModeli, hazir: HAZIR_SAGLAYICI, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
+    sohbetModeli: sohbetModeli, hazir: HAZIR_SAGLAYICI,
+    // Belirli bir sağlayıcı + modele doğrudan sor (derin düşünme modu birkaç modeli ayrı ayrı çağırır). Dönüş: düz metin.
+    sor: function (x, mesajlar, o) {
+      o = o || {};
+      return groqIstek({ messages: mesajlar, max_tokens: o.max_tokens || 1400, temperature: o.temperature == null ? 0.4 : o.temperature }, { signal: o.signal, zamanAsimi: o.zamanAsimi || 60000 }, sagGecici(x)).then(function (j) {
+        var c = (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+        return String(c).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      });
+    }, liste: sagListe, yaz: sagYaz, adres: sagAdres, sonHata: function (id) { return sagSonHata[id] || ''; },
     // Bağlantı testi: ilk modelle kısa bir istek
     test: function (x, ilerle) {
       if (!x.taban) return Promise.reject(new Error('Adres boş.'));

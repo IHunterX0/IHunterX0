@@ -155,8 +155,11 @@
   var akis = el('div', { class: 'cv-akis', 'aria-live': 'polite' });
   var yaziGir = el('input', { type: 'text', placeholder: 'Yaz ya da konuş…', 'aria-label': 'Carvis\'e yaz' });
   var uyandirmaDug = el('button', { class: 'dugme kucuk', type: 'button', 'aria-pressed': 'false', title: '"Carvis" deyince uyansın' }, ['👂 Uyandırma']);
+  // Derin düşünme (r144): sıradaki soru birkaç modele birlikte düşündürülür (derin.js)
+  var derinDug = el('button', { class: 'dugme kucuk', type: 'button', 'aria-pressed': 'false', title: 'Sıradaki soruyu birkaç yapay zekâya birlikte düşündür (fikir takası; daha yavaş, daha çok kota)', onclick: function () { Carvis._derinTek = !Carvis._derinTek; derinDugGuncelle(); if (Carvis._derinTek) yaziGir.focus(); } }, ['🧠 Derin']);
+  function derinDugGuncelle() { derinDug.setAttribute('aria-pressed', Carvis._derinTek ? 'true' : 'false'); derinDug.classList.toggle('ana', !!Carvis._derinTek); }
   var balon = el('div', { class: 'cv-balon', hidden: true, role: 'dialog', 'aria-label': 'Carvis' }, [
-    el('div', { class: 'cv-ust' }, [el('b', { text: 'CARVIS' }), durumEl, uyandirmaDug,
+    el('div', { class: 'cv-ust' }, [el('b', { text: 'CARVIS' }), durumEl, uyandirmaDug, derinDug,
       el('button', { class: 'ikon-dugme', type: 'button', 'aria-label': 'Carvis ayarları', title: 'Kişiselleştir', onclick: function () { ayarPaneli(); } }, ['⚙']),
       el('button', { class: 'ikon-dugme', type: 'button', 'aria-label': 'Kapat', onclick: function () { Carvis.kapat(true); balon.hidden = true; } }, ['✕'])]),
     sahne, akis,
@@ -968,6 +971,19 @@
       Carvis.gecmis.push({ role: 'user', content: alt.length ? t + ' [olası: ' + alt.join(' | ') + ']' : t });
       Carvis.ctl = new AbortController();
       if (!Y.sample) { cev.innerHTML = '<p class="hata-metni">Yapay zekâ yok.</p>'; return Promise.resolve(); }
+      var DERIN = /^\s*derin(ce)?\s*(düşün|dusun)?\s*[:,\-]?\s+/i;
+      if (window.CarvisDerin && (Carvis._derinTek || DERIN.test(t))) {
+        var dt = t.replace(DERIN, '') || t; Carvis._derinTek = false; derinDugGuncelle();
+        var sg = Carvis.gecmis[Carvis.gecmis.length - 1]; if (sg && sg.role === 'user' && dt !== t) sg.content = dt;
+        return window.CarvisDerin.calistir(dt, { signal: Carvis.ctl.signal, ilerle: function (m) { cev.innerHTML = '<div class="yukleniyor">' + U.esc(m) + '</div>'; durum(m); } }).then(function (r) {
+          Carvis.gecmis.push({ role: 'assistant', content: r.metin });
+          cev.innerHTML = U.mdHtml(r.metin);
+          cev.appendChild(window.CarvisDerin.ayrinti(r));
+          cev.appendChild(el('span', { class: 'etiket-kucuk ai', text: 'AI üretimi · derin düşünme (' + r.modeller.length + ' model, ' + r.tur + ' tur' + (r.kitap ? ', kitap dayanaklı' : '') + ')' }));
+          akis.scrollTop = akis.scrollHeight; durum('');
+          return yazili && !Carvis.acik ? null : Carvis.soyle(r.metin);
+        }).catch(function (e) { cev.innerHTML = ''; cev.appendChild(el('p', { class: 'hata-metni', text: String(e && e.message || e) })); durum(''); });
+      }
       var cihazIsi = /spotify|ruh hal|moduma|şarkı|müzik|patlat|playlist|çalma listesi|\bçal\b|\baç\b.*(uygulama|youtube|ayarlar|kamera)|whatsapp|mesaj|\bara\b|arayayım|kayıt|ses(i|ini)? |%\s*\d|pomodoro|zamanlayıcı|hatırla|unut/i.test(t) && !/kitap|bölüm|sayfa|anatomi|biyokimya|biyofizik|istatistik|kemik|kas |molekül|enzim/i.test(t);
       var gecmis = Carvis.gecmis.slice(-4).map(function (m) { return m.role === 'assistant' && m.content.length > 450 ? { role: m.role, content: m.content.slice(0, 450) + '…' } : m; });
       var tumAraclar = araclar();
