@@ -17,13 +17,28 @@
       POZ = /(süper|harika|teşekkür|sağ ?ol|mükemmel|aynen|çok iyi|güzel|tamamdır|eline sağlık|anladım)/i;
 
   function bos() { return { acik: true, kayit: [], okunan: [], gun: { t: '', n: 0 }, son: 0, sira: {}, ornek: [], uslup: [], hata: [], uslupT: 0, konular: [], konuT: 0, sonDurum: '',
-    kural: [], evrimLog: [], evrimT: 0, evrimSira: 0, okunanAI: [], sinyal: { p: 0, n: 0, c: 0 } }; }
+    kural: [], evrimLog: [], evrimT: 0, evrimSira: 0, okunanAI: [], sinyal: { p: 0, n: 0, c: 0 }, siklik: 'surekli', turSay: 0, bildirT: 0 }; }
   function yukle() { try { return Object.assign(bos(), JSON.parse(localStorage.getItem(ANAHTAR) || '{}')); } catch (e) { return bos(); } }
   function kaydet() { try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {} dinleyici.forEach(function (f) { try { f(); } catch (e) {} }); }
+  // Kullanıcı, 2026-11-08: "kendini geliştirmeyi otomatik yapsın boştayken" → varsayılan sürekli: her boşlukta öncelik evrim
+  var SIKLIK = { surekli: { gun: 12, ara: 20, evrimSaat: 0 }, gunluk: { gun: GUN_TAVAN, ara: ARA_DK, evrimSaat: EVRIM_SAAT } };
+  function ayar() { return SIKLIK[D.siklik] || SIKLIK.surekli; }
+  function arkaPlanAcik() { try { var K = window.AndroidKopru; return !!(K && K.arkaPlanMi && K.arkaPlanMi()); } catch (e) { return false; } }
   function bugun() { return new Date().toDateString(); }
   function durum(m) { D.sonDurum = m; kaydet(); }
 
-  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (t) { window.addEventListener(t, function () { sonEtkin = Date.now(); }, { passive: true, capture: true }); });
+  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (t) { window.addEventListener(t, function () { sonEtkin = Date.now(); bildir(); }, { passive: true, capture: true }); });
+  // Sen yokken kendini değiştirdiyse, döndüğünde tek seferlik haber ver
+  function bildir() {
+    if (calisiyor) return;
+    var yeni = D.evrimLog.filter(function (x) { return x.t > D.bildirT && (x.tur === 'benimsendi' || x.tur === 'geri_alindi'); });
+    var oku = D.kayit.filter(function (x) { return x.t > D.bildirT; }).length;
+    if (!yeni.length && !oku) return;
+    D.bildirT = Date.now(); kaydet();
+    var b = yeni.filter(function (x) { return x.tur === 'benimsendi'; }).length, g = yeni.length - b;
+    var m = '🧬 Sen yokken: ' + [b ? b + ' yeni kural benimsedim' : '', g ? g + ' kuralı geri aldım' : '', oku ? oku + ' makale okudum' : ''].filter(Boolean).join(', ') + '. Ayrıntı: Carvis ayarları → Boştayken.';
+    if (U.toast) U.toast(m);
+  }
 
   // Carvis'e yazdıklarını (yalnız senin mesajların) üslup öğrenmek için biriktir
   function orneklerTopla() {
@@ -260,11 +275,13 @@
   function tur(zorla, tip) {
     if (calisiyor) return Promise.resolve(null);
     if (D.gun.t !== bugun()) D.gun = { t: bugun(), n: 0 };
-    if (!zorla && D.gun.n >= GUN_TAVAN) return Promise.resolve(null);
-    calisiyor = true; D.son = Date.now(); D.gun.n += 1; kaydet();
+    if (!zorla && D.gun.n >= ayar().gun) return Promise.resolve(null);
+    calisiyor = true; D.son = Date.now(); D.gun.n += 1; if (!zorla) D.turSay += 1; kaydet();
     return aiHazir().then(function (ok) {
       if (!ok) { durum('Yapay zekâ bağlı değil; ayarlardan bir sağlayıcı ekle.'); return null; }
-      if (tip === 'evrim' || (!tip && Date.now() - D.evrimT > EVRIM_SAAT * 3600e3)) return evrimTuru();
+      // sürekli: üç turdan ikisi evrim, biri sana özel okuma/üslup; günde bir: 20 saatte bir evrim
+      var evrimSirasi = D.siklik === 'gunluk' ? Date.now() - D.evrimT > EVRIM_SAAT * 3600e3 : D.turSay % 3 !== 0;
+      if (tip === 'evrim' || (!tip && evrimSirasi)) return evrimTuru();
       var uslupZamani = tip === 'uslup' || (!tip && D.ornek.length >= 6 && Date.now() - D.uslupT > USLUP_GUN * 864e5);
       return (uslupZamani ? uslupTuru() : konuKesfet().catch(function () {}).then(okumaTuru));
     }).catch(function (e) { durum('Bu tur olmadı: ' + String(e && e.message || e).slice(0, 120)); return null; })
@@ -273,10 +290,10 @@
 
   function kontrol() {
     orneklerTopla(); geriAlKontrol();
-    if (!D.acik || calisiyor || document.hidden || navigator.onLine === false) return;
+    if (!D.acik || calisiyor || (document.hidden && !arkaPlanAcik()) || navigator.onLine === false) return;
     if (window.Carvis && window.Carvis.acik) return;
     var simdi = Date.now();
-    if (simdi - sonEtkin < BOS_DK * 60e3 || simdi - D.son < ARA_DK * 60e3) return;
+    if (simdi - sonEtkin < BOS_DK * 60e3 || simdi - D.son < ayar().ara * 60e3) return;
     tur(false);
   }
   setInterval(kontrol, 60000);
@@ -329,9 +346,14 @@
       kutu.appendChild(el('h4', { text: '🧠 Boştayken kendini geliştirme' }));
       var ac = el('input', { type: 'checkbox', checked: D.acik ? true : null });
       ac.addEventListener('change', function () { D.acik = ac.checked; kaydet(); });
-      kutu.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0' }, [ac, 'Uygulama açıkken ' + BOS_DK + ' dk dokunmazsan kendini geliştirsin: günde bir kez yapay zekâ araştırması okuyup kendine kural yazar ve sınar; diğer turlarda senin konularında makale okur, üslubunu öğrenir (günde en çok ' + GUN_TAVAN + ' tur, hafif model)']));
+      kutu.appendChild(el('label', { style: 'display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0' }, [ac, 'Otomatik: ' + BOS_DK + ' dk dokunmazsan kendiliğinden yapay zekâ araştırması okur, kendine kural yazar, sınar ve kazananı benimser; arada senin konularında makale okur ve üslubunu öğrenir (hafif model)']));
+      var sk = el('select', { style: 'background:var(--zemin);border:1px solid var(--cizgi);border-radius:6px;color:var(--metin);padding:6px 8px' });
+      [['surekli', 'Sürekli (varsayılan): her boşlukta, ' + SIKLIK.surekli.ara + ' dk arayla, günde en çok ' + SIKLIK.surekli.gun + ' tur; üç turdan ikisi kendini geliştirme'], ['gunluk', 'Az: günde bir kez kendini geliştirme, en çok ' + GUN_TAVAN + ' tur (kota dostu)']].forEach(function (x) { sk.appendChild(el('option', { value: x[0], text: x[1], selected: D.siklik === x[0] ? true : null })); });
+      sk.addEventListener('change', function () { D.siklik = sk.value; kaydet(); ciz(); });
+      kutu.appendChild(el('label', { style: 'display:grid;gap:4px;margin:6px 0;font-size:13px' }, ['Sıklık', sk]));
+      if (arkaPlanAcik()) kutu.appendChild(el('p', { class: 'var-etiket', text: 'Arka planda dinleme açık: uygulama arkadayken de turlar denenir (Android izin verdiği sürece).' }));
       var gn = D.gun.t === bugun() ? D.gun.n : 0;
-      kutu.appendChild(el('p', { class: 'var-etiket', text: 'Bugün ' + gn + '/' + GUN_TAVAN + ' tur' + (D.sonDurum ? ' · ' + D.sonDurum : '') }));
+      kutu.appendChild(el('p', { class: 'var-etiket', text: 'Bugün ' + gn + '/' + ayar().gun + ' tur' + (D.sonDurum ? ' · ' + D.sonDurum : '') }));
       if (D.uslup.length || D.hata.length) kutu.appendChild(el('p', { style: 'font-size:13px;margin:6px 0' }, ['Öğrendiğim üslup: ' + D.uslup.concat(D.hata.map(function (h) { return 'yapma: ' + h; })).join(' · ')]));
       var sonuc = el('span', { class: 'var-etiket' });
       kutu.appendChild(el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin:6px 0' }, [
